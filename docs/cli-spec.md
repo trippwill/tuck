@@ -8,10 +8,10 @@ This document is the source of truth for the CLI **and** its internal resolution
 algorithms — it is fully self-contained. [§12](#12-resolution-algorithms)
 specifies the path primitives, source/package resolution, package-entry
 enumeration, ownership inference, conflict rules, and operation algorithms
-normatively. The historical draft
-[`resolution-algorithms.md`](../resolution-algorithms.md) is non-authoritative
-input only; where it and this spec disagree, **this spec wins** (see
-[Appendix B](#appendix-b--relationship-to-the-draft)).
+normatively. It supersedes an earlier exploratory draft
+(`resolution-algorithms.md`, since removed); see
+[Appendix B](#appendix-b--relationship-to-the-draft) for the deliberate changes
+made relative to that draft.
 
 `tuck` is a Go dotfiles manager that replaces the legacy `d.*` zsh
 aliases/functions. It maps package directories onto real target directories,
@@ -30,7 +30,7 @@ algorithms are in [§12](#12-resolution-algorithms).
   and an `enabled` flag. ([§12.1](#121-contexts-bases-and-identities))
 - **Target context** — selects where package entries appear:
   - `home`: package base `<source.path>`, target root `$HOME` (default). (The
-    draft `resolution-algorithms.md` calls this context `user`; see
+    earlier draft called this context `user`; see
     [Appendix B](#appendix-b--relationship-to-the-draft).)
   - `root`: package base `<source.path>/.root`, target root `/`.
 
@@ -1280,8 +1280,8 @@ error: 1 conflict; nothing was changed
 ## Appendix B — Relationship to the draft
 
 This spec **redesigns the CLI surface from first principles**; the CLI sketch in
-`resolution-algorithms.md` is non-authoritative input only. Deliberate
-overrides:
+the earlier `resolution-algorithms.md` draft (since removed) was
+non-authoritative input only. Deliberate overrides:
 
 1. **Command names.** `link/unlink/relink/capture/release` →
    `deploy/undeploy/redeploy/adopt/eject`. The two verb sets are now
@@ -1350,5 +1350,6 @@ translated into the current vocabulary (`deploy`/`undeploy`/`redeploy`/`adopt`/
 preserved except for source/package-ref **resolution**, which is replaced by the
 single-active-source model ([§3.2](#32-source-selection),
 [§6](#6-package-references), [§12.3](#123-source-and-package-resolution)): no
-cross-source search and no "ambiguous package" case. `resolution-algorithms.md`
-is retained only as a historical draft and is no longer referenced normatively.
+cross-source search and no "ambiguous package" case. The original
+`resolution-algorithms.md` draft has been removed now that its content lives
+here.
