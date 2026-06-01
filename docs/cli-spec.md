@@ -514,15 +514,30 @@ Collision and deduplication rules:
 
 ### 8.1 Privilege (root context)
 
-`tuck` never silently self-escalates. For `root`-context commands whose
-conflict-free plan contains **actions that would write** under the root context
-(`mkdir`, `symlink`, `remove_symlink`, `move`):
+`tuck` never silently self-escalates. Privilege is decided by a **preflight
+check**, before any mutation, and is **separate** from where the root context's
+filesystem writes land. It is not inferred from whether the target root happens
+to be writable: a root-context plan may touch read-only subtrees, and
+`remove_symlink`/`move` depend on parent directories rather than the root
+itself.
 
-- The plan output marks that elevated privileges are required.
-- When `--apply` is requested but the process lacks the privilege to perform
-  those mutations, `tuck` prints the plan, performs no mutation, and exits `5`,
-  instructing the user to re-run under `sudo`. A plan-only run (no `--apply`)
-  only marks the requirement and exits `0`.
+For `root`-context commands whose conflict-free plan contains **actions that
+would write** under the root context (`mkdir`, `symlink`, `remove_symlink`,
+`move`):
+
+- The plan is **marked** as requiring privilege (`privilege.required`, §9.2.1).
+  The marker is informational and tied to the context and action set; it does
+  not by itself imply the command cannot apply.
+- A separate **preflight predicate** determines whether the process is
+  privileged to perform those mutations (`privilege.satisfied`). In production
+  this is the process privilege (e.g. effective uid `0`, or the equivalent
+  capability).
+- When `--apply` is requested, `required` is true, and `satisfied` is false,
+  `tuck` prints the plan, **performs no mutation**, and exits `5`, instructing
+  the user to re-run under `sudo`. Because the check is preflight, exit `5`
+  always leaves the target tree untouched; a filesystem error encountered *after*
+  mutation has begun is exit `6` (§10), never `5`.
+- A plan-only run (no `--apply`) only marks the requirement and exits `0`.
 - A conflict-free plan with **no** write actions (a complete no-op), any
   plan-only run, and all read-only commands never require privilege.
 
@@ -601,7 +616,7 @@ else. Envelope:
     "dryRun": true,
     "applied": false,
     "packages": ["public:home:zsh"],
-    "privilege": { "required": false },
+    "privilege": { "required": false, "satisfied": true },
     "actions": [
       { "type": "mkdir", "path": "/home/me/.config/zsh" },
       {
@@ -633,7 +648,7 @@ A conflict object:
 When conflicts are non-empty, `applied` is `false` and `exitCode` is `1`.
 
 **Privilege-required (exit `5`).** `kind` stays `"plan"`; the plan is conflict-
-free but not applied:
+free but not applied because `required` is true and `satisfied` is false:
 
 ```json
 {
@@ -643,13 +658,25 @@ free but not applied:
     "dryRun": false,
     "applied": false,
     "packages": ["public:root:sshd"],
-    "privilege": { "required": true, "reason": "root-context write requires elevated privileges" },
+    "privilege": { "required": true, "satisfied": false, "reason": "root-context write requires elevated privileges" },
     "actions": [ { "type": "symlink", "linkPath": "/etc/ssh/sshd_config", "payload": "…", "target": "…" } ],
     "conflicts": []
   },
   "exitCode": 5
 }
 ```
+
+The `privilege` object reports the preflight policy (§8.1):
+
+- `required` — boolean; the context is `root` and the plan contains write
+  actions. Informational; present (as `false`) on every plan.
+- `satisfied` — boolean; whether the preflight privilege predicate passed.
+  Present whenever `required` is `true`.
+- `reason` — string; included when `required` is `true`.
+
+Exit `5` occurs exactly when `--apply` is given, `required` is `true`, and
+`satisfied` is `false`. A root-context apply with `satisfied: true` proceeds
+normally (`applied: true`, exit `0`).
 
 **Runtime failure during apply (exit `6`).** `kind` stays `"plan"`; mutation
 started but an action failed. `applied` is `false`, `completedActions` counts
