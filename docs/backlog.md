@@ -23,31 +23,33 @@ _Goal: manage my own dotfiles daily on one machine — single source, both `home
 and `root` contexts, plan-by-default with `--apply`._
 
 1. **M1** Scaffold the Go module and command framework `[eng]`
-2. **M2** Stand up the `testscript` acceptance harness + unit-test scaffolding (build-tag–gated test hooks, isolated `$WORK` filetree, `readlink`/`wantexit` custom commands) — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
-3. **M3** Discover the config file (`--config` / `$TUCK_CONFIG` / XDG default) `[engine]`
-4. **M4** Parse the TOML config (sources, `[defaults]`) `[engine]`
-5. **M5** Validate config at startup (≥1 enabled source, unique ids, roots exist) `[engine]`
-6. **M6** Resolve the active source (sole enabled source / `[defaults].source`) `[engine]`
+2. **M2** Stand up the `testscript` acceptance harness + unit-test scaffolding (build-tag–gated test hooks, isolated `$WORK` filetree, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit` custom commands) — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
+3. **M3** Read and validate a repository manifest (`<repo>/tuck.toml`: required `name`, optional `description`; ignore unknown keys) `[engine]`
+4. **M4** Discover and load machine-local source state (`${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml`; `TUCK_TEST_STATE_DIR` override) `[engine]`
+5. **M5** Validate machine state (unique enabled ids, ≤1 default, roots exist, **no overlapping roots**, readable manifests) `[engine]`
+6. **M6** Resolve the active source: `--source <id|path>` (path-vs-id rule, ad-hoc path validates `tuck.toml` + overlap) → machine default → sole enabled source → `no_source` (exit 3) `[engine]`
 7. **M7** Parse and validate a plain package reference `[engine]`
 8. **M8** Convert package paths to target paths (and back), path-segment-aware `[engine]`
-9. **M9** Enumerate a package's leaf and directory entries `[engine]`
+9. **M9** Enumerate a package's leaf and directory entries (skip the reserved `.root` dir and `tuck.toml`) `[engine]`
 10. **M10** Resolve an existing package in the active source and context `[engine]`
 11. **M11** Classify a target path (absent / real file / dir / symlink / managed) `[engine]`
-12. **M12** Infer the owning package of a managed symlink `[engine]`
+12. **M12** Infer the owning package of a managed symlink **in the active source only** `[engine]`
 13. **M13** Detect deploy and directory conflicts `[engine]`
 14. **M14** Build a complete action plan before any mutation `[engine]`
 15. **M15** Render a human-readable plan (plan / conflicts / summary) `[output]`
-16. **M16** Return meaningful exit codes (ok / conflict / usage / config / privilege / runtime) `[output]`
+16. **M16** Return meaningful exit codes (ok / conflict / usage / config-state / resolution / privilege / runtime) `[output]`
 17. **M17** Show actionable error messages with hints `[output]`
 18. **M18** Apply a conflict-free plan only when `--apply` is given (dry-run by default) `[engine]`
-19. **M19** `deploy` a package's entries into the target tree `[cmd]`
-20. **M20** `status` of a package's entries and of a single target path (`--path`) `[cmd]`
-21. **M21** `undeploy` a package's managed symlinks `[cmd]`
-22. **M22** `adopt` a real file into a package and link it back `[cmd]`
-23. **M23** `eject` a managed file back to its target location `[cmd]`
-24. **M24** Operate in the `root` context (`--root`, package base `.root`, target `/`) with preflight privilege; exit `5`; never self-escalate `[cmd]`
-25. **M25** Root-context tests via the physical-root seam (`TUCK_TEST_ROOT_DIR`) with logical-path goldens; deterministic privilege tests via the injected predicate (`TUCK_TEST_PRIVILEGE`), covering exit 5 vs exit 6 `[test]`
-26. **M26** Build and run on the developer's platform `[eng]`
+19. **M19** `source enable <path> [--default] [--as <id>]` — read manifest, atomic machine-state write, collision handling `[cmd]`
+20. **M20** `source list` — list enabled sources (id / path / default) `[cmd]`
+21. **M21** `deploy` a package's entries into the target tree `[cmd]`
+22. **M22** `status` of a package's entries and of a single target path (`--path`, active-source ownership) `[cmd]`
+23. **M23** `undeploy` a package's managed symlinks `[cmd]`
+24. **M24** `adopt` a real file into a package and link it back `[cmd]`
+25. **M25** `eject` a managed file back to its target location (active-source ownership; `--source` valid) `[cmd]`
+26. **M26** Operate in the `root` context (`--root`, package base `.root`, target `/`) with preflight privilege; exit `5`; never self-escalate `[cmd]`
+27. **M27** Root-context tests via the physical-root seam (`TUCK_TEST_ROOT_DIR`) with logical-path goldens; deterministic privilege tests via the injected predicate (`TUCK_TEST_PRIVILEGE`), covering exit 5 vs exit 6 `[test]`
+28. **M28** Build and run on the developer's platform `[eng]`
 
 <!-- ===================== MVP CUTOFF ===================== -->
 
@@ -60,22 +62,24 @@ distributed builds, and docs._
 
 1. **R1** Redeploy a package (refresh + normalize link payloads) `[cmd]`
 2. **R2** List packages in the active source (`packages`) `[cmd]`
-3. **R3** Show a package's file tree, and all packages (`tree`) `[cmd]`
-4. **R4** Print global and per-command help/usage text `[output]`
-5. **R5** Expose the full exit-code taxonomy and structured error envelope `[output]`
-6. **R6** Report `multiple_providers` / `mismatch` / `owned_by_other` in status `[cmd]`
-7. **R7** Emit stable, versioned JSON for every command (`--json`) `[output]`
-8. **R8** JSON golden tests for every envelope `kind` (plan/packages/tree/status/error) `[test]`
-9. **R9** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
-10. **R10** Acceptance coverage for each non-zero exit code and each conflict rule `[test]`
-11. **R11** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
-12. **R12** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
-13. **R13** Enforce lint/format gates in CI `[build]`
-14. **R14** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
-15. **R15** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
-16. **R16** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
-17. **R17** Write a README with installation and quickstart `[docs]`
-18. **R18** Publish a documentation website (spec, guides, worked examples) `[docs]`
+3. **R3** Show a package's file tree, and all packages in the active source (`tree`) `[cmd]`
+4. **R4** `source disable <id|path>` — disable a source in machine state `[cmd]`
+5. **R5** Interactive first-run init on `no_source`: prompt for a repo path and run `source enable` (TTY only; non-interactive still errors) `[cmd]`
+6. **R6** Print global and per-command help/usage text `[output]`
+7. **R7** Expose the full exit-code taxonomy and structured error envelope `[output]`
+8. **R8** Report `multiple_providers` / `mismatch` / `owned_by_other` in status `[cmd]`
+9. **R9** Emit stable, versioned JSON for every command, including `source` (`--json`) `[output]`
+10. **R10** JSON golden tests for every envelope `kind` (plan/packages/tree/status/sources/error) `[test]`
+11. **R11** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
+12. **R12** Acceptance coverage for each non-zero exit code and each conflict rule `[test]`
+13. **R13** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
+14. **R14** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
+15. **R15** Enforce lint/format gates in CI `[build]`
+16. **R16** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
+17. **R17** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
+18. **R18** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
+19. **R19** Write a README with installation and quickstart `[docs]`
+20. **R20** Publish a documentation website (spec, guides, worked examples) `[docs]`
 
 <!-- ================= FIRST RELEASE CUTOFF ================= -->
 
@@ -85,16 +89,16 @@ distributed builds, and docs._
 
 _Unordered idea bucket; IDs are for reference only._
 
-1. **P1** Operate across multiple sources: select with `--source` and configure `[defaults].source`; list/tree across all enabled sources `[cmd]`
-2. **P2** Add a `prune` / `doctor` command (empty dirs, mismatch diagnosis) `[cmd]`
-3. **P3** Support nested package names `[engine]`
-4. **P4** Allow user-configurable contexts beyond `home`/`root` `[engine]`
-5. **P5** Make the apply/plan default configurable (`[defaults].apply`) and reintroduce `--dry-run` `[cmd]`
-6. **P6** Add a config `init` command to scaffold `config.toml` `[cmd]`
-7. **P7** Generate shell completions (bash/zsh/fish) `[cmd]`
-8. **P8** Generate man pages `[docs]`
-9. **P9** Provide an `adopt`-on-conflict shortcut from a `deploy` conflict `[cmd]`
-10. **P10** Add commands to enable/disable sources `[cmd]`
-11. **P11** Re-introduce verbose/quiet output modes if needed `[output]`
-12. **P12** Explore Windows support `[eng]`
-13. **P13** Explore a watch / auto-redeploy mode `[cmd]`
+1. **P1** Add a `prune` / `doctor` command (empty dirs, mismatch diagnosis) `[cmd]`
+2. **P2** Support nested package names `[engine]`
+3. **P3** Allow user-configurable contexts beyond `home`/`root` `[engine]`
+4. **P4** Make the apply/plan default configurable (machine-local preference) and reintroduce `--dry-run` `[cmd]`
+5. **P5** Add a `source init` command to scaffold a repo `tuck.toml` manifest `[cmd]`
+6. **P6** Generate shell completions (bash/zsh/fish) `[cmd]`
+7. **P7** Generate man pages `[docs]`
+8. **P8** Provide an `adopt`-on-conflict shortcut from a `deploy` conflict `[cmd]`
+9. **P9** Re-introduce verbose/quiet output modes if needed `[output]`
+10. **P10** Explore Windows support `[eng]`
+11. **P11** Explore a watch / auto-redeploy mode `[cmd]`
+12. **P12** Add a machine-local source-id override (e.g. `source enable --id <id>`) to resolve manifest-name collisions between repos `[cmd]`
+13. **P13** Optionally prune now-empty intermediate directories left behind after `undeploy` / `eject` `[cmd]`

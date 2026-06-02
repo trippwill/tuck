@@ -13,8 +13,8 @@ document is authoritative for **how that behavior is tested**.
   end to end — exit code, stdout, and the resulting filesystem — not internal
   Go APIs.
 - **Isolated filetree.** Each test runs against a throwaway temp tree (a fake
-  `$HOME`, source directories, a generated config). Tests never read or write
-  the developer's real home, real `/`, or real config.
+  `$HOME`, a source repo, generated machine state). Tests never read or write
+  the developer's real home, real `/`, or real machine state.
 - **Deterministic.** Same inputs ⇒ identical bytes out. No dependence on the
   host environment, locale, umask, clock, or ordering.
 
@@ -39,8 +39,8 @@ stdout":
   program** (the test binary dispatches to `main`); scripts never pick up a
   `tuck` from `$PATH`.
 - Each script (`testdata/script/*.txtar`) gets a fresh `$WORK` temp directory.
-- A txtar archive carries the input tree (source packages, config) and golden
-  files inline.
+- A txtar archive carries the input tree (source repo + `tuck.toml`, machine
+  state) and golden files inline.
 - `testscript` automatically scrubs `$WORK` from output before golden
   comparison, so absolute temp paths don't leak into goldens.
 
@@ -73,7 +73,7 @@ exposed **only** through code compiled under the `tuck_testhooks` build tag:
   exit code is `N`. The builtin `! tuck …` only asserts *non-zero*, which is
   insufficient for distinguishing `1`/`4`/`5`/`6`.
 - `wanthome` / `wantroot` — convenience setup that scaffolds the fake `$HOME`
-  (or root backing tree) and a config file.
+  (or root backing tree), a source repo manifest, and machine-local state.
 
 > JSON tests can alternatively assert the envelope's `exitCode` field
 > ([§9.2](./cli-spec.md#92-json-output)), which mirrors the process code, by
@@ -87,10 +87,12 @@ Each script builds a sandbox under `$WORK`:
 $WORK/
   home/                 # fake $HOME (home-context target root)
   root/                 # fake physical backing root (root-context only; see §5)
-  src/                  # a source directory
+  src/                  # a source repo
+    tuck.toml           # committed manifest; name = "public"
     zsh/.zshrc          # a home-context package
     .root/sshd/etc/...  # a root-context package (base is <source>/.root)
-  config.toml           # generated; [sources.public] path = $WORK/src
+  state/                # machine-local state dir (TUCK_TEST_STATE_DIR)
+    tuck/sources.toml   # generated; [[source]] path = $WORK/src, default
 ```
 
 Every script **creates `$HOME` itself** (the tool must not be relied on to
@@ -99,7 +101,8 @@ create the target root) and sets a scrubbed environment:
 | Variable | Value | Why |
 | --- | --- | --- |
 | `HOME` | `$WORK/home` | home-context target root |
-| `TUCK_CONFIG` | `$WORK/config.toml` | deterministic config discovery |
+| `TUCK_TEST_STATE_DIR` | `$WORK/state` | deterministic machine-state discovery (build tag `tuck_testhooks`) |
+| `XDG_STATE_HOME` | `$WORK/state` | prevent fallback to a real XDG state path |
 | `XDG_CONFIG_HOME` | `$WORK/xdg` | prevent fallback to a real XDG path |
 | `NO_COLOR` | `1` | stable output (tests also pass `--no-color`) |
 | `TERM` | `dumb` | no terminal escape sequences |
@@ -225,14 +228,14 @@ mutation. The no-mutation guarantee is itself a first-class assertion.
 - One script per conflict rule in
   [§12.6](./cli-spec.md#126-conflict-rules).
 - JSON variants for at least one representative of each `kind`
-  (`plan`/`packages`/`tree`/`status`/`error`).
+  (`plan`/`packages`/`tree`/`status`/`sources`/`error`).
 
 ## 8. Example (home deploy, red→green)
 
 ```
 # deploy_home.txtar
 env HOME=$WORK/home
-env TUCK_CONFIG=$WORK/config.toml
+env TUCK_TEST_STATE_DIR=$WORK/state
 mkdir $WORK/home
 
 # plan only: nothing changes
@@ -244,10 +247,15 @@ wantexit 0 tuck deploy zsh --apply --no-color
 exists $WORK/home/.zshrc
 readlink $WORK/home/.zshrc $WORK/src/zsh/.zshrc
 
--- config.toml --
-[sources.public]
+-- src/tuck.toml --
+name = "public"
+
+-- state/tuck/sources.toml --
+[[source]]
 path = "$WORK/src"
+id = "public"
 enabled = true
+default = true
 
 -- src/zsh/.zshrc --
 # zshrc contents
