@@ -8,10 +8,11 @@ Derived from [`cli-spec.md`](./cli-spec.md).
 **Ordering.** The MVP opens with a **red/green foundation** — the harness and a
 failing first contract suite (M1) before the CLI skeleton that turns it green
 (M2) — then proceeds as **thin vertical slices** (`Vertical A…F`): each slice
-builds only the engine pieces its command needs, then the command, then its
+covers only the engine pieces its command needs plus the command itself, with its
 acceptance suite — so a working command lands early and often instead of after a
 long bottom-up engine phase. Within a slice, stories still follow build
-dependency. Each story has a stable, milestone-prefixed **ID** (`M#`/`R#`/`P#`)
+dependency, and each story is built test-first (below). Each story has a stable,
+milestone-prefixed **ID** (`M#`/`R#`/`P#`)
 for reference in commits and task breakdowns, and an **area tag** (`[engine]`
 core logic · `[cmd]` command · `[output]` UX/format · `[eng]` project/build
 plumbing · `[build]` release/distribution · `[test]` tests · `[docs]`
