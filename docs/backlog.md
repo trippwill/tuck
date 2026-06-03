@@ -5,19 +5,20 @@ always the next one you can build. Stories are grouped into three milestones;
 horizontal rules mark the **MVP cutoff** and the **First Release cutoff**.
 Derived from [`cli-spec.md`](./cli-spec.md).
 
-**Ordering.** After a small foundation (module + harness), the MVP is sequenced
-as **thin vertical slices** (`Vertical A…F`): each slice builds only the engine
-pieces its command needs, then the command, then its acceptance suite — so a
-working command lands early and often instead of after a long bottom-up engine
-phase. Within a slice, stories still follow build dependency. Each story has a
-stable, milestone-prefixed **ID** (`M#`/`R#`/`P#`) for reference in commits and
-task breakdowns, and an **area tag** (`[engine]` core logic · `[cmd]` command ·
-`[output]` UX/format · `[eng]` project/build plumbing · `[build]`
-release/distribution · `[test]` tests · `[docs]` documentation). Per
-[`testing-strategy.md`](./testing-strategy.md), every engine and command story
-lands **test-first**: pure engine pieces carry unit tests, and commands carry
-red/green acceptance scripts (in their suite) written before their
-implementation — so test work is folded into the stories it covers rather than
+**Ordering.** The MVP opens with a **red/green foundation** — the harness and a
+failing first contract suite (M1) before the CLI skeleton that turns it green
+(M2) — then proceeds as **thin vertical slices** (`Vertical A…F`): each slice
+builds only the engine pieces its command needs, then the command, then its
+acceptance suite — so a working command lands early and often instead of after a
+long bottom-up engine phase. Within a slice, stories still follow build
+dependency. Each story has a stable, milestone-prefixed **ID** (`M#`/`R#`/`P#`)
+for reference in commits and task breakdowns, and an **area tag** (`[engine]`
+core logic · `[cmd]` command · `[output]` UX/format · `[eng]` project/build
+plumbing · `[build]` release/distribution · `[test]` tests · `[docs]`
+documentation). Per [`testing-strategy.md`](./testing-strategy.md), **every**
+story is **red/green / test-first**: write the failing test (unit for pure engine
+pieces, a red acceptance script in the slice's suite for commands), then
+implement to green — so test work is folded into the stories it covers rather than
 listed as a separate phase.
 
 ## MVP
@@ -30,8 +31,8 @@ building every engine primitive before the first command runs._
 
 **Foundation**
 
-1. **M1** Scaffold the Go module and the `urfave/cli` command skeleton (global flags, subcommand stubs, a testable `Run(args, env, …) int` core); add `mise` config for the Go toolchain and task runner `[eng]`
-2. **M2** Stand up the `testscript` acceptance harness, unit scaffolding, and the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit`/`wanthome` commands); first contract test: `tuck --help` exits `0`, an unknown command exits `2` — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
+1. **M1** (red) Bootstrap just enough to fail a test first: `go mod init`, `mise` config (Go toolchain + task runner), and the `testscript` acceptance harness + unit scaffolding with the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit`/`wanthome` commands). Land a **failing** first contract suite: `tuck --help` exits `0`, an unknown command exits `2` — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
+2. **M2** (green) Implement the `urfave/cli` command skeleton (global flags, subcommand stubs, a testable `Run(args, env, …) int` core) until the M1 contract suite passes `[eng]`
 
 **Vertical A — Sources** (`source enable` / `source list`)
 
