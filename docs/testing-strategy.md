@@ -29,18 +29,51 @@ Unit tests own the algorithmic edge cases; acceptance tests own the
 user-observable contract. A behavior is "done" only when an acceptance test
 proves it on the real binary.
 
+### 2.1 Test suites
+
+Tests are grouped into **named suites** that each run independently, so you can
+exercise one slice without running the whole tree. A suite is a single Go test
+function, which keeps `go test -run` filtering and IDE "run test" gutters
+working:
+
+- **Unit suites** are one Go package per engine concern (e.g.
+  `internal/manifest`, `internal/state`, `internal/resolve`, `internal/plan`,
+  `internal/pathutil`). Run one with `go test ./internal/plan/...`.
+- **Acceptance suites** are one subdirectory per slice under
+  `testdata/script/<suite>/`, each driven by its own `Test<Suite>` function that
+  points `testscript` at that directory. Run one with
+  `go test -tags tuck_testhooks -run TestDeploy ./acceptance/...`. Current
+  suites track the thin vertical slices ([backlog.md](./backlog.md) MVP):
+  `source` (enable/list, state validation, resolution, `no_source`), `deploy`,
+  `query` (`packages`/`tree`/`status`), `undeploy` (incl. `redeploy`),
+  `adopt_eject`, `root` (root context + privilege; needs the `TUCK_TEST_ROOT_DIR`
+  / `TUCK_TEST_PRIVILEGE` hooks), and `errors` (the exit-code taxonomy and JSON
+  `error`/`sources`/… envelopes, cross-cutting).
+
+A `Makefile` exposes the common groupings: `make test` (everything),
+`make test-unit`, `make test-accept` (all acceptance, with the tag), and
+`make test-accept-<suite>` (one suite). CI runs `make test` plus a tagless
+`go build ./...` smoke (see §9).
+
 ## 3. Acceptance harness (`testscript`)
 
 We use [`github.com/rogpeppe/go-internal/testscript`](https://pkg.go.dev/github.com/rogpeppe/go-internal/testscript).
 It is purpose-built for "compiled binary + isolated `$WORK` filetree + golden
 stdout":
 
-- `TestMain` registers `tuck`'s `main` so each script invokes the **real
-  program** (the test binary dispatches to `main`); scripts never pick up a
-  `tuck` from `$PATH`.
-- Each script (`testdata/script/*.txtar`) gets a fresh `$WORK` temp directory.
-- A txtar archive carries the input tree (source repo + `tuck.toml`, machine
-  state) and golden files inline.
+- `TestMain` registers `tuck`'s entrypoint so each script invokes the **real
+  program** within the **same already-compiled test binary** (testscript's
+  `RunMain` dispatches the registered command — no `$PATH` lookup, no separately
+  built binary). Because that binary is compiled with `-tags tuck_testhooks`, the
+  test hooks are active for the `tuck` command; scripts must therefore never
+  shell out to `go run`/`go build`/an external `tuck`, which would not carry the
+  tag.
+- Each script (`testdata/script/<suite>/*.txtar`) gets a fresh `$WORK` temp
+  directory.
+- A txtar archive carries the **static** input tree inline (the source repo and
+  its `tuck.toml`, package contents). Files that must embed an absolute sandbox
+  path (machine state `sources.toml`) are generated at run time by a setup
+  command (§3.2), since testscript does not substitute `$WORK` in archive bodies.
 - `testscript` automatically scrubs `$WORK` from output before golden
   comparison, so absolute temp paths don't leak into goldens.
 
@@ -70,10 +103,17 @@ exposed **only** through code compiled under the `tuck_testhooks` build tag:
   payload equals `<expected-payload>` exactly (relative vs absolute matters —
   see §6).
 - `wantexit <N> <tuck-args...>` — run `tuck` and assert the **exact** process
-  exit code is `N`. The builtin `! tuck …` only asserts *non-zero*, which is
+  exit code is `N`, while still exposing stdout/stderr to testscript's
+  `stdout`/`stderr`/`cmp` checks so golden output is asserted on error paths too.
+  The builtin `! tuck …` only asserts *non-zero*, which is
   insufficient for distinguishing `1`/`4`/`5`/`6`.
 - `wanthome` / `wantroot` — convenience setup that scaffolds the fake `$HOME`
-  (or root backing tree), a source repo manifest, and machine-local state.
+  (or root backing tree) and **generates the `$WORK`-dependent machine state**
+  (`state/tuck/sources.toml`, with the default source pointing at `$WORK/src`)
+  at run time. Files whose contents must embed an absolute sandbox path **cannot**
+  be carried as inline txtar bodies — testscript only substitutes `$WORK` in
+  command lines, not in archive file contents — so they are written by these
+  setup commands. Static files (`tuck.toml`, package contents) stay inline.
 
 > JSON tests can alternatively assert the envelope's `exitCode` field
 > ([§9.2](./cli-spec.md#92-json-output)), which mirrors the process code, by
@@ -92,8 +132,14 @@ $WORK/
     zsh/.zshrc          # a home-context package
     .root/sshd/etc/...  # a root-context package (base is <source>/.root)
   state/                # machine-local state dir (TUCK_TEST_STATE_DIR)
-    tuck/sources.toml   # generated; [[source]] path = $WORK/src, default
+    tuck/sources.toml   # GENERATED at run time by wanthome/wantroot, not inline
+                        #   (its [[source]] path must be the absolute $WORK/src)
 ```
+
+> Inline txtar bodies are written verbatim; testscript substitutes `$WORK` only
+> in command lines. So any file that must reference an absolute sandbox path
+> (notably `sources.toml`) is generated by a setup command, while static files
+> (`tuck.toml`, package contents) are carried inline.
 
 Every script **creates `$HOME` itself** (the tool must not be relied on to
 create the target root) and sets a scrubbed environment:
@@ -187,9 +233,16 @@ non-root apply, output distinguishes *marker* from *enforcement*:
 
 1. **Exit code** — exact, via `wantexit` or the JSON `exitCode` field.
 2. **Stdout** — golden human text (`--no-color`) or a golden JSON document.
-3. **Filetree** — `exists` / `! exists`, and `readlink` for the **exact**
-   symlink payload. The spec's intended payload form (relative vs absolute) is
-   asserted explicitly; output is never used to infer the payload.
+   Primary results only (plans, listings, status, the JSON envelope).
+3. **Stderr** — diagnostics (`error:`/`hint:` lines, usage text) land on
+   **stderr**, not stdout ([§9](./cli-spec.md#9-output-formats)). Error scripts
+   assert a stderr golden; success scripts assert stderr is **empty**. `--help`
+   and usage text are checked **loosely** (exit code + a key substring), never
+   pinned verbatim, so a CLI-framework (`urfave/cli`) upgrade does not churn
+   goldens.
+4. **Filetree** — `exists` / `! exists`, and `readlink` for the **exact**
+   symlink payload (the spec's **relative** form, e.g. `../src/zsh/.zshrc`);
+   output is never used to infer the payload.
 
 ### Determinism checklist
 
@@ -219,52 +272,65 @@ mutation. The no-mutation guarantee is itself a first-class assertion.
 
 ### Coverage map
 
-- One acceptance script per command in [§7](./cli-spec.md#7-command-reference)
-  (`deploy`/`undeploy`/`redeploy`/`adopt`/`eject`/`packages`/`tree`/`status`),
-  in both plan and `--apply` form for mutating verbs.
-- One script per non-zero exit code in [§10](./cli-spec.md#10-exit-codes):
-  conflict (`1`), usage (`2`), config (`3`), resolution (`4`), privilege (`5`),
-  runtime (`6`).
-- One script per conflict rule in
-  [§12.6](./cli-spec.md#126-conflict-rules).
-- JSON variants for at least one representative of each `kind`
-  (`plan`/`packages`/`tree`/`status`/`sources`/`error`).
+Coverage is organized by **suite** (§2.1); each suite owns the slice of the
+contract below.
+
+- **`source`** — `source enable`/`source list`; state validation (unique enabled
+  ids, ≤1 default, no overlapping roots); active-source resolution and
+  `no_source` (exit `3`); `sources` JSON kind.
+- **`deploy`** — `deploy` in both plan and `--apply` form; the no-mutation
+  guarantee; deploy/dir conflicts.
+- **`query`** — `packages`/`tree`/`status` (incl. `status --path`).
+- **`undeploy`** — `undeploy` and `redeploy` (payload normalization).
+- **`adopt_eject`** — `adopt` and `eject`; active-source ownership inference.
+- **`root`** — `root` context via the physical-root seam with logical-path
+  goldens; deterministic privilege via the injected predicate, covering exit `5`
+  vs exit `6`.
+- **`errors`** (cross-cutting) — one script per non-zero exit code in
+  [§10](./cli-spec.md#10-exit-codes): conflict (`1`), usage (`2`), config (`3`),
+  resolution (`4`), privilege (`5`), runtime (`6`); one script per conflict rule
+  in [§12.6](./cli-spec.md#126-conflict-rules); JSON variants for at least one
+  representative of each `kind` (`plan`/`packages`/`tree`/`status`/`sources`/
+  `error`).
 
 ## 8. Example (home deploy, red→green)
 
 ```
 # deploy_home.txtar
-env HOME=$WORK/home
-env TUCK_TEST_STATE_DIR=$WORK/state
-mkdir $WORK/home
+wanthome                  # creates $WORK/home and generates $WORK/state/tuck/
+                          #   sources.toml with the default source -> $WORK/src
 
 # plan only: nothing changes
 tuck deploy zsh --no-color
 ! exists $WORK/home/.zshrc
 
-# apply: link is created with the expected payload
+# apply: link is created with the expected (relative) payload
 wantexit 0 tuck deploy zsh --apply --no-color
 exists $WORK/home/.zshrc
-readlink $WORK/home/.zshrc $WORK/src/zsh/.zshrc
+readlink $WORK/home/.zshrc ../src/zsh/.zshrc
 
 -- src/tuck.toml --
 name = "public"
-
--- state/tuck/sources.toml --
-[[source]]
-path = "$WORK/src"
-id = "public"
-enabled = true
-default = true
 
 -- src/zsh/.zshrc --
 # zshrc contents
 ```
 
+The payload is `../src/zsh/.zshrc`, i.e.
+`relativePath(dirname($WORK/home/.zshrc), $WORK/src/zsh/.zshrc)`, matching the
+spec's relative-payload rule
+([§12.7](./cli-spec.md#127-operation-algorithms)) — never an absolute path.
+
 ## 9. CI
 
-- Build the binary once; run unit tests, then acceptance tests (with
+- Run `make test`: unit suites, then acceptance suites (with
   `-tags tuck_testhooks`).
+- Add a **tagless** `go build ./...` (and `go vet ./...`) so an accidental
+  production dependency on `tuck_testhooks`-only code fails the build — the test
+  hooks must never be reachable without the tag.
 - Gate `vet` and `gofmt`/lint.
+- Acceptance suites run non-parallel (a fixed process `umask` is set once in the
+  acceptance package's `TestMain`; per-script `umask` changes would otherwise
+  race).
 - The OS/arch matrix (linux+macos, amd64+arm64) is a First-Release concern; MVP
   CI runs the developer platform only.

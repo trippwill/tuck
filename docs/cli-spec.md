@@ -126,8 +126,10 @@ the `root` context is selected with the global `--root` flag
 tuck [global-flags] <command> [args] [command-flags]
 ```
 
-- Global flags may appear before the command or after it; both forms are
-  accepted and equivalent. (`tuck --json deploy zsh` ≡ `tuck deploy zsh --json`.)
+- Global flags may appear before the command, and — where the CLI framework
+  supports it — after it; the placement rules follow the implementation
+  framework ([Appendix B](#appendix-b--relationship-to-the-draft)). Treat
+  `tuck --json deploy zsh` as the canonical form.
 - `--` terminates flag parsing; subsequent tokens are positional arguments.
 - Unknown commands and unknown flags are usage errors (exit `2`).
 - With no command, `tuck` prints top-level help and exits `0`.
@@ -662,6 +664,15 @@ would write** under the root context (`mkdir`, `symlink`, `remove_symlink`,
 
 Every command supports two mutually exclusive modes: human (default) and
 `--json`.
+
+**Streams.** Primary results — plans, listings, status, and the `--json`
+envelope — are written to **stdout**. Diagnostics — error messages, hints, and
+usage text — are written to **stderr**. A successful command writes nothing to
+stderr; on a non-zero exit the human-readable `error:`/`hint:` lines (and any
+usage text for exit `2`) go to stderr, leaving stdout for any partial result
+(e.g. a printed plan that was not applied). With `--json` the single envelope is
+still emitted to stdout (it carries `exitCode` and, on failure, the `error`
+payload), and stderr stays empty.
 
 ### 9.1 Human output
 
@@ -1547,3 +1558,19 @@ single-active-source model ([§3.2](#32-source-selection),
 cross-source search and no "ambiguous package" case. The original
 `resolution-algorithms.md` draft has been removed now that its content lives
 here.
+
+### Implementation framework
+
+The CLI is built on [`urfave/cli`](https://github.com/urfave/cli) (v3). The
+framework — not this document — is authoritative for surface mechanics:
+command/flag parsing, exact flag placement, `--help`/`--version` rendering, and
+usage-error formatting. The spec aims to be **close to**, not byte-identical
+with, the framework's defaults; where they differ, the framework wins so long
+as the documented **behavior** is preserved: the exit-code taxonomy (§10), the
+stdout/stderr split (§9), the `--json` envelope (§9.2), and the resolution and
+mutation semantics. Flag value sourcing (e.g. an env-var fallback such as
+`NO_COLOR` for `--no-color`, or the build-tag-gated `TUCK_TEST_*` test hooks)
+uses the framework's flag-source resolvers rather than bespoke env parsing.
+Golden acceptance tests pin the human and JSON output that actually matters; help
+and usage text are asserted loosely (presence/exit code), not pinned verbatim,
+so a framework upgrade does not churn goldens.
