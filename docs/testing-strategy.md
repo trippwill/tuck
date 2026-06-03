@@ -50,10 +50,11 @@ working:
   / `TUCK_TEST_PRIVILEGE` hooks), and `errors` (the exit-code taxonomy and JSON
   `error`/`sources`/… envelopes, cross-cutting).
 
-A `Makefile` exposes the common groupings: `make test` (everything),
-`make test-unit`, `make test-accept` (all acceptance, with the tag), and
-`make test-accept-<suite>` (one suite). CI runs `make test` plus a tagless
-`go build ./...` smoke (see §9).
+[`mise`](https://mise.jdx.dev) tasks expose the common groupings: `mise run test`
+(everything), `mise run test:unit`, `mise run test:accept` (all acceptance, with
+the tag), and `mise run test:accept:<suite>` (one suite). CI runs `mise run test`
+plus a tagless `go build ./...` smoke (see §9). `mise` also pins the Go toolchain
+version for reproducible local and CI builds.
 
 ## 3. Acceptance harness (`testscript`)
 
@@ -323,7 +324,7 @@ spec's relative-payload rule
 
 ## 9. CI
 
-- Run `make test`: unit suites, then acceptance suites (with
+- Run `mise run test`: unit suites, then acceptance suites (with
   `-tags tuck_testhooks`).
 - Add a **tagless** `go build ./...` (and `go vet ./...`) so an accidental
   production dependency on `tuck_testhooks`-only code fails the build — the test

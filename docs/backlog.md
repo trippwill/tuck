@@ -30,7 +30,7 @@ building every engine primitive before the first command runs._
 
 **Foundation**
 
-1. **M1** Scaffold the Go module and the `urfave/cli` command skeleton (global flags, subcommand stubs, a testable `Run(args, env, …) int` core) `[eng]`
+1. **M1** Scaffold the Go module and the `urfave/cli` command skeleton (global flags, subcommand stubs, a testable `Run(args, env, …) int` core); add `mise` config for the Go toolchain and task runner `[eng]`
 2. **M2** Stand up the `testscript` acceptance harness, unit scaffolding, and the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit`/`wanthome` commands); first contract test: `tuck --help` exits `0`, an unknown command exits `2` — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
 
 **Vertical A — Sources** (`source enable` / `source list`)
