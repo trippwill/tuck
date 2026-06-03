@@ -1,0 +1,2 @@
+# Unknown commands are usage errors.
+wantexit 2 tuck definitely-not-a-command

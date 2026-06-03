@@ -1,2 +1,14 @@
 [tools]
 go = "1.26"
+
+[tasks.test]
+run = "mise run test:unit && mise run test:accept"
+
+[tasks."test:unit"]
+run = "go test ./internal/..."
+
+[tasks."test:accept"]
+run = "go test -tags tuck_testhooks ./acceptance/..."
+
+[tasks."test:accept:foundation"]
+run = "go test -tags tuck_testhooks -run TestFoundation ./acceptance/..."
