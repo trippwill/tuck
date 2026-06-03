@@ -13,17 +13,15 @@ import (
 	"testing"
 
 	"github.com/rogpeppe/go-internal/testscript"
+	tuckcli "github.com/trippwill/tuck/internal/cli"
 )
 
 func TestMain(m *testing.M) {
 	testscript.RunMain(m, map[string]func() int{
-		"tuck": placeholderTuckMain,
+		"tuck": func() int {
+			return tuckcli.Run(os.Args, os.Environ(), os.Stdout, os.Stderr)
+		},
 	})
-}
-
-func placeholderTuckMain() int {
-	fmt.Fprintln(os.Stderr, "m1 placeholder: tuck CLI is not implemented yet")
-	return 99
 }
 
 func setupScriptEnv(e *testscript.Env) error {
