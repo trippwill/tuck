@@ -17,17 +17,9 @@ const (
 	ErrMissing ErrManifest = "missing manifest"
 )
 
-func (e ErrManifest) Error() string {
-	return string(e)
-}
-
-func errInvalid(e error) error {
-	return errors.Join(ErrInvalid, e)
-}
-
-func errMissing(e error) error {
-	return errors.Join(ErrMissing, e)
-}
+func (e ErrManifest) Error() string { return string(e) }
+func errInvalid(e error) error      { return errors.Join(ErrInvalid, e) }
+func errMissing(e error) error      { return errors.Join(ErrMissing, e) }
 
 type Manifest struct {
 	Name        string
