@@ -283,11 +283,12 @@ is compiled in only under the `tuck_testhooks` build tag and is absent from
 release builds — see `docs/testing-strategy.md`.) TOML:
 
 ```toml
+default = "public"                    # optional: effective id of default active source
+
 [[source]]
 path    = "/home/me/.dotfiles"        # canonical repository path on this machine
 id      = "public"                    # effective id (the manifest name)
 enabled = true
-default = true                        # at most one source may be the default
 
 [[source]]
 path    = "/home/me/.dotfiles-private"
@@ -302,8 +303,12 @@ Fields per `[[source]]` entry:
   display identities. In MVP it is always the manifest `name`; a machine-local
   id override (to resolve collisions) is a Post-Release addition.
 - `enabled` (optional, default `true`) — whether the source participates.
-- `default` (optional, default `false`) — the machine-local default active
-  source. Machine-local state always wins over anything a repo declares.
+
+Top-level fields:
+
+- `default` (optional) — the effective id of the machine-local default active
+  source. Default status belongs only to the registry, never to individual source
+  entries. Machine-local state always wins over anything a repo declares.
 
 If the state file is absent or has no entries, no source is enabled; a command
 that needs an active source fails with `no_source` (exit `3`) and a hint to run
@@ -315,8 +320,7 @@ Performed when the state is loaded, before any command logic:
 
 - Effective `id` values are **unique** across enabled entries and must not be
   empty or contain a path separator or `:`.
-- At most one enabled entry has `default = true`, and a default entry must be
-  enabled.
+- If top-level `default` is set, it must name an enabled entry.
 - Each enabled `path` is expanded and canonicalized
   ([§12.2](#122-path-primitives)); a path that does not exist is a state error.
 - **Enabled source roots must not overlap:** no enabled `path` may equal,
