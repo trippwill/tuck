@@ -34,8 +34,10 @@
 - Mutating verbs (`deploy`, `undeploy`, `redeploy`, `adopt`, `eject`) are dry-run/plan-by-default and mutate only with `--apply`. Build the complete plan and accumulate all conflicts before any mutation.
 - Output contract matters: primary results and JSON envelopes go to stdout; diagnostics, hints, and usage errors go to stderr. With `--json`, emit exactly one envelope on stdout and keep stderr empty.
 - Preserve the exit-code taxonomy from `internal/cli/exit.go` and `docs/cli-spec.md`: `0` OK, `1` conflict, `2` usage, `3` config/state, `4` resolution, `5` privilege, `6` runtime.
+- Prefer typed const sentinel errors for stable package-level error kinds. Define a small string type that implements `Error()` and expose const values (for example `type ErrManifest string` with `const ErrInvalid ErrManifest = "invalid manifest"`), then wrap causes so `errors.Is` works.
 - Path handling must be path-segment aware. Ownership is inferred from symlink payloads within the active source only; there is no deployed-link manifest.
 - Deploy links only leaf entries. Directory entries become real target directories, and symlink payloads should use the spec's relative form.
 - Root-context behavior separates logical paths, physical test backing roots, and privilege authorization. `--root` output should stay logical (`/etc/...`), while tests may redirect writes with build-tagged hooks.
 - Acceptance scripts should run in the harness sandbox, use exact exit assertions via `wantexit`, assert symlink payloads via `readlink`, and generate `$WORK`-dependent state at runtime with setup commands such as `wanthome` rather than inline txtar bodies.
 - Keep acceptance output deterministic: scrubbed sandbox env, stable locale, no color, fixed umask from the harness, stdout/stderr assertions, and no dependence on the developer's real home, root, or machine state.
+- `codebook.toml` is the project-local spell-check dictionary; add legitimate project terms there instead of working around spelling checks.

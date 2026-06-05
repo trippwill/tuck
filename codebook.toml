@@ -1,0 +1,5 @@
+words = [
+    "testhooks",
+    "undeploy",
+]
+ignore_paths = ["docs/backlog.md"]

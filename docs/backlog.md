@@ -40,7 +40,7 @@ building every engine primitive before the first command runs._
 
 **Vertical A — Sources** (`source enable` / `source list`)
 
-3. [ ] **M3** Read and validate a repository manifest (`<repo>/tuck.toml`: required `name`, optional `description`; ignore unknown keys) `[engine]`
+3. [x] **M3** Read and validate a repository manifest (`<repo>/tuck.toml`: required `name`, optional `description`; ignore unknown keys) `[engine]`
 4. [ ] **M4** Discover and load machine-local source state (`${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml`; `TUCK_TEST_STATE_DIR` override) `[engine]`
 5. [ ] **M5** Validate machine state (unique enabled ids, ≤1 default, roots exist, **no overlapping roots**, readable manifests) `[engine]`
 6. [ ] **M6** Resolve the active source: `--source <id>` (id-only) → machine default → sole enabled source → `no_source` (exit 3) `[engine]`
@@ -133,3 +133,4 @@ _Unordered idea bucket; IDs are for reference only._
 11. [ ] **P11** Explore a watch / auto-redeploy mode `[cmd]`
 12. [ ] **P12** Add a machine-local source-id override (e.g. `source enable --id <id>`) to resolve manifest-name collisions between repos `[cmd]`
 13. [ ] **P13** Optionally prune now-empty intermediate directories left behind after `undeploy` / `eject` `[cmd]`
+14. [ ] **P14** Explore a boilerplate generator tool for const sentinel errors `[eng]`
