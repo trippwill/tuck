@@ -225,6 +225,13 @@ Committed in the repo at `<repo>/tuck.toml`:
 ```toml
 name        = "public"
 description = "public dotfiles"
+
+[package.zsh]
+
+[[package.zsh.file]]
+path = ".config/symlink-hostile-app/config"
+deploy = "copy"
+mode = "0600"
 ```
 
 Fields:
@@ -232,6 +239,24 @@ Fields:
 - `name` (required) -- the repo's short id. Used as the source id and in display
   identities. Must not be empty and must not contain a path separator or `:`.
 - `description` (optional) -- a human-readable label shown in `source list`.
+
+Package/file metadata is optional and planned for First Release behavior:
+
+- `[package.<name>]` declares policy for a package whose package directory is
+  still `<source>/<name>` (or `<source>/.root/<name>` in root context).
+- `[[package.<name>.file]]` declares policy for one package-relative leaf path.
+- `path` (required) is the package-relative file path, using the same path that
+  maps to the target tree.
+- `deploy` (optional, default `"symlink"`) selects the deployment strategy for
+  that leaf. First Release values are `"symlink"` and `"copy"`. Hardlinks are a
+  possible future strategy but are not committed behavior in this spec.
+- `mode` (optional) is an explicit octal file mode such as `"0600"`. It applies
+  after creating a copied target and to other target entries where mode is
+  meaningful. Owner/group management is out of scope.
+
+Package directories remain target-tree mirrors. Portable policy belongs in the
+repo manifest so mode and deployment overrides are visible in one audited file,
+not scattered through package-local metadata files.
 
 The format is open to additive keys. Unknown top-level keys are ignored so that
 newer repos remain readable by older binaries. A missing or unreadable
@@ -251,6 +276,7 @@ is compiled in only under the `tuck_testhooks` build tag.
 
 ```toml
 default = "public"
+checksum = "sha256:..."
 
 [[source]]
 path    = "/home/me/.dotfiles"
@@ -261,6 +287,15 @@ enabled = true
 path    = "/home/me/.dotfiles-private"
 id      = "private"
 enabled = true
+
+[[copy]]
+source  = "public"
+context = "home"
+package = "zsh"
+path    = ".config/symlink-hostile-app/config"
+target  = "/home/me/.config/symlink-hostile-app/config"
+sourceChecksum = "sha256:..."
+targetChecksum = "sha256:..."
 ```
 
 Fields per `[[source]]` entry:
@@ -275,10 +310,29 @@ Top-level fields:
 - `default` (optional) -- the effective id of the machine-local default active
   source. Default status belongs only to the registry, never to individual source
   entries.
+- `checksum` (optional, generated) -- a checksum over the normalized state file
+  or over a generated sidecar payload. It is a fast validation signal, not a
+  security boundary.
+
+First Release copied-file state:
+
+- `[[copy]]` entries record copied targets because copy ownership cannot be
+  inferred from symlink payloads.
+- `source`, `context`, `package`, and `path` identify the package leaf.
+- `target` records the target path for status/drop operations.
+- `sourceChecksum` and `targetChecksum` record the last applied source and target
+  bytes so status can distinguish unchanged copies, source drift, target drift,
+  and both-sides drift.
 
 If the state file is absent or has no entries, no source is enabled. A command
 that needs an active source fails with `no_source`. Reading the state for
 `source list` is not itself an error.
+
+The state file remains human-readable text. `tuck` may also maintain a generated
+checksum sidecar (for example `sources.toml.sha256`) or equivalent checksum field
+to detect accidental manual edits/truncation quickly. A mismatch is reported as
+`state_checksum_mismatch` with a repair hint; it is not a tamper-proof security
+mechanism.
 
 ### 5.4 Validation
 
@@ -495,7 +549,9 @@ Mutating target-tree commands emit an ordered list of actions:
 | --- | --- | --- |
 | `mkdir` | `path` | Create a real directory in the target tree. |
 | `symlink` | `linkPath`, `payload`, `target` | Create a symlink. `payload` is relative link text; `target` is the resolved destination. |
+| `copy` | `src`, `dst`, `mode` | Copy a package file to the target tree and optionally set its mode. |
 | `remove_symlink` | `path` | Remove a managed target symlink. |
+| `remove_copy` | `path` | Remove a tracked copied target. |
 | `move` | `src`, `dst` | Move a real file. |
 
 Planning rules:
@@ -515,6 +571,10 @@ Collision and deduplication rules:
   `multiple_providers` conflict.
 - Two planned actions targeting the same path with incompatible types are a
   conflict.
+- A copied target is mutable outside `tuck`. If the target has drifted from the
+  last recorded `targetChecksum`, `package use`, `package drop`, and
+  `package refresh` must report a drift conflict rather than overwrite or remove
+  it silently.
 
 ### 8.1 Privilege (root context)
 
@@ -778,7 +838,9 @@ Stable error codes include:
 - target classification/conflicts: `real_file`, `real_directory`,
   `special_file`, `unmanaged_symlink`, `owned_by_other`, `path_mismatch`,
   `multiple_providers`, `outside_target_root`, `inside_source_repo`,
-  `package_path_exists`, `not_a_managed_symlink`;
+  `package_path_exists`, `not_a_managed_symlink`, `copy_drift`,
+  `copy_source_modified`, `copy_target_modified`;
+- state validation: `state_checksum_mismatch`;
 - execution: `privilege_required`, `io_error`.
 
 `package status` exits `0` when the query succeeds, even if it reports conflicts
@@ -929,6 +991,11 @@ Directory entries cause real directories to be created in the target tree and
 are never represented as symlinks. Leaf entries are linked. If a package leaf is
 itself a symlink, the target link points at the package symlink itself.
 
+Package/file metadata may override a leaf's deployment strategy. The default
+strategy is `symlink`; `copy` materializes the package file as a separate target
+file and records state for future ownership/drift checks. Directories never use
+`copy`.
+
 ### 12.5 Ownership resolution
 
 #### Classify target path
@@ -978,6 +1045,32 @@ package root. A managed symlink whose link path does not match its
 package-relative path is reported as a mismatch and is never mutated
 automatically.
 
+#### Classify copied target
+
+Copied-file ownership is state-backed, not inferred from filesystem structure:
+
+```text
+stat = lstat(targetPath)
+if not exists: return Absent
+if not regular file: return conflict
+
+record = lookup copy state by active source, context, package, packageRel
+if no record for targetPath: return UntrackedCopyTarget
+
+sourceChecksum = checksum(packageEntryPath)
+targetChecksum = checksum(targetPath)
+sourceChanged = sourceChecksum != record.sourceChecksum
+targetChanged = targetChecksum != record.targetChecksum
+
+if sourceChanged and targetChanged: return CopyBothModified
+if sourceChanged:                   return CopySourceModified
+if targetChanged:                   return CopyTargetModified
+return TrackedCopyUnchanged
+```
+
+Copy state is used only for entries configured with `deploy = "copy"`. Symlink
+ownership remains payload-inferred.
+
 ### 12.6 Conflict rules
 
 **Package use (leaf).** A leaf target is linkable when it is absent, or already a
@@ -985,6 +1078,14 @@ symlink owned by the selected package pointing at the same entry. It conflicts
 when it is a real file, real directory, special file, unmanaged symlink, managed
 by another package, or managed by the selected package but mapping to a different
 package-relative path.
+
+**Package use (copy leaf).** A leaf configured with `deploy = "copy"` is
+copyable when the target is absent, or when it is already tracked as a copied
+entry and neither the source nor target has drifted from the recorded checksums.
+It conflicts when the target exists but is untracked, when a tracked target has
+been modified, when the package source has changed without an explicit refresh,
+or when any non-regular-file condition would make copying unsafe. Applying the
+copy updates the copied-entry state checksums.
 
 **Directory.** A package directory entry's target is valid when absent or already
 a real directory. It conflicts when the target is a file, symlink, or
@@ -1022,6 +1123,12 @@ for each package:
         targetPath = convert package path -> target path
         if targetPath in plannedTargets with a different entry:
             conflict multiple_providers; continue
+        if entry.deploy == "copy":
+            switch classifyCopiedTarget(targetPath, entry):
+                Absent:                      plan copy entry -> targetPath
+                TrackedCopyUnchanged:         no-op
+                else:                        conflict
+            continue
         switch classify(targetPath, selected package):
             Absent:                                plan symlink targetPath -> entry
             ManagedBySelectedPackage(same entry):  no-op
@@ -1037,6 +1144,12 @@ Symlink payloads are relative:
 resolvedPackages = resolve existing package for each ref
 for each package, for each leaf entry:
     targetPath = convert package path -> target path
+    if entry.deploy == "copy":
+        switch classifyCopiedTarget(targetPath, entry):
+            Absent:                      no-op
+            TrackedCopyUnchanged:         plan remove_copy targetPath
+            else:                        conflict
+        continue
     switch classify(targetPath, selected package):
         Absent:                                no-op
         ManagedBySelectedPackage(same entry):  plan remove_symlink targetPath
@@ -1050,7 +1163,7 @@ Directories are never pruned.
 ```text
 build drop plan for selected packages; if conflicts: stop
 build use plan against the post-drop state; if conflicts: stop
-apply all remove_symlink actions, then all symlink/mkdir actions
+apply all remove_symlink/remove_copy actions, then all symlink/copy/mkdir actions
 ```
 
 #### `adopt`
@@ -1194,6 +1307,34 @@ error: root-context write requires elevated privileges
 hint: re-run with sudo
 # exit 1; with --json, error.code is privilege_required
 ```
+
+### A.6 Copy deployment for symlink-hostile files
+
+Some applications reject symlinked config files. Configure those package leaves
+in repo `tuck.toml`:
+
+```toml
+[package.zsh]
+
+[[package.zsh.file]]
+path = ".config/symlink-hostile-app/config"
+deploy = "copy"
+mode = "0600"
+```
+
+Then `package use` plans a copy rather than a symlink:
+
+```text
+$ tuck pkg use zsh
+plan:
+  + copy   ~/.dotfiles/zsh/.config/symlink-hostile-app/config -> ~/.config/symlink-hostile-app/config (mode 0600)
+
+1 action, 0 conflicts
+```
+
+Copied targets are tracked in machine-local state. If the target is edited after
+deployment, later `package use`, `package drop`, or `package refresh` reports
+copy drift instead of overwriting or removing it silently.
 
 ---
 

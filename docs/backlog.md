@@ -35,7 +35,7 @@ building every engine primitive before the first command runs._
 
 **Foundation**
 
-1. [x] **M1** (red) Bootstrap just enough to fail a test first: `go mod init`, `mise` config (Go toolchain + task runner), and the `testscript` acceptance harness + unit scaffolding with the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit`/`wanthome` commands). Land a **failing** first contract suite for `tuck --help` and framework-owned unknown-command behavior — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
+1. [x] **M1** (red) Bootstrap just enough to fail a test first: `go mod init`, `mise` config (Go toolchain + task runner), and the `testscript` acceptance harness + unit scaffolding with the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wanthome` commands, and builtin `exec` / `! exec`). Land a **failing** first contract suite for `tuck --help` and framework-owned unknown-command behavior — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
 2. [x] **M2** (green) Implement the `urfave/cli` command skeleton (global flags, subcommand stubs, and a main-style entrypoint registered with `testscript`) until the M1 contract suite passes `[eng]`
 
 **Vertical A — Sources** (`source add` / `source list`)
@@ -102,16 +102,21 @@ distributed builds, and docs._
 9. [ ] **R9** Report `multiple_providers` / `mismatch` / `owned_by_other` in `package status` `[cmd]`
 10. [ ] **R10** Emit stable, versioned JSON for every command, including `source` (`--json`) `[output]`
 11. [ ] **R11** JSON golden tests for every envelope `kind` (plan/packages/tree/status/sources/help/version/error) `[test]`
-12. [ ] **R12** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
-13. [ ] **R13** Acceptance coverage for each error code and each conflict rule `[test]`
-14. [ ] **R14** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
-15. [ ] **R15** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
-16. [ ] **R16** Enforce lint/format gates in CI `[build]`
-17. [ ] **R17** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
-18. [ ] **R18** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
-19. [ ] **R19** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
-20. [ ] **R20** Write a README with installation and quickstart `[docs]`
-21. [ ] **R21** Publish a documentation website (spec, guides, worked examples) `[docs]`
+12. [ ] **R12** Parse repo-level package/file metadata in `tuck.toml` (`[package.<name>]`, `[[package.<name>.file]]`, `deploy`, `mode`) `[engine]`
+13. [ ] **R13** Support `deploy = "copy"` package leaves: plan/apply copy actions, preserve explicit modes, and reject unsafe overwrites `[engine]`
+14. [ ] **R14** Track copied-file deployments in machine-local state and report copy drift in `status` / `package status` `[engine]`
+15. [ ] **R15** Validate text machine state with a generated checksum sidecar and report `state_checksum_mismatch` with repair guidance `[engine]`
+16. [ ] **R16** Add JSON and human output coverage for copy actions, copy drift, explicit modes, and state checksum failures `[test]`
+17. [ ] **R17** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
+18. [ ] **R18** Acceptance coverage for each error code and each conflict rule `[test]`
+19. [ ] **R19** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
+20. [ ] **R20** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
+21. [ ] **R21** Enforce lint/format gates in CI `[build]`
+22. [ ] **R22** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
+23. [ ] **R23** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
+24. [ ] **R24** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
+25. [ ] **R25** Write a README with installation and quickstart `[docs]`
+26. [ ] **R26** Publish a documentation website (spec, guides, worked examples) `[docs]`
 
 <!-- ================= FIRST RELEASE CUTOFF ================= -->
 
@@ -135,3 +140,4 @@ _Unordered idea bucket; IDs are for reference only._
 12. [ ] **P12** Add a machine-local source-id override (e.g. `source add --id <id>`) to resolve manifest-name collisions between repos `[cmd]`
 13. [ ] **P13** Optionally prune now-empty intermediate directories left behind after `package drop` / `eject` `[cmd]`
 14. [ ] **P14** Explore a boilerplate generator tool for const sentinel errors `[eng]`
+15. [ ] **P15** Explore per-file hardlink deployment for symlink-hostile files on the same filesystem `[engine]`

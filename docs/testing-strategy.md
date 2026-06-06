@@ -23,7 +23,7 @@ document is authoritative for **how that behavior is tested**.
 | Layer | Scope | Speed | Tooling |
 | --- | --- | --- | --- |
 | **Unit** | Pure/internal behavior from [§12](./cli-spec.md#12-resolution-algorithms): path primitives, target↔package conversion, classify-target, ownership inference, conflict rules, execution planning. No filesystem, or `t.TempDir()` only. | fast | stdlib `testing`, table-driven |
-| **Acceptance** | The compiled binary against an isolated filetree. Asserts exit code ([§10](./cli-spec.md#10-exit-codes)), stdout/stderr (human or JSON, [§9](./cli-spec.md#9-output-formats)), and the resulting filetree (existence, symlink payload, moved files). | medium | `testscript` (txtar) |
+| **Acceptance** | The compiled binary against an isolated filetree. Asserts exit code ([§10](./cli-spec.md#10-exit-codes-and-error-codes)), stdout/stderr (human or JSON, [§9](./cli-spec.md#9-output-formats)), and the resulting filetree (existence, symlink payload, moved files). | medium | `testscript` (txtar) |
 
 Unit tests own the algorithmic edge cases; acceptance tests own the
 user-observable contract. A behavior is "done" only when an acceptance test
@@ -108,11 +108,6 @@ exposed **only** through code compiled under the `tuck_testhooks` build tag:
 - `readlink <path> <expected-payload>` — assert a symlink exists and its raw
   payload equals `<expected-payload>` exactly (relative vs absolute matters —
   see §6).
-- `wantexit <N> <tuck-args...>` — run `tuck` and assert the **exact** process
-  exit code is `N`, while still exposing stdout/stderr to testscript's
-  `stdout`/`stderr`/`cmp` checks so golden output is asserted on error paths too.
-  The builtin `! tuck …` only asserts *non-zero*, which is
-  insufficient for distinguishing `1`/`4`/`5`/`6`.
 - `wanthome` / `wantroot` — convenience setup that scaffolds the fake `$HOME`
   (or root backing tree) and **generates the `$WORK`-dependent machine state**
   (`state/tuck/sources.toml`, with the default source pointing at `$WORK/src`)
@@ -230,7 +225,7 @@ non-root apply, output distinguishes *marker* from *enforcement*:
 
 - `required` — context is `root` and the plan has write actions (informational).
 - `satisfied` — the privilege predicate's result.
-- Exit `5` ⟺ `--apply && required && !satisfied`.
+- Failure with `error.code = "privilege_required"` ⟺ `--apply && required && !satisfied`.
 
 > This matches [§8.1](./cli-spec.md#81-privilege-root-context) (privilege as an
 > explicit preflight policy) and the `privilege` object in
@@ -238,7 +233,10 @@ non-root apply, output distinguishes *marker* from *enforcement*:
 
 ## 6. What every acceptance test asserts
 
-1. **Exit code** — exact, via `wantexit` or the JSON `exitCode` field.
+1. **Exit status** — `exec tuck ...` for success and `! exec tuck ...` for
+   expected failure. Since process exits are binary (`0`/`1`), tests assert
+   detailed failure classification via stderr or the JSON `error.code` /
+   `exitCode` fields rather than a custom exit-code command.
 2. **Stdout** — golden human text (`--no-color`) or a golden JSON document.
    Primary results only (plans, listings, status, the JSON envelope).
 3. **Stderr** — diagnostics (`error:`/`hint:` lines, usage text) land on
@@ -269,8 +267,8 @@ non-root apply, output distinguishes *marker* from *enforcement*:
 For each behavior:
 
 1. **Red.** Add `testdata/script/<feature>.txtar` describing the desired
-   invocation, golden output, exit code, and filetree. It fails (the feature
-   isn't built, or `wantexit` mismatches).
+   invocation, golden output, exit status, and filetree. It fails because the
+   feature is not built yet or the output/filetree/status assertions mismatch.
 2. **Green.** Implement until the script passes.
 3. Refactor with the script as the safety net.
 
@@ -291,6 +289,18 @@ contract below.
   no-mutation guarantee; package-use/dir conflicts.
 - **`query`** — `package list`/`package show`/`status`/`package status`.
 - **`package_drop`** — `package drop` and `package refresh` (payload normalization).
+- **`metadata`** — repo `tuck.toml` package/file metadata parsing:
+  `[package.<name>]`, `[[package.<name>.file]]`, `deploy`, and explicit `mode`;
+  unknown metadata remains additive/forward-compatible.
+- **`copy`** — `deploy = "copy"` entries in plan and `--apply` form; copied
+  targets are regular files, explicit modes are applied, unsafe overwrites are
+  conflicts, and copied entries are recorded in machine-local state.
+- **`copy_drift`** — copied-file ownership and drift reporting in `status` and
+  `package status`: unchanged, source modified, target modified, both modified,
+  and untracked target conflicts.
+- **`state_integrity`** — text state plus checksum sidecar validation: valid
+  state passes, modified/truncated state reports `state_checksum_mismatch`, and
+  the error includes repair guidance.
 - **`adopt_eject`** — `adopt` and `eject`; active-source ownership inference.
 - **`root`** — `root` context via the physical-root seam with logical-path
   goldens; deterministic privilege via the injected predicate, covering
@@ -300,7 +310,12 @@ contract below.
   cover CLI parse/dispatch errors such as unknown commands and flags. Include one
   script per conflict rule in [§12.6](./cli-spec.md#126-conflict-rules);
   JSON variants for at least one representative of each `kind`
-  (`plan`/`packages`/`tree`/`status`/`sources`/`error`).
+  (`plan`/`packages`/`tree`/`status`/`sources`/`help`/`version`/`error`).
+
+Mode assertions should use an acceptance helper or direct testscript stat
+assertion that is stable under the harness umask. Copied-file tests must assert
+both filesystem bytes and recorded state so that copy ownership is not inferred
+accidentally from path shape.
 
 ## 8. Example (home package use, red→green)
 
@@ -314,7 +329,7 @@ tuck pkg use zsh --no-color
 ! exists $WORK/home/.zshrc
 
 # apply: link is created with the expected (relative) payload
-wantexit 0 tuck pkg use zsh --apply --no-color
+exec tuck pkg use zsh --apply --no-color
 exists $WORK/home/.zshrc
 readlink $WORK/home/.zshrc ../src/zsh/.zshrc
 
