@@ -13,13 +13,13 @@ import (
 	"testing"
 
 	"github.com/rogpeppe/go-internal/testscript"
-	tuckcli "github.com/trippwill/tuck/internal/cli"
+	"github.com/trippwill/tuck/internal/app"
 )
 
 func TestMain(m *testing.M) {
-	testscript.RunMain(m, map[string]func() int{
-		"tuck": func() int {
-			return tuckcli.Run(os.Args, os.Environ(), os.Stdout, os.Stderr)
+	testscript.Main(m, map[string]func(){
+		"tuck": func() {
+			_ = app.Run(os.Args, os.Environ(), os.Stdout, os.Stderr)
 		},
 	})
 }
@@ -119,7 +119,12 @@ func cmdWantHome(ts *testscript.TestScript, neg bool, args []string) {
 		ts.Fatalf("mkdir state dir: %v", err)
 	}
 
-	sources := fmt.Sprintf("[[source]]\nid = \"public\"\npath = %q\nenabled = true\ndefault = true\n", filepath.Join(ts.Getenv("WORK"), "src"))
+	sources := fmt.Sprintf(`[[source]]
+id = "public"
+path = %q
+enabled = true
+default = true
+`, filepath.Join(ts.Getenv("WORK"), "src"))
 	if err := os.WriteFile(filepath.Join(stateDir, "sources.toml"), []byte(sources), 0o644); err != nil {
 		ts.Fatalf("write sources.toml: %v", err)
 	}

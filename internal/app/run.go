@@ -1,4 +1,4 @@
-package cli
+package app
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	urfavecli "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 )
 
 func Run(args []string, env []string, stdout, stderr io.Writer) int {
@@ -27,7 +27,7 @@ func Run(args []string, env []string, stdout, stderr io.Writer) int {
 		return ExitOK
 	}
 
-	var exitErr urfavecli.ExitCoder
+	var exitErr cli.ExitCoder
 	if errors.As(err, &exitErr) {
 		if message := strings.TrimSpace(exitErr.Error()); message != "" {
 			fmt.Fprintln(stderr, message)

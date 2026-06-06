@@ -1,4 +1,4 @@
-package cli
+package app
 
 const (
 	ExitOK         = 0

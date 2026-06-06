@@ -1,0 +1,10 @@
+[
+  {
+    "label": "Debug Integration Tests",
+    "adapter": "Delve",
+    "request": "launch",
+    "mode": "test",
+    "program": "./acceptance",
+    "buildFlags": ["-tags", "tuck_testhooks"],
+  },
+]

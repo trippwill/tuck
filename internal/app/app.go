@@ -1,17 +1,17 @@
-package cli
+package app
 
 import (
 	"context"
 	"fmt"
 	"io"
 
-	urfavecli "github.com/urfave/cli/v3"
+	"github.com/urfave/cli/v3"
 )
 
 const version = "dev"
 
-func newCommand(stdout, stderr io.Writer) *urfavecli.Command {
-	cmd := &urfavecli.Command{
+func newCommand(stdout, stderr io.Writer) *cli.Command {
+	cmd := &cli.Command{
 		Name:                          "tuck",
 		Usage:                         "manage dotfiles by linking package leaves into a target tree",
 		UsageText:                     "tuck [global-flags] <command> [args]",
@@ -20,26 +20,26 @@ func newCommand(stdout, stderr io.Writer) *urfavecli.Command {
 		Writer:                        stdout,
 		ErrWriter:                     stderr,
 		CustomRootCommandHelpTemplate: rootHelpTemplate,
-		Flags: []urfavecli.Flag{
-			&urfavecli.BoolFlag{Name: "root", Usage: "use the root context (target /); default is home"},
-			&urfavecli.StringFlag{Name: "source", Aliases: []string{"s"}, Usage: "select active source by enabled id"},
-			&urfavecli.BoolFlag{Name: "json", Usage: "machine-readable output"},
-			&urfavecli.BoolFlag{Name: "apply", Usage: "execute the plan (mutating verbs plan only without it)"},
-			&urfavecli.BoolFlag{Name: "no-color", Usage: "disable colored output (implied by --json)"},
-			&urfavecli.BoolFlag{
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "root", Usage: "use the root context (target /); default is home"},
+			&cli.StringFlag{Name: "source", Aliases: []string{"s"}, Usage: "select active source by enabled id"},
+			&cli.BoolFlag{Name: "json", Usage: "machine-readable output"},
+			&cli.BoolFlag{Name: "apply", Usage: "execute the plan (mutating verbs plan only without it)"},
+			&cli.BoolFlag{Name: "no-color", Usage: "disable colored output (implied by --json)"},
+			&cli.BoolFlag{
 				Name:    "version",
 				Aliases: []string{"V"},
 				Usage:   "print version",
-				Action: func(_ context.Context, cmd *urfavecli.Command, value bool) error {
+				Action: func(_ context.Context, cmd *cli.Command, value bool) error {
 					if !value {
 						return nil
 					}
 					fmt.Fprintf(cmd.Root().Writer, "tuck %s\n", version)
-					return urfavecli.Exit("", ExitOK)
+					return cli.Exit("", ExitOK)
 				},
 			},
 		},
-		Commands: []*urfavecli.Command{
+		Commands: []*cli.Command{
 			stubCommand("deploy", "create managed links for a package", "<package>..."),
 			stubCommand("undeploy", "remove managed links for a package", "<package>..."),
 			stubCommand("redeploy", "refresh managed links (undeploy + deploy)", "<package>..."),
@@ -51,65 +51,65 @@ func newCommand(stdout, stderr io.Writer) *urfavecli.Command {
 				"status",
 				"show managed/conflict state",
 				"[package] [--path P]",
-				&urfavecli.StringFlag{Name: "path", Usage: "show status for a target path"},
+				&cli.StringFlag{Name: "path", Usage: "show status for a target path"},
 			),
 			sourceCommand(),
 		},
 		Action:       rootAction,
 		OnUsageError: usageError,
-		ExitErrHandler: func(context.Context, *urfavecli.Command, error) {
+		ExitErrHandler: func(context.Context, *cli.Command, error) {
 			// Run returns exit codes itself; never let urfave/cli call os.Exit.
 		},
 	}
 	return cmd
 }
 
-func rootAction(_ context.Context, cmd *urfavecli.Command) error {
+func rootAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.NArg() > 0 {
-		return urfavecli.Exit(fmt.Sprintf("error: unknown command %q", cmd.Args().First()), ExitUsage)
+		return cli.Exit(fmt.Sprintf("error: unknown command %q", cmd.Args().First()), ExitUsage)
 	}
-	return urfavecli.ShowRootCommandHelp(cmd)
+	return cli.ShowRootCommandHelp(cmd)
 }
 
-func sourceCommand() *urfavecli.Command {
-	return &urfavecli.Command{
+func sourceCommand() *cli.Command {
+	return &cli.Command{
 		Name:         "source",
 		Usage:        "manage enabled dotfiles sources",
 		UsageText:    "tuck source <command> [args]",
 		OnUsageError: usageError,
-		Commands: []*urfavecli.Command{
+		Commands: []*cli.Command{
 			stubCommand(
 				"enable",
 				"enable a dotfiles repo on this machine",
 				"<path> [--default]",
-				&urfavecli.BoolFlag{Name: "default", Usage: "make this the default source"},
+				&cli.BoolFlag{Name: "default", Usage: "make this the default source"},
 			),
 			stubCommand("list", "list enabled sources", ""),
 		},
-		Action: func(_ context.Context, cmd *urfavecli.Command) error {
+		Action: func(_ context.Context, cmd *cli.Command) error {
 			if cmd.NArg() > 0 {
-				return urfavecli.Exit(fmt.Sprintf("error: unknown command %q", cmd.Args().First()), ExitUsage)
+				return cli.Exit(fmt.Sprintf("error: unknown command %q", cmd.Args().First()), ExitUsage)
 			}
-			return urfavecli.ShowSubcommandHelp(cmd)
+			return cli.ShowSubcommandHelp(cmd)
 		},
 	}
 }
 
-func stubCommand(name, usage, argsUsage string, flags ...urfavecli.Flag) *urfavecli.Command {
-	return &urfavecli.Command{
+func stubCommand(name, usage, argsUsage string, flags ...cli.Flag) *cli.Command {
+	return &cli.Command{
 		Name:         name,
 		Usage:        usage,
 		ArgsUsage:    argsUsage,
 		Flags:        flags,
 		OnUsageError: usageError,
-		Action: func(context.Context, *urfavecli.Command) error {
-			return urfavecli.Exit(fmt.Sprintf("error: command %q is not implemented yet", name), ExitRuntime)
+		Action: func(context.Context, *cli.Command) error {
+			return cli.Exit(fmt.Sprintf("error: command %q is not implemented yet", name), ExitRuntime)
 		},
 	}
 }
 
-func usageError(_ context.Context, _ *urfavecli.Command, err error, _ bool) error {
-	return urfavecli.Exit(fmt.Sprintf("error: %s", err), ExitUsage)
+func usageError(_ context.Context, _ *cli.Command, err error, _ bool) error {
+	return cli.Exit(fmt.Sprintf("error: %s", err), ExitUsage)
 }
 
 const rootHelpTemplate = `tuck — manage dotfiles by linking package leaves into a target tree

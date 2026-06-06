@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	tuckcli "github.com/trippwill/tuck/internal/cli"
+	"github.com/trippwill/tuck/internal/app"
 )
 
 func main() {
-	os.Exit(tuckcli.Run(os.Args, os.Environ(), os.Stdout, os.Stderr))
+	os.Exit(app.Run(os.Args, os.Environ(), os.Stdout, os.Stderr))
 }

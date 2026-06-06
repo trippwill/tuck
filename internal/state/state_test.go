@@ -34,8 +34,8 @@ func TestLoadSources(t *testing.T) {
 	disabledRepo := writeSourceRepo(t, "disabled", "disabled description")
 	writeSources(t, stateRoot, stateFile("omitted",
 		sourceBlock("omitted", omittedEnabledRepo, nil)+
-			sourceBlock("explicit", explicitEnabledRepo, boolRef(true))+
-			sourceBlock("disabled", disabledRepo, boolRef(false)),
+			sourceBlock("explicit", explicitEnabledRepo, new(true))+
+			sourceBlock("disabled", disabledRepo, new(false)),
 	),
 	)
 
@@ -102,7 +102,8 @@ func TestLoadValidationErrors(t *testing.T) {
 			name: "missing enabled source id",
 			sources: func(t *testing.T) string {
 				repo := writeSourceRepo(t, "public", "")
-				return "[[source]]\npath = " + strconv.Quote(repo) + "\n"
+				return `[[source]]
+path = ` + strconv.Quote(repo) + "\n"
 			},
 		},
 		{
@@ -146,7 +147,7 @@ func TestLoadValidationErrors(t *testing.T) {
 			name: "default names disabled source",
 			sources: func(t *testing.T) string {
 				repo := writeSourceRepo(t, "disabled", "")
-				return stateFile("disabled", sourceBlock("disabled", repo, boolRef(false)))
+				return stateFile("disabled", sourceBlock("disabled", repo, new(false)))
 			},
 		},
 		{
@@ -209,8 +210,8 @@ func TestLoadDisabledEntriesDoNotParticipateInEnabledOnlyValidation(t *testing.T
 	missingRepo := filepath.Join(t.TempDir(), "missing")
 	writeSources(t, stateRoot, stateFile("public",
 		sourceBlock("public", enabledRepo, nil)+
-			sourceBlock("public", missingRepo, boolRef(false))+
-			sourceBlock("invalid", invalidManifestRepo, boolRef(false)),
+			sourceBlock("public", missingRepo, new(false))+
+			sourceBlock("invalid", invalidManifestRepo, new(false)),
 	),
 	)
 
@@ -253,10 +254,16 @@ func writeSourceRepoAt(t *testing.T, path, name, description string) string {
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		t.Fatalf("mkdir source repo: %v", err)
 	}
+
 	var manifest strings.Builder
-	manifest.WriteString("name = " + strconv.Quote(name) + "\n")
+	manifest.WriteString("name = ")
+	manifest.WriteString(strconv.Quote(name))
+	manifest.WriteString("\n")
+
 	if description != "" {
-		manifest.WriteString("description = " + strconv.Quote(description) + "\n")
+		manifest.WriteString("description = ")
+		manifest.WriteString(strconv.Quote(description))
+		manifest.WriteString("\n")
 	}
 	writeFile(t, filepath.Join(path, "tuck.toml"), manifest.String())
 	return path
@@ -276,7 +283,9 @@ func writeFile(t *testing.T, path, contents string) {
 func stateFile(defaultID, sources string) string {
 	var b strings.Builder
 	if defaultID != "" {
-		b.WriteString("default = " + strconv.Quote(defaultID) + "\n\n")
+		b.WriteString("default = ")
+		b.WriteString(strconv.Quote(defaultID))
+		b.WriteString("\n\n")
 	}
 	b.WriteString(sources)
 	return b.String()
@@ -285,10 +294,14 @@ func stateFile(defaultID, sources string) string {
 func sourceBlock(id, path string, enabled *bool) string {
 	var b strings.Builder
 	b.WriteString("[[source]]\n")
-	b.WriteString("id = " + strconv.Quote(id) + "\n")
-	b.WriteString("path = " + strconv.Quote(path) + "\n")
+	b.WriteString("id = ")
+	b.WriteString(strconv.Quote(id))
+	b.WriteString("\n")
+	b.WriteString("path = ")
+	b.WriteString(strconv.Quote(path))
+	b.WriteString("\n")
 	if enabled != nil {
-		b.WriteString(fmt.Sprintf("enabled = %t\n", *enabled))
+		fmt.Fprintf(&b, "enabled = %t\n", *enabled)
 	}
 	return b.String()
 }
@@ -313,8 +326,4 @@ func canonical(t *testing.T, path string) string {
 		t.Fatalf("canonicalize %s: %v", path, err)
 	}
 	return canonicalPath
-}
-
-func boolRef(v bool) *bool {
-	return &v
 }

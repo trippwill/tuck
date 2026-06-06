@@ -1,0 +1,12 @@
+words = [
+    "testhooks",
+    "tuckcli",
+    "undeploy",
+    "urfavecli",
+    "wantexit",
+    "wanthome",
+]
+ignore_paths = [
+    "docs/backlog.md",
+    "**/*.json",
+]
