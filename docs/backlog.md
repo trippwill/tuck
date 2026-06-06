@@ -35,8 +35,8 @@ building every engine primitive before the first command runs._
 
 **Foundation**
 
-1. [x] **M1** (red) Bootstrap just enough to fail a test first: `go mod init`, `mise` config (Go toolchain + task runner), and the `testscript` acceptance harness + unit scaffolding with the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit`/`wanthome` commands). Land a **failing** first contract suite: `tuck --help` exits `0`, an unknown command exits `2` — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
-2. [x] **M2** (green) Implement the `urfave/cli` command skeleton (global flags, subcommand stubs, a testable `Run(args, env, …) int` core) until the M1 contract suite passes `[eng]`
+1. [x] **M1** (red) Bootstrap just enough to fail a test first: `go mod init`, `mise` config (Go toolchain + task runner), and the `testscript` acceptance harness + unit scaffolding with the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit`/`wanthome` commands). Land a **failing** first contract suite for `tuck --help` and framework-owned unknown-command behavior — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
+2. [x] **M2** (green) Implement the `urfave/cli` command skeleton (global flags, subcommand stubs, and a main-style entrypoint registered with `testscript`) until the M1 contract suite passes `[eng]`
 
 **Vertical A — Sources** (`source enable` / `source list`)
 
@@ -44,7 +44,7 @@ building every engine primitive before the first command runs._
 4. [ ] **M4** Discover and load machine-local source state (`${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml`; `TUCK_TEST_STATE_DIR` override) `[engine]`
 5. [ ] **M5** Validate machine state (unique enabled ids, ≤1 default, roots exist, **no overlapping roots**, readable manifests) `[engine]`
 6. [ ] **M6** Resolve the active source: `--source <id>` (id-only) → machine default → sole enabled source → `no_source` (exit 3) `[engine]`
-7. [ ] **M7** Return meaningful exit codes (ok / conflict / usage / config-state / resolution / privilege / runtime) `[output]`
+7. [ ] **M7** Return meaningful domain exit codes (ok / conflict / config-state / resolution / privilege / runtime) `[output]`
 8. [ ] **M8** Show actionable error messages with hints, on **stderr** `[output]`
 9. [ ] **M9** `source enable <path> [--default]` — read manifest, atomic machine-state write, id-collision handling `[cmd]`
 10. [ ] **M10** `source list` — list enabled sources (id / path / default) `[cmd]`

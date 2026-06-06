@@ -1,2 +1,9 @@
-# Unknown commands are usage errors.
-wantexit 2 tuck definitely-not-a-command
+# Unknown commands are CLI parse/dispatch errors.
+wantexit 1 tuck definitely-not-a-command
+stderr 'Incorrect Usage'
+stderr 'unknown command'
+
+# Unknown nested commands behave the same way.
+wantexit 1 tuck source definitely-not-a-source-command
+stderr 'Incorrect Usage'
+stderr 'unknown command'

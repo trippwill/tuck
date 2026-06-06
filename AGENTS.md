@@ -19,8 +19,8 @@
 
 ## Architecture
 
-- `cmd/tuck/main.go` is intentionally thin: it calls `internal/cli.Run(os.Args, os.Environ(), stdout, stderr)` and exits with the returned code. Keep process exit behavior out of internal packages so tests can call `Run` directly.
-- `internal/cli` owns the current CLI skeleton on `urfave/cli/v3`: global flags, subcommands, custom help, usage errors, and exit-code handling. `Run` writes primary output to the injected stdout writer and diagnostics to stderr.
+- `cmd/tuck/main.go` is intentionally thin: it delegates to the app-level urfave/cli entrypoint. The acceptance harness registers the same entrypoint with `testscript` so command stdout, stderr, and exit status are tested as user-observable behavior.
+- `internal/app` owns the current CLI skeleton on `urfave/cli/v3`: global flags, subcommands, help metadata, framework-owned shell errors, and command exit handling. Prefer urfave/cli defaults and `cli.ExitCoder` patterns over bespoke CLI plumbing unless tuck-specific semantics require otherwise.
 - `docs/cli-spec.md` is the authoritative product/algorithm spec. It defines command semantics, source selection, path resolution, planning, output envelopes, and exit codes. Match the spec unless there is an intentional doc update in the same change.
 - `docs/testing-strategy.md` is authoritative for how behavior is tested. The backlog expects red/green, vertical-slice delivery: add the failing unit or acceptance coverage for a behavior before implementing it.
 - Engine code is expected to grow under focused `internal/...` packages. The docs call out units such as manifest/state loading, path primitives, source/package resolution, ownership inference, conflict rules, and planning; keep pure algorithmic logic out of the CLI layer where practical.
@@ -32,8 +32,8 @@
 - The CLI is spec-first. The important user model is one active source at a time: a committed `<repo>/tuck.toml` manifest supplies the source id, while machine-local `${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml` records enabled paths/defaults.
 - Package refs are plain package names only. Do not encode source or context in refs; source comes from `--source`/machine state and context comes from `--root` or default `home`.
 - Mutating verbs (`deploy`, `undeploy`, `redeploy`, `adopt`, `eject`) are dry-run/plan-by-default and mutate only with `--apply`. Build the complete plan and accumulate all conflicts before any mutation.
-- Output contract matters: primary results and JSON envelopes go to stdout; diagnostics, hints, and usage errors go to stderr. With `--json`, emit exactly one envelope on stdout and keep stderr empty.
-- Preserve the exit-code taxonomy from `internal/cli/exit.go` and `docs/cli-spec.md`: `0` OK, `1` conflict, `2` usage, `3` config/state, `4` resolution, `5` privilege, `6` runtime.
+- Output contract matters for domain commands: primary results and JSON envelopes go to stdout; diagnostics and hints go to stderr. Framework-rendered help/usage follows urfave/cli defaults. With `--json`, emit exactly one envelope on stdout and keep stderr empty.
+- Preserve the exit-code taxonomy from `internal/app/exit.go` and `docs/cli-spec.md`: `1` is reserved for CLI parse/dispatch issues; domain command exits start at conflict `2`.
 - Prefer typed const sentinel errors for stable package-level error kinds. Define a small string type that implements `Error()` and expose const values (for example `type ErrManifest string` with `const ErrInvalid ErrManifest = "invalid manifest"`), then wrap causes so `errors.Is` works.
 - Path handling must be path-segment aware. Ownership is inferred from symlink payloads within the active source only; there is no deployed-link manifest.
 - Deploy links only leaf entries. Directory entries become real target directories, and symlink payloads should use the spec's relative form.

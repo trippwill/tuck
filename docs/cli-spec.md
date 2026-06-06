@@ -131,12 +131,18 @@ tuck [global-flags] <command> [args] [command-flags]
   framework ([Appendix B](#appendix-b--relationship-to-the-draft)). Treat
   `tuck --json deploy zsh` as the canonical form.
 - `--` terminates flag parsing; subsequent tokens are positional arguments.
-- Unknown commands and unknown flags are usage errors (exit `2`).
+- Unknown commands, missing help topics, unknown flags, and related CLI shell
+  errors follow urfave/cli's framework behavior. Their exact text, stream split,
+  and exit status are acceptance-tested where important rather than assigned to
+  a tuck-specific usage code.
 - With no command, `tuck` prints top-level help and exits `0`.
-- `--help`, `--version`, and the no-command case **bypass** machine-state
-  discovery and source resolution entirely; they never require any enabled
-  source and always succeed (exit `0`). They also ignore `--json` and always
-  print plain text.
+- Invoking a command group with no subcommand (for example, `tuck source`)
+  prints that group's help and exits `0`; an unknown subcommand is a CLI
+  parse/dispatch error (exit `1`).
+- `--help`, `--version`, the no-command case, and command-group help **bypass**
+  machine-state discovery and source resolution entirely; they never require any
+  enabled source and always succeed (exit `0`). They also ignore `--json` and
+  always print plain text.
 - `tuck source enable <path>` does **not** require a pre-existing active source —
   it establishes one. `tuck source list` requires only readable machine state
   (an empty/absent state is reported as "no sources enabled", not an error).
@@ -196,7 +202,7 @@ These apply to every command unless noted.
 | `--json` | | — | off | Emit a single JSON document; suppress human output. |
 | `--apply` | | — | off | Execute the plan: perform mutations for `deploy`/`undeploy`/`redeploy`/`adopt`/`eject`. Without it, mutating verbs only print the plan. |
 | `--no-color` | | — | off | Disable ANSI color in human output (otherwise color is auto-enabled on a TTY). |
-| `--version` | `-V` | — | — | Print version and exit `0`. |
+| `--version` | `-v` | — | — | Print version and exit `0`. |
 | `--help` | `-h` | — | — | Print help for the program or command and exit `0`. |
 
 Flag interaction rules:
@@ -350,7 +356,7 @@ package-ref := package-name
 - Examples: `zsh`, `ssh`, `git`.
 - A ref names a package within the **active source** and the active context.
 
-Rejected (usage error, exit `2`):
+Rejected before package resolution:
 
 - A ref containing `:`. (Source qualification via `source:name` is **not**
   supported; use `--source`. The `:` is reserved and rejected to avoid silent
@@ -383,11 +389,12 @@ errors, and exit codes. All mutating commands first build a **complete plan**;
 if any conflict is found they print conflicts and mutate nothing
 ([§12.7](#127-operation-algorithms), [§12.9](#129-execution-planning)).
 
-In addition to the per-command exit codes listed, **every** command may return
-the global codes from [§10](#10-exit-codes): `2` (usage), `3` (config/state,
-e.g. invalid machine state, a missing/invalid manifest, or `no_source`), and `4`
-(resolution, e.g. an unknown `--source` id or a package not found). These are not
-repeated in each command for brevity.
+In addition to the per-command exit codes listed, **every** domain command may
+return the global codes from [§10](#10-exit-codes): `3` (config/state, e.g.
+invalid machine state, a missing/invalid manifest, or `no_source`) and `4`
+(resolution, e.g. an unknown `--source` id or a package not found). These are
+not repeated in each command for brevity. CLI shell errors owned by urfave/cli
+are covered separately by acceptance tests.
 
 ### 7.1 `deploy`
 
@@ -405,7 +412,7 @@ tuck [--root] deploy <package-ref>...
   (`relativePath(dirname(targetPath), packageEntryPath)`).
 - **Execution:** **dry-run by default**; mutates only with `--apply` (and only
   when conflict-free).
-- **Exit codes:** `0` applied/dry-run clean · `1` conflicts · `4` ref
+- **Exit codes:** `0` applied/dry-run clean · `2` conflicts · `4` ref
   resolution · `5` privilege (root) · `6` runtime.
 
 ### 7.2 `undeploy`
@@ -456,9 +463,9 @@ tuck [--root] adopt <package-ref> <target-file>
   path already exists. Plan: `mkdir` parents → `move` target→package →
   `symlink` target→package ([§12.7](#127-operation-algorithms)).
 - **Execution:** **dry-run by default**; mutates only with `--apply`.
-- **Exit codes:** `0` applied or dry-run printed · `1` conflict · `2` usage ·
-  `3` config/state (incl. `no_source`) · `4` resolution · `5` privilege ·
-  `6` runtime.
+- **Exit codes:** `0` applied or dry-run printed · `2` conflict · `3`
+  config/state (incl. `no_source`) · `4` resolution · `5` privilege · `6`
+  runtime.
 
 ### 7.5 `eject`
 
@@ -479,9 +486,9 @@ tuck [--root] eject <target-link>
   package→target ([§12.7](#127-operation-algorithms)). The now-empty package
   directory is left in place.
 - **Execution:** **dry-run by default**; mutates only with `--apply`.
-- **Exit codes:** `0` applied or dry-run printed · `1` conflict · `2` usage ·
-  `3` config/state (incl. `no_source`) · `4` resolution · `5` privilege ·
-  `6` runtime.
+- **Exit codes:** `0` applied or dry-run printed · `2` conflict · `3`
+  config/state (incl. `no_source`) · `4` resolution · `5` privilege · `6`
+  runtime.
 
 ### 7.6 `packages`
 
@@ -579,9 +586,9 @@ tuck source list
   against [§5.4](#54-validation) (unique ids, no overlapping roots, at most one
   default) and is **atomic**; on any validation failure nothing is written.
   Enabling a path already present is idempotent (updates the existing entry).
-- **Exit codes:** `0` enabled · `2` usage · `3` config/state (missing/invalid
-  manifest, id collision, overlapping root, invalid state) ·
-  `6` runtime (state write failure).
+- **Exit codes:** `0` enabled · `3` config/state (missing/invalid manifest, id
+  collision, overlapping root, invalid state) · `6` runtime (state write
+  failure).
 
 Id collisions: if the effective id is already used by a **different** path,
 `enable` fails (`state_invalid`, exit `3`). Resolving a collision with a
@@ -615,7 +622,7 @@ Planning rules:
 1. Resolve all sources, packages, target paths, and ownership before mutating.
 2. Accumulate **all** conflicts (do not stop at the first).
 3. If any conflict exists: print conflicts, print no actions as applied, exit
-   `1`. Nothing is mutated.
+   `2`. Nothing is mutated.
 4. If conflict-free: print the planned actions.
 5. Mutate only when the command's execution mode permits it (§2, §4): every
    mutating verb (`deploy`/`undeploy`/`redeploy`/`adopt`/`eject`) is dry-run by
@@ -670,13 +677,14 @@ Every command supports two mutually exclusive modes: human (default) and
 `--json`.
 
 **Streams.** Primary results — plans, listings, status, and the `--json`
-envelope — are written to **stdout**. Diagnostics — error messages, hints, and
-usage text — are written to **stderr**. A successful command writes nothing to
-stderr; on a non-zero exit the human-readable `error:`/`hint:` lines (and any
-usage text for exit `2`) go to stderr, leaving stdout for any partial result
-(e.g. a printed plan that was not applied). With `--json` the single envelope is
-still emitted to stdout (it carries `exitCode` and, on failure, the `error`
-payload), and stderr stays empty.
+envelope — are written to **stdout**. Diagnostics — error messages and hints —
+are written to **stderr**. Framework-rendered help and parse-error usage text
+follow urfave/cli's stream behavior. A successful command writes nothing to
+stderr; on a non-zero domain-command exit, human-readable `error:`/`hint:` lines
+go to stderr, leaving stdout for any partial result (e.g. a printed plan that
+was not applied). With `--json` the single envelope is still emitted to stdout
+(it carries `exitCode` and, on failure, the `error` payload), and stderr stays
+empty.
 
 ### 9.1 Human output
 
@@ -775,7 +783,7 @@ A conflict object:
 }
 ```
 
-When conflicts are non-empty, `applied` is `false` and `exitCode` is `1`.
+When conflicts are non-empty, `applied` is `false` and `exitCode` is `2`.
 
 **Privilege-required (exit `5`).** `kind` stays `"plan"`; the plan is conflict-
 free but not applied because `required` is true and `satisfied` is false:
@@ -938,8 +946,8 @@ Emitted by `source list` (and the data block written/echoed by `source enable`):
 | Code | Name | Meaning |
 | --- | --- | --- |
 | `0` | OK | Success: applied cleanly, dry-run printed, or read completed. |
-| `1` | Conflict | Plan had conflicts; nothing was mutated. |
-| `2` | Usage | Invalid flags/arguments/command, or invalid package-ref syntax. |
+| `1` | Command line | CLI parse/dispatch issue such as an unknown flag or command. |
+| `2` | Conflict | Plan had conflicts; nothing was mutated. |
 | `3` | Config/state | Machine state invalid, a repository manifest missing/invalid, an enabled source root missing or overlapping, or no source selected (`no_source`). |
 | `4` | Resolution | Package not found in the active source, or an unknown/disabled `--source` id. |
 | `5` | Privilege | Root-context mutation requires elevated privileges. |
@@ -947,8 +955,11 @@ Emitted by `source list` (and the data block written/echoed by `source enable`):
 
 Notes:
 
-- `status` never returns `1` for in-body conflicts; it reports them in `data`
+- `status` never returns `2` for in-body conflicts; it reports them in `data`
   and exits `0`.
+- CLI shell errors owned by urfave/cli, such as unknown commands/help topics and
+  parse errors, use exit `1`. Their exact text and help rendering are covered by
+  acceptance tests.
 - A partial failure during apply (exit `6`) stops at the failing action; already
   applied actions are not rolled back. Human output and the JSON `failure`
   object (with `actionIndex`/`completedActions`, §9.2.1) name the failing action.
@@ -962,7 +973,7 @@ hint: <actionable suggestion>     # optional, when one applies
 
 Messages are lowercase, specific, and reference the offending path or ref.
 Standard error `code` values (stable identifiers used in JSON and tests)
-include: `usage`, `manifest_missing`, `manifest_invalid`, `state_invalid`,
+include: `manifest_missing`, `manifest_invalid`, `state_invalid`,
 `source_root_missing`, `unknown_source`, `no_source`, `package_not_found`,
 `invalid_ref`, `real_file`, `real_directory`, `special_file`,
 `unmanaged_symlink`, `owned_by_other`, `path_mismatch`, `multiple_providers`,
@@ -973,41 +984,17 @@ include: `usage`, `manifest_missing`, `manifest_invalid`, `state_invalid`,
 
 ## 11. Help and usage text
 
-`tuck --help` (top-level):
+`tuck --help` and per-command help are rendered by urfave/cli's default help
+templates from the command metadata. Top-level help includes the command name,
+usage line, version, visible commands, and global options. The current
+framework-rendered shape includes sections such as `NAME`, `USAGE`, `VERSION`,
+`COMMANDS`, and `GLOBAL OPTIONS`, but exact section order, capitalization,
+spacing, and flag rendering are framework-owned.
 
-```text
-tuck — manage dotfiles by linking package leaves into a target tree
-
-usage:
-  tuck [global-flags] <command> [args]
-
-commands:
-  deploy    <package>...           create managed links for a package
-  undeploy  <package>...           remove managed links for a package
-  redeploy  <package>...           refresh managed links (undeploy + deploy)
-  adopt     <package> <file>       move a real file into a package, then link it
-  eject     <link>                 remove a managed link, restoring the real file
-  packages                         list the active source's packages
-  tree      [package]              show package contents
-  status    [package] [--path P]   show managed/conflict state
-  source    enable <path>          enable a dotfiles repo on this machine
-  source    list                   list enabled sources
-
-global flags:
-      --root                use the root context (target /); default is home
-  -s, --source ID           select active source by enabled id
-      --json                machine-readable output
-      --apply               execute the plan (mutating verbs plan only without it)
-      --no-color            disable colored output (implied by --json)
-  -V, --version             print version
-  -h, --help                show help
-
-run `tuck <command> --help` for command-specific help.
-```
-
-Per-command help (e.g. `tuck adopt --help`) prints the command synopsis, its
-arguments, the flags that affect it, its default execution mode, and one
-worked example.
+Per-command help (for example, `tuck adopt --help`) prints the command synopsis,
+arguments, and flags that affect that command using the same framework-owned
+formatting. Acceptance tests assert help loosely with exit code and stable key
+substrings, not byte-for-byte help text.
 
 ---
 
@@ -1113,7 +1100,7 @@ same way and infer ownership **within it** ([§12.5](#125-ownership-resolution))
 
 #### Parse package reference
 
-A ref is a plain `<package-name>` (§6). Reject (usage error, exit `2`): any `:`
+A ref is a plain `<package-name>` (§6). Reject before resolution: any `:`
 (source qualification is not supported — use `--source`), an empty name, an
 absolute name, a name with `..` segments, or a name containing a path separator
 (packages are direct children of the base; this keeps the ownership-inference
@@ -1357,7 +1344,7 @@ a ref: resolve it in the active source
 Mutations are the explicit actions defined in §8 (`mkdir`, `symlink`,
 `remove_symlink`, `move`). Planning rules: resolve the active source, packages,
 target paths, and ownership before mutating; accumulate **all** conflicts (do not
-stop at the first); on any conflict print them and exit `1` without mutating; on a
+stop at the first); on any conflict print them and exit `2` without mutating; on a
 conflict-free plan print the actions and mutate only when `--apply` is given
 (§8). Root-context mutations make their privilege requirement visible in the plan
 and never self-escalate (§8.1).
@@ -1461,7 +1448,7 @@ conflicts:
   ! ~/.gitconfig  target exists as real file
     hint: use `tuck adopt git ~/.gitconfig` to move it into a package
 error: 1 conflict; nothing was changed
-# exit 1
+# exit 2
 ```
 
 ### A.8 Managed by another package in the same source
@@ -1471,7 +1458,7 @@ $ tuck deploy git                 # active source = public; ~/.gitconfig owned b
 conflicts:
   ! ~/.gitconfig  already managed by public:home:work
 error: 1 conflict; nothing was changed
-# exit 1
+# exit 2
 ```
 
 ---
@@ -1569,12 +1556,11 @@ The CLI is built on [`urfave/cli`](https://github.com/urfave/cli) (v3). The
 framework — not this document — is authoritative for surface mechanics:
 command/flag parsing, exact flag placement, `--help`/`--version` rendering, and
 usage-error formatting. The spec aims to be **close to**, not byte-identical
-with, the framework's defaults; where they differ, the framework wins so long
-as the documented **behavior** is preserved: the exit-code taxonomy (§10), the
-stdout/stderr split (§9), the `--json` envelope (§9.2), and the resolution and
-mutation semantics. Flag value sourcing (e.g. an env-var fallback such as
-`NO_COLOR` for `--no-color`, or the build-tag-gated `TUCK_TEST_*` test hooks)
-uses the framework's flag-source resolvers rather than bespoke env parsing.
-Golden acceptance tests pin the human and JSON output that actually matters; help
-and usage text are asserted loosely (presence/exit code), not pinned verbatim,
-so a framework upgrade does not churn goldens.
+with, the framework's defaults; where they differ, prefer the framework's
+idiomatic behavior when that is the intended product decision, then update this
+spec and the acceptance tests to match. Flag value sourcing (e.g. an env-var
+fallback such as `NO_COLOR` for `--no-color`, or the build-tag-gated
+`TUCK_TEST_*` test hooks) uses the framework's flag-source resolvers rather than
+bespoke env parsing. Golden acceptance tests pin the human and JSON output that
+actually matters; help and usage text are asserted loosely (presence/exit code),
+not pinned verbatim, so a CLI-framework upgrade does not churn goldens.

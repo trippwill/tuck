@@ -1,0 +1,6 @@
+# urfave/cli provides the version flag and output format.
+wantexit 0 tuck --version
+stdout 'tuck version dev'
+
+wantexit 0 tuck -v
+stdout 'tuck version dev'

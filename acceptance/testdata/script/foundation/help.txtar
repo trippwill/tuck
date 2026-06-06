@@ -1,3 +1,11 @@
 # Help bypasses state discovery and exits successfully.
 wantexit 0 tuck --help
-stdout 'usage'
+stdout 'USAGE'
+
+# No command shows top-level help and exits successfully.
+wantexit 0 tuck
+stdout 'USAGE'
+
+# A command with subcommands uses framework help when no subcommand is given.
+wantexit 0 tuck source
+stdout 'USAGE'

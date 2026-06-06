@@ -22,12 +22,16 @@ document is authoritative for **how that behavior is tested**.
 
 | Layer | Scope | Speed | Tooling |
 | --- | --- | --- | --- |
-| **Unit** | Pure functions from [§12](./cli-spec.md#12-resolution-algorithms): path primitives, target↔package conversion, classify-target, ownership inference, conflict rules, execution planning. No filesystem, or `t.TempDir()` only. | fast | stdlib `testing`, table-driven |
-| **Acceptance** | The compiled binary against an isolated filetree. Asserts exit code ([§10](./cli-spec.md#10-exit-codes)), stdout (human or JSON, [§9](./cli-spec.md#9-output-formats)), and the resulting filetree (existence, symlink payload, moved files). | medium | `testscript` (txtar) |
+| **Unit** | Pure/internal behavior from [§12](./cli-spec.md#12-resolution-algorithms): path primitives, target↔package conversion, classify-target, ownership inference, conflict rules, execution planning. No filesystem, or `t.TempDir()` only. | fast | stdlib `testing`, table-driven |
+| **Acceptance** | The compiled binary against an isolated filetree. Asserts exit code ([§10](./cli-spec.md#10-exit-codes)), stdout/stderr (human or JSON, [§9](./cli-spec.md#9-output-formats)), and the resulting filetree (existence, symlink payload, moved files). | medium | `testscript` (txtar) |
 
 Unit tests own the algorithmic edge cases; acceptance tests own the
 user-observable contract. A behavior is "done" only when an acceptance test
 proves it on the real binary.
+
+CLI shell behavior — command parsing, help/version output, diagnostics, stdout,
+stderr, and process exit status — is user-observable contract and belongs in
+testscript, not in unit tests for the CLI composition package.
 
 ### 2.1 Test suites
 
@@ -240,7 +244,9 @@ non-root apply, output distinguishes *marker* from *enforcement*:
    assert a stderr golden; success scripts assert stderr is **empty**. `--help`
    and usage text are checked **loosely** (exit code + a key substring), never
    pinned verbatim, so a CLI-framework (`urfave/cli`) upgrade does not churn
-   goldens.
+   goldens. CLI shell cases such as `--help`, `--version`, unknown commands, and
+   unknown flags are covered here rather than through internal package unit
+   tests.
 4. **Filetree** — `exists` / `! exists`, and `readlink` for the **exact**
    symlink payload (the spec's **relative** form, e.g. `../src/zsh/.zshrc`);
    output is never used to infer the payload.
@@ -287,12 +293,13 @@ contract below.
 - **`root`** — `root` context via the physical-root seam with logical-path
   goldens; deterministic privilege via the injected predicate, covering exit `5`
   vs exit `6`.
-- **`errors`** (cross-cutting) — one script per non-zero exit code in
-  [§10](./cli-spec.md#10-exit-codes): conflict (`1`), usage (`2`), config (`3`),
-  resolution (`4`), privilege (`5`), runtime (`6`); one script per conflict rule
-  in [§12.6](./cli-spec.md#126-conflict-rules); JSON variants for at least one
-  representative of each `kind` (`plan`/`packages`/`tree`/`status`/`sources`/
-  `error`).
+- **`errors`** (cross-cutting) — scripts for non-zero domain exit codes in
+  [§10](./cli-spec.md#10-exit-codes): conflict (`2`), config (`3`), resolution
+  (`4`), privilege (`5`), runtime (`6`); separate foundation scripts cover CLI
+  parse/dispatch errors (`1`) such as unknown commands and flags. Include one
+  script per conflict rule in [§12.6](./cli-spec.md#126-conflict-rules);
+  JSON variants for at least one representative of each `kind`
+  (`plan`/`packages`/`tree`/`status`/`sources`/`error`).
 
 ## 8. Example (home deploy, red→green)
 
