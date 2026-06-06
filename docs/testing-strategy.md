@@ -48,10 +48,11 @@ working:
   points `testscript` at that directory. Run one with
   `go test -tags tuck_testhooks -run TestDeploy ./acceptance/...`. Current
   suites track the thin vertical slices ([backlog.md](./backlog.md) MVP):
-  `source` (enable/list, state validation, resolution, `no_source`), `deploy`,
-  `query` (`packages`/`tree`/`status`), `undeploy` (incl. `redeploy`),
+  `source` (`add`/`list`, state validation, resolution, `no_source`),
+  `package_use`, `query` (`package list`/`package show`/`status`),
+  `package_drop` (incl. `package refresh`),
   `adopt_eject`, `root` (root context + privilege; needs the `TUCK_TEST_ROOT_DIR`
-  / `TUCK_TEST_PRIVILEGE` hooks), and `errors` (the exit-code taxonomy and JSON
+  / `TUCK_TEST_PRIVILEGE` hooks), and `errors` (error-code classification and JSON
   `error`/`sources`/… envelopes, cross-cutting).
 
 [`mise`](https://mise.jdx.dev) tasks expose the common groupings: `mise run test`
@@ -210,9 +211,10 @@ is neither necessary nor sufficient — a plan may touch read-only subtrees, and
    deterministically — **no reliance on `chmod 0555`** (which root can bypass)
    or on the test runner's real euid.
 4. If `--apply` is given and privilege is **not** satisfied: print the plan,
-   **mutate nothing**, exit `5`.
-5. Otherwise apply. A genuine filesystem error *during* apply is exit `6`, never
-   `5` — the privilege failure path must mutate nothing.
+   **mutate nothing**, exit `1` with error.code `privilege_required`.
+5. Otherwise apply. A genuine filesystem error *during* apply is error.code
+   `io_error`, never `privilege_required` — the privilege failure path must
+   mutate nothing.
 
 This decoupling means redirecting the physical root (§5.2) never grants
 privilege, and forcing privilege never changes where bytes land.
@@ -282,38 +284,37 @@ mutation. The no-mutation guarantee is itself a first-class assertion.
 Coverage is organized by **suite** (§2.1); each suite owns the slice of the
 contract below.
 
-- **`source`** — `source enable`/`source list`; state validation (unique enabled
+- **`source`** — `source add`/`source list`; state validation (unique enabled
   ids, ≤1 default, no overlapping roots); active-source resolution and
-  `no_source` (exit `3`); `sources` JSON kind.
-- **`deploy`** — `deploy` in both plan and `--apply` form; the no-mutation
-  guarantee; deploy/dir conflicts.
-- **`query`** — `packages`/`tree`/`status` (incl. `status --path`).
-- **`undeploy`** — `undeploy` and `redeploy` (payload normalization).
+  `no_source`; `sources` JSON kind.
+- **`package_use`** — `package use` in both plan and `--apply` form; the
+  no-mutation guarantee; package-use/dir conflicts.
+- **`query`** — `package list`/`package show`/`status`/`package status`.
+- **`package_drop`** — `package drop` and `package refresh` (payload normalization).
 - **`adopt_eject`** — `adopt` and `eject`; active-source ownership inference.
 - **`root`** — `root` context via the physical-root seam with logical-path
-  goldens; deterministic privilege via the injected predicate, covering exit `5`
-  vs exit `6`.
-- **`errors`** (cross-cutting) — scripts for non-zero domain exit codes in
-  [§10](./cli-spec.md#10-exit-codes): conflict (`2`), config (`3`), resolution
-  (`4`), privilege (`5`), runtime (`6`); separate foundation scripts cover CLI
-  parse/dispatch errors (`1`) such as unknown commands and flags. Include one
+  goldens; deterministic privilege via the injected predicate, covering
+  `privilege_required` vs `io_error`.
+- **`errors`** (cross-cutting) — scripts for stable error.code values in
+  [§10](./cli-spec.md#10-exit-codes-and-error-codes); separate foundation scripts
+  cover CLI parse/dispatch errors such as unknown commands and flags. Include one
   script per conflict rule in [§12.6](./cli-spec.md#126-conflict-rules);
   JSON variants for at least one representative of each `kind`
   (`plan`/`packages`/`tree`/`status`/`sources`/`error`).
 
-## 8. Example (home deploy, red→green)
+## 8. Example (home package use, red→green)
 
 ```
-# deploy_home.txtar
+# package_use_home.txtar
 wanthome                  # creates $WORK/home and generates $WORK/state/tuck/
                           #   sources.toml with the default source -> $WORK/src
 
 # plan only: nothing changes
-tuck deploy zsh --no-color
+tuck pkg use zsh --no-color
 ! exists $WORK/home/.zshrc
 
 # apply: link is created with the expected (relative) payload
-wantexit 0 tuck deploy zsh --apply --no-color
+wantexit 0 tuck pkg use zsh --apply --no-color
 exists $WORK/home/.zshrc
 readlink $WORK/home/.zshrc ../src/zsh/.zshrc
 

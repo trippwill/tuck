@@ -94,7 +94,8 @@ func TestActiveSource(t *testing.T) {
 }
 
 func TestActiveSourceErrorKindsStayDistinct(t *testing.T) {
-	// M7 will map ErrNoSource to exit 3 and ErrUnknownSource to exit 4.
+	// Error kinds must remain distinct so CLI-layer code can emit
+	// different error.code values in the JSON envelope.
 	if errors.Is(ErrNoSource, ErrUnknownSource) {
 		t.Fatalf("ErrNoSource and ErrUnknownSource must remain distinct")
 	}

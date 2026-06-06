@@ -38,38 +38,38 @@ building every engine primitive before the first command runs._
 1. [x] **M1** (red) Bootstrap just enough to fail a test first: `go mod init`, `mise` config (Go toolchain + task runner), and the `testscript` acceptance harness + unit scaffolding with the **per-suite layout** (build-tag–gated test hooks, isolated `$WORK`, `TUCK_TEST_STATE_DIR`, `readlink`/`wantexit`/`wanthome` commands). Land a **failing** first contract suite for `tuck --help` and framework-owned unknown-command behavior — see [`testing-strategy.md`](./testing-strategy.md) `[eng]`
 2. [x] **M2** (green) Implement the `urfave/cli` command skeleton (global flags, subcommand stubs, and a main-style entrypoint registered with `testscript`) until the M1 contract suite passes `[eng]`
 
-**Vertical A — Sources** (`source enable` / `source list`)
+**Vertical A — Sources** (`source add` / `source list`)
 
 3. [x] **M3** Read and validate a repository manifest (`<repo>/tuck.toml`: required `name`, optional `description`; ignore unknown keys) `[engine]`
 4. [ ] **M4** Discover and load machine-local source state (`${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml`; `TUCK_TEST_STATE_DIR` override) `[engine]`
 5. [ ] **M5** Validate machine state (unique enabled ids, ≤1 default, roots exist, **no overlapping roots**, readable manifests) `[engine]`
-6. [ ] **M6** Resolve the active source: `--source <id>` (id-only) → machine default → sole enabled source → `no_source` (exit 3) `[engine]`
-7. [ ] **M7** Return meaningful domain exit codes (ok / conflict / config-state / resolution / privilege / runtime) `[output]`
+6. [ ] **M6** Resolve the active source: `--source <id>` (id-only) → machine default → sole enabled source → `no_source` (exit 1, error.code `no_source`) `[engine]`
+7. [ ] **M7** Return meaningful error codes in JSON envelope and stderr (error.code values: `no_source`, `unknown_source`, `manifest_missing`, etc.) `[output]`
 8. [ ] **M8** Show actionable error messages with hints, on **stderr** `[output]`
-9. [ ] **M9** `source enable <path> [--default]` — read manifest, atomic machine-state write, id-collision handling `[cmd]`
+9. [ ] **M9** `source add <path> [--default]` — read manifest, atomic machine-state write, id-collision handling `[cmd]`
 10. [ ] **M10** `source list` — list enabled sources (id / path / default) `[cmd]`
 
-**Vertical B — Deploy (home)**
+**Vertical B — Package Use (home)**
 
 11. [ ] **M11** Parse and validate a plain package reference `[engine]`
 12. [ ] **M12** Convert package paths to target paths (and back), path-segment-aware `[engine]`
 13. [ ] **M13** Enumerate a package's leaf and directory entries (skip the reserved `.root` dir and `tuck.toml`) `[engine]`
 14. [ ] **M14** Resolve an existing package in the active source and context `[engine]`
 15. [ ] **M15** Classify a target path (absent / real file / dir / symlink / managed) `[engine]`
-16. [ ] **M16** Detect deploy and directory conflicts `[engine]`
+16. [ ] **M16** Detect package-use and directory conflicts `[engine]`
 17. [ ] **M17** Build a complete action plan before any mutation `[engine]`
 18. [ ] **M18** Render a human-readable plan (plan / conflicts / summary) `[output]`
 19. [ ] **M19** Apply a conflict-free plan only when `--apply` is given (dry-run by default) `[engine]`
-20. [ ] **M20** `deploy` a package's entries into the target tree (plan + `--apply`) `[cmd]`
+20. [ ] **M20** `package use` a package's entries into the target tree (plan + `--apply`) `[cmd]`
 
 **Vertical C — Status**
 
 21. [ ] **M21** Infer the owning package of a managed symlink **in the active source only** `[engine]`
-22. [ ] **M22** `status` of a package's entries and of a single target path (`--path`, active-source ownership) `[cmd]`
+22. [ ] **M22** `package status` of a package's entries; `status` of a single target path (active-source ownership) `[cmd]`
 
-**Vertical D — Undeploy**
+**Vertical D — Package Drop**
 
-23. [ ] **M23** `undeploy` a package's managed symlinks `[cmd]`
+23. [ ] **M23** `package drop` a package's managed symlinks `[cmd]`
 
 **Vertical E — Adopt / eject**
 
@@ -78,8 +78,8 @@ building every engine primitive before the first command runs._
 
 **Vertical F — Root context**
 
-26. [ ] **M26** Operate in the `root` context (`--root`, package base `.root`, target `/`) with preflight privilege; exit `5`; never self-escalate `[cmd]`
-27. [ ] **M27** Root-context tests via the physical-root seam (`TUCK_TEST_ROOT_DIR`) with logical-path goldens; deterministic privilege tests via the injected predicate (`TUCK_TEST_PRIVILEGE`), covering exit 5 vs exit 6 `[test]`
+26. [ ] **M26** Operate in the `root` context (`--root`, package base `.root`, target `/`) with preflight privilege; error.code `privilege_required`; never self-escalate `[cmd]`
+27. [ ] **M27** Root-context tests via the physical-root seam (`TUCK_TEST_ROOT_DIR`) with logical-path goldens; deterministic privilege tests via the injected predicate (`TUCK_TEST_PRIVILEGE`), covering `privilege_required` vs `io_error` `[test]`
 28. [ ] **M28** Build and run on the developer's platform `[eng]`
 
 <!-- ===================== MVP CUTOFF ===================== -->
@@ -91,26 +91,27 @@ building every engine primitive before the first command runs._
 _Goal: a shippable v1 others can install and trust — machine output (JSON),
 distributed builds, and docs._
 
-1. [ ] **R1** Redeploy a package (refresh + normalize link payloads) `[cmd]`
-2. [ ] **R2** List packages in the active source (`packages`) `[cmd]`
-3. [ ] **R3** Show a package's file tree, and all packages in the active source (`tree`) `[cmd]`
-4. [ ] **R4** `source disable <id>` — disable a source in machine state `[cmd]`
-5. [ ] **R5** Interactive first-run init on `no_source`: prompt for a repo path and run `source enable` (TTY only; non-interactive still errors) `[cmd]`
+1. [ ] **R1** `package refresh` a package (refresh + normalize link payloads) `[cmd]`
+2. [ ] **R2** List packages in the active source (`package list`) `[cmd]`
+3. [ ] **R3** Show a package's file tree, and all packages in the active source (`package show`) `[cmd]`
+4. [ ] **R4** `source rm <id>` — remove a source from machine state `[cmd]`
+5. [ ] **R5** Interactive first-run init on `no_source`: prompt for a repo path and run `source add` (TTY only; non-interactive still errors) `[cmd]`
 6. [ ] **R6** Print global and per-command help/usage text `[output]`
-7. [ ] **R7** Expose the full exit-code taxonomy and structured error envelope `[output]`
-8. [ ] **R8** Report `multiple_providers` / `mismatch` / `owned_by_other` in status `[cmd]`
-9. [ ] **R9** Emit stable, versioned JSON for every command, including `source` (`--json`) `[output]`
-10. [ ] **R10** JSON golden tests for every envelope `kind` (plan/packages/tree/status/sources/error) `[test]`
-11. [ ] **R11** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
-12. [ ] **R12** Acceptance coverage for each non-zero exit code and each conflict rule `[test]`
-13. [ ] **R13** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
-14. [ ] **R14** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
-15. [ ] **R15** Enforce lint/format gates in CI `[build]`
-16. [ ] **R16** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
-17. [ ] **R17** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
-18. [ ] **R18** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
-19. [ ] **R19** Write a README with installation and quickstart `[docs]`
-20. [ ] **R20** Publish a documentation website (spec, guides, worked examples) `[docs]`
+7. [ ] **R7** Generate structured JSON help/usage metadata for root and per-command `--help --json` `[output]`
+8. [ ] **R8** Expose the error classification system (`error.code` in JSON envelope and stderr) `[output]`
+9. [ ] **R9** Report `multiple_providers` / `mismatch` / `owned_by_other` in `package status` `[cmd]`
+10. [ ] **R10** Emit stable, versioned JSON for every command, including `source` (`--json`) `[output]`
+11. [ ] **R11** JSON golden tests for every envelope `kind` (plan/packages/tree/status/sources/help/version/error) `[test]`
+12. [ ] **R12** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
+13. [ ] **R13** Acceptance coverage for each error code and each conflict rule `[test]`
+14. [ ] **R14** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
+15. [ ] **R15** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
+16. [ ] **R16** Enforce lint/format gates in CI `[build]`
+17. [ ] **R17** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
+18. [ ] **R18** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
+19. [ ] **R19** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
+20. [ ] **R20** Write a README with installation and quickstart `[docs]`
+21. [ ] **R21** Publish a documentation website (spec, guides, worked examples) `[docs]`
 
 <!-- ================= FIRST RELEASE CUTOFF ================= -->
 
@@ -127,10 +128,10 @@ _Unordered idea bucket; IDs are for reference only._
 5. [ ] **P5** Add a `source init` command to scaffold a repo `tuck.toml` manifest `[cmd]`
 6. [ ] **P6** Generate shell completions (bash/zsh/fish) `[cmd]`
 7. [ ] **P7** Generate man pages `[docs]`
-8. [ ] **P8** Provide an `adopt`-on-conflict shortcut from a `deploy` conflict `[cmd]`
+8. [ ] **P8** Provide an `adopt`-on-conflict shortcut from a `package use` conflict `[cmd]`
 9. [ ] **P9** Re-introduce verbose/quiet output modes if needed `[output]`
 10. [ ] **P10** Explore Windows support `[eng]`
-11. [ ] **P11** Explore a watch / auto-redeploy mode `[cmd]`
-12. [ ] **P12** Add a machine-local source-id override (e.g. `source enable --id <id>`) to resolve manifest-name collisions between repos `[cmd]`
-13. [ ] **P13** Optionally prune now-empty intermediate directories left behind after `undeploy` / `eject` `[cmd]`
+11. [ ] **P11** Explore a watch / auto-refresh mode `[cmd]`
+12. [ ] **P12** Add a machine-local source-id override (e.g. `source add --id <id>`) to resolve manifest-name collisions between repos `[cmd]`
+13. [ ] **P13** Optionally prune now-empty intermediate directories left behind after `package drop` / `eject` `[cmd]`
 14. [ ] **P14** Explore a boilerplate generator tool for const sentinel errors `[eng]`

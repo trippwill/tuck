@@ -23,7 +23,7 @@ Implement only the engine packages needed to turn the red tests green:
 - `internal/state`
 - `internal/resolve`
 
-Do not wire these packages into `internal/cli`, acceptance scripts, JSON output, stderr hints, or process exit-code mapping. M7-M10 own those user-facing surfaces.
+Do not wire these packages into `internal/app`, acceptance scripts, JSON output, stderr hints, or error-code mapping. Later stories own those user-facing surfaces.
 
 ## State package API
 
@@ -158,7 +158,7 @@ Behavior:
 5. If no explicit id and zero enabled sources, return `ErrNoSource`.
 6. If no explicit id and multiple enabled sources but no default, return `ErrNoSource`.
 
-Keep `ErrNoSource` and `ErrUnknownSource` distinct. Later M7 maps `ErrNoSource` to exit `3` and `ErrUnknownSource` to exit `4`; this package should not know about process exit codes.
+Keep `ErrNoSource` and `ErrUnknownSource` distinct. The CLI layer maps these to different `error.code` values in the JSON envelope; this package should not know about exit codes or output formatting.
 
 ## Task breakdown
 

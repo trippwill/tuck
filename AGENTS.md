@@ -13,7 +13,7 @@
 
 ## Commit messages
 
-- Use Conventional Commits: `<type>(<scope>): <summary>`, for example `feat(cli): add source enable`.
+- Use Conventional Commits: `<type>(<scope>): <summary>`, for example `feat(cli): add source add`.
 - Prefer scopes that match the touched area, such as `cli`, `manifest`, `state`, `pathutil`, `acceptance`, `docs`, or `build`.
 - Use `test:` for test-only changes and `docs:` for documentation-only changes.
 
@@ -30,13 +30,15 @@
 ## Repository-specific conventions
 
 - The CLI is spec-first. The important user model is one active source at a time: a committed `<repo>/tuck.toml` manifest supplies the source id, while machine-local `${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml` records enabled paths/defaults.
+- Command depth mirrors operation frequency: file operations (`adopt`, `eject`, `status`) are top-level; package operations (`package use`, `package drop`, etc.) are grouped under the `package` (alias `pkg`) subcommand; source operations are grouped under the `source` subcommand.
+- No false globals: flags appear only on commands where they have meaning. `--json` and `--no-color` are truly universal (on the root command). `--source` and `--root` are scoped to domain commands (file ops + package subcommands). `--apply` is scoped to mutating commands only.
+- Exit codes are binary: `0` (success) or `1` (failure). Error classification lives in the `--json` error envelope (`error.code`) and stderr messages, not in distinct exit codes.
 - Package refs are plain package names only. Do not encode source or context in refs; source comes from `--source`/machine state and context comes from `--root` or default `home`.
-- Mutating verbs (`deploy`, `undeploy`, `redeploy`, `adopt`, `eject`) are dry-run/plan-by-default and mutate only with `--apply`. Build the complete plan and accumulate all conflicts before any mutation.
+- Mutating verbs (`adopt`, `eject`, `package use`, `package drop`, `package refresh`) are dry-run/plan-by-default and mutate only with `--apply`. Build the complete plan and accumulate all conflicts before any mutation.
 - Output contract matters for domain commands: primary results and JSON envelopes go to stdout; diagnostics and hints go to stderr. Framework-rendered help/usage follows urfave/cli defaults. With `--json`, emit exactly one envelope on stdout and keep stderr empty.
-- Preserve the exit-code taxonomy from `internal/app/exit.go` and `docs/cli-spec.md`: `1` is reserved for CLI parse/dispatch issues; domain command exits start at conflict `2`.
 - Prefer typed const sentinel errors for stable package-level error kinds. Define a small string type that implements `Error()` and expose const values (for example `type ErrManifest string` with `const ErrInvalid ErrManifest = "invalid manifest"`), then wrap causes so `errors.Is` works.
 - Path handling must be path-segment aware. Ownership is inferred from symlink payloads within the active source only; there is no deployed-link manifest.
-- Deploy links only leaf entries. Directory entries become real target directories, and symlink payloads should use the spec's relative form.
+- `package use` links only leaf entries. Directory entries become real target directories, and symlink payloads should use the spec's relative form.
 - Root-context behavior separates logical paths, physical test backing roots, and privilege authorization. `--root` output should stay logical (`/etc/...`), while tests may redirect writes with build-tagged hooks.
 - Acceptance scripts should run in the harness sandbox, use exact exit assertions via `wantexit`, assert symlink payloads via `readlink`, and generate `$WORK`-dependent state at runtime with setup commands such as `wanthome` rather than inline txtar bodies.
 - Keep acceptance output deterministic: scrubbed sandbox env, stable locale, no color, fixed umask from the harness, stdout/stderr assertions, and no dependence on the developer's real home, root, or machine state.

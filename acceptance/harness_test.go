@@ -3,12 +3,9 @@
 package acceptance
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"testing"
 
@@ -45,7 +42,6 @@ func setupScriptEnv(e *testscript.Env) error {
 func scriptCommands() map[string]func(ts *testscript.TestScript, neg bool, args []string) {
 	return map[string]func(ts *testscript.TestScript, neg bool, args []string){
 		"readlink": cmdReadlink,
-		"wantexit": cmdWantExit,
 		"wanthome": cmdWantHome,
 	}
 }
@@ -64,34 +60,6 @@ func cmdReadlink(ts *testscript.TestScript, neg bool, args []string) {
 	}
 	if got != args[1] {
 		ts.Fatalf("readlink %s: got payload %q, want %q", args[0], got, args[1])
-	}
-}
-
-func cmdWantExit(ts *testscript.TestScript, neg bool, args []string) {
-	if neg {
-		ts.Fatalf("wantexit does not support !")
-	}
-	if len(args) < 2 {
-		ts.Fatalf("usage: wantexit <N> <command> [args...]")
-	}
-
-	want, err := strconv.Atoi(args[0])
-	if err != nil {
-		ts.Fatalf("invalid exit code %q: %v", args[0], err)
-	}
-
-	err = ts.Exec(args[1], args[2:]...)
-	got := 0
-	if err != nil {
-		var exitErr *exec.ExitError
-		if !errors.As(err, &exitErr) {
-			ts.Fatalf("%s failed before exit status was available: %v", args[1], err)
-		}
-		got = exitErr.ExitCode()
-	}
-
-	if got != want {
-		ts.Fatalf("%s exited %d, want %d", args[1], got, want)
 	}
 }
 

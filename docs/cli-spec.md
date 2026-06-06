@@ -1,299 +1,260 @@
-# `tuck` CLI — Implementation Specification
+# `tuck` CLI -- Implementation Specification
 
-Status: authoritative for the **command-line interface**.
-Scope: command surface, flags, configuration, output (human + JSON), exit codes,
-error reporting, and plan rendering.
+Status: authoritative for the command-line interface.
+Scope: command surface, flags, configuration, output (human + JSON), error
+reporting, plan rendering, and internal resolution algorithms.
 
-This document is the source of truth for the CLI **and** its internal resolution
-algorithms — it is fully self-contained. [§12](#12-resolution-algorithms)
-specifies the path primitives, source/package resolution, package-entry
-enumeration, ownership inference, conflict rules, and operation algorithms
-normatively. It supersedes an earlier exploratory draft
-(`resolution-algorithms.md`, since removed); see
-[Appendix B](#appendix-b--relationship-to-the-draft) for the deliberate changes
-made relative to that draft.
+This document is the source of truth for the CLI and its internal resolution
+algorithms. It defines command semantics, source selection, path resolution,
+planning, output envelopes, and error classification.
 
-`tuck` is a Go dotfiles manager that replaces the legacy `d.*` zsh
-aliases/functions. It maps package directories onto real target directories,
-links only leaf entries, never folds directories, and never lets the caller's
-working directory affect correctness (except when resolving an explicitly
-relative input path).
+`tuck` is a Go dotfiles manager. It maps package directories onto real target
+directories, links only leaf entries, never folds directories, and never lets the
+caller's working directory affect correctness except when resolving an explicitly
+relative input path.
 
 ---
 
 ## 1. Concepts
 
-These are summarized here for CLI grounding. Full, normative definitions and
-algorithms are in [§12](#12-resolution-algorithms).
-
-- **Source** — a dotfiles repository. Each repository carries a committed
-  manifest (`<repo>/tuck.toml`) declaring its short `name` (used as the source
-  `id`). A source is made usable on a machine with `tuck source enable <path>`,
-  which records its path and enabled state in machine-local state
-  ([§5](#5-configuration), [§12.1](#121-contexts-bases-and-identities)). Every
-  command operates on exactly **one active source** ([§3.2](#32-source-selection)).
-- **Target context** — selects where package entries appear:
-  - `home`: package base `<source.path>`, target root `$HOME` (default). (The
-    earlier draft called this context `user`; see
-    [Appendix B](#appendix-b--relationship-to-the-draft).)
+- **Source** -- a dotfiles repository. Each repository carries a committed
+  manifest (`<repo>/tuck.toml`) declaring its short `name`, used as the source
+  id. A source is made usable on a machine with `tuck source add <path>`, which
+  records its path and enabled state in machine-local state.
+- **Target context** -- selects where package entries appear:
+  - `home`: package base `<source.path>`, target root `$HOME` (default).
   - `root`: package base `<source.path>/.root`, target root `/`.
-
-  ([§12.1](#121-contexts-bases-and-identities))
-- **Package** — one directory inside a package base. Identified internally as
-  `source:context:name` (e.g. `public:home:zsh`); CLI input never includes the
-  source or the context — both are selected by flags, not encoded in the ref.
-  ([§12.1](#121-contexts-bases-and-identities))
-- **Package reference (ref)** — CLI input naming a package by its plain
-  `<name>` (e.g. `zsh`). The source is not part of the ref; it is selected
-  separately (see [§3.2](#32-source-selection), [§6](#6-package-references)).
-- **Managed entry** — a target symlink whose resolved destination is inside a
-  configured package root at the matching package-relative path. Ownership is
-  inferred from the link payload; there is no manifest.
-  ([§12.5](#125-ownership-resolution))
-- **Leaf vs. directory entries** — only leaf entries become symlinks; directory
+- **Package** -- one directory inside a package base. It is identified
+  internally as `source:context:name` (for example `public:home:zsh`). CLI input
+  never includes source or context; source is selected with `--source` or
+  machine state, and context is selected with `--root`.
+- **Package reference** -- CLI input naming a package by its plain `<name>` (for
+  example `zsh`). Package refs do not contain source, context, path separators,
+  or `:`.
+- **Managed entry** -- a target symlink whose resolved destination is inside the
+  active source's package root at the matching package-relative path. Ownership
+  is inferred from the link payload; there is no deployed-link manifest.
+- **Leaf vs. directory entries** -- only leaf entries become symlinks; directory
   entries become real directories in the target tree.
-  ([§12.4](#124-package-entry-enumeration))
 
 ---
 
 ## 2. Command surface
 
+Command depth mirrors operation frequency:
+
+- file operations are top-level commands;
+- package operations live under `package` (alias `pkg`);
+- source operations live under `source`.
+
 ```text
 tuck [global-flags] <command> [command-args] [command-flags]
 ```
 
-Two verb sets, distinguished by **whether a real file ever moves**:
-
-| Set | Commands | Moves real files? | Default execution |
-| --- | --- | --- | --- |
-| Symlink-only | `deploy`, `undeploy`, `redeploy` | No | dry-run; needs `--apply` |
-| File movement | `adopt`, `eject` | Yes | dry-run; needs `--apply` |
-| Read-only | `packages`, `tree`, `status` | No | n/a |
-| Source management | `source enable`, `source list` | No | `enable` writes machine state immediately; `list` is read-only |
-
-All five mutating verbs **plan by default and mutate only with `--apply`**; the
-two sets differ only in what they touch (symlinks vs. real file bytes), not in
-how they are confirmed.
-
 Synopsis:
 
 ```text
-tuck deploy   <package-ref>...
-tuck undeploy <package-ref>...
-tuck redeploy <package-ref>...
-tuck adopt    <package-ref> <target-file>
-tuck eject    <target-link>
-tuck packages
-tuck tree     [package-ref]
-tuck status   [package-ref] [--path <target-path>]
-tuck source   enable <path> [--default]
-tuck source   list
+# File operations (top-level)
+tuck adopt  <file> <package-ref>
+tuck eject  <file>
+tuck status <file>
+
+# Package operations
+tuck package use     <package-ref>...
+tuck package use     --all
+tuck package drop    <package-ref>...
+tuck package refresh <package-ref>...
+tuck package list
+tuck package show    <package-ref>
+tuck package status  [package-ref]
+
+# Source operations
+tuck source add     <path> [--default]
+tuck source rm      <id>
+tuck source list
+tuck source default <id>
 ```
+
+Aliases:
+
+| Canonical | Alias | Scope |
+| --- | --- | --- |
+| `package` | `pkg` | command group |
+| `package list` | `package ls`, `pkg ls` | package group |
+| `package show` | `package tree`, `pkg tree` | package group |
+| `source list` | `source ls` | source group |
 
 Semantics:
 
-- `deploy` — create managed target symlinks for a package's leaf entries.
-- `undeploy` — remove managed target symlinks for selected packages. It does
-  **not** move package files back into the target tree.
-- `redeploy` — refresh selected package links (undeploy then deploy), also
-  normalizing symlink payloads to the preferred relative form.
-- `adopt` — move one existing **real** target file into a package, then create a
+- `adopt` -- move one existing real target file into a package, then create a
   managed symlink pointing back to it.
-- `eject` — remove one managed target symlink and move the package file back
-  into the target tree.
-- `packages` — list the active source's package directories.
-- `tree` — display package contents.
-- `status` — report managed/conflicting/absent state for packages or a path.
-- `source enable` — register and enable a dotfiles repository on this machine
-  (reads its `tuck.toml`, writes machine-local state).
-- `source list` — list the sources enabled on this machine.
+- `eject` -- remove one managed target symlink and move the package file back to
+  the target tree.
+- `status <file>` -- classify a single target path in the active source/context.
+- `package use` -- create managed target symlinks for package leaf entries.
+- `package drop` -- remove managed target symlinks for selected packages. It
+  does not move package files back into the target tree.
+- `package refresh` -- rebuild selected package links (drop then use), also
+  normalizing symlink payloads to the preferred relative form.
+- `package list` -- list packages in the active source and context.
+- `package show` -- display one package's contents.
+- `package status` -- report managed/conflicting/absent state for package
+  entries; without a package, summarize all packages in the active source.
+- `source add` -- register and enable a dotfiles repository on this machine.
+- `source rm` -- remove a source from machine-local state.
+- `source list` -- list sources recorded on this machine.
+- `source default` -- set the machine-local default active source.
 
-> **Name mapping from the draft.** `link→deploy`, `unlink→undeploy`,
-> `relink→redeploy`, `capture→adopt`, `release→eject`. The legacy `d.unlink`
-> materialization workflow maps to **`eject`**, not `undeploy`. This rename
-> removes the draft's documented footgun where "unlink" could be mistaken for
-> "restore the real file".
+All mutating commands plan by default and mutate only with `--apply`.
 
-There is no `tuck home` or `tuck root` command. `home` is the default context;
-the `root` context is selected with the global `--root` flag
-(see [§3.1](#31-context-selection)), not a command prefix.
+| Set | Commands | Moves real files? | Default execution |
+| --- | --- | --- | --- |
+| File movement | `adopt`, `eject` | Yes | dry-run; needs `--apply` |
+| Package link management | `package use`, `package drop`, `package refresh` | No | dry-run; needs `--apply` |
+| Read-only | `status`, `package list`, `package show`, `package status`, `source list` | No | n/a |
+| Source management | `source add`, `source rm`, `source default` | No target-tree writes | immediate machine-state write |
 
 ---
 
 ## 3. Invocation model
 
-```text
-tuck [global-flags] <command> [args] [command-flags]
-```
-
-- Global flags may appear before the command, and — where the CLI framework
-  supports it — after it; the placement rules follow the implementation
-  framework ([Appendix B](#appendix-b--relationship-to-the-draft)). Treat
-  `tuck --json deploy zsh` as the canonical form.
-- `--` terminates flag parsing; subsequent tokens are positional arguments.
 - Unknown commands, missing help topics, unknown flags, and related CLI shell
-  errors follow urfave/cli's framework behavior. Their exact text, stream split,
-  and exit status are acceptance-tested where important rather than assigned to
-  a tuck-specific usage code.
-- With no command, `tuck` prints top-level help and exits `0`.
-- Invoking a command group with no subcommand (for example, `tuck source`)
-  prints that group's help and exits `0`; an unknown subcommand is a CLI
-  parse/dispatch error (exit `1`).
-- `--help`, `--version`, the no-command case, and command-group help **bypass**
-  machine-state discovery and source resolution entirely; they never require any
-  enabled source and always succeed (exit `0`). They also ignore `--json` and
-  always print plain text.
-- `tuck source enable <path>` does **not** require a pre-existing active source —
-  it establishes one. `tuck source list` requires only readable machine state
-  (an empty/absent state is reported as "no sources enabled", not an error).
+  errors follow urfave/cli's framework behavior. They exit `1`.
+- With no command, `tuck` prints top-level help and exits `0`. A future version
+  may use bare `tuck` as a TUI entry point.
+- Invoking a command group with no subcommand (`tuck package`, `tuck source`)
+  prints that group's help and exits `0`.
+- `--help`, `--version`, the no-command case, and command-group help bypass
+  machine-state discovery and source resolution.
+- `--help --json` and `--version --json` emit machine-readable metadata for
+  tooling. Plain help/version remains the default. There is no `help` command;
+  help is exposed only through `-h`/`--help`.
+- `tuck source add <path>` does not require an existing active source; it
+  establishes one. `tuck source list` requires only readable machine state.
 
 ### 3.1 Context selection
 
 There are exactly two target contexts. `home` is the unconditional default; the
-boolean `--root` flag selects the `root` context instead:
+boolean `--root` flag selects `root`:
 
-- No flag → `home` (package base `<source.path>`, target root `$HOME`).
-- `--root` → `root` (package base `<source.path>/.root`, target root `/`).
+- no `--root` -> `home` (package base `<source.path>`, target root `$HOME`);
+- `--root` -> `root` (package base `<source.path>/.root`, target root `/`).
 
-`--root` is idempotent: repeating it has no additional effect. There is no
-`--home` flag and no config setting for the default context — `home` is always
-the default unless `--root` is given.
+`--root` is scoped to commands that operate on target paths or packages:
+`adopt`, `eject`, `status`, and all `package` subcommands. It is not valid on
+`source` commands.
 
 ### 3.2 Source selection
 
-Every command operates on exactly **one active source**. The active source is
-resolved in this order (first wins):
+Every command that operates on packages or target paths uses exactly one active
+source. The active source is resolved in this order:
 
 1. `--source <id>` (`-s`) on the command line.
-2. The machine-local **default** source (set with `tuck source enable --default`).
+2. The machine-local default source (`tuck source default <id>` or
+   `tuck source add <path> --default`).
 3. The sole enabled source, when exactly one source is enabled.
-4. Otherwise → error `no_source` (exit `3`):
-   `no source selected; run \`tuck source enable <path>\` or pass --source`.
+4. Otherwise, error `no_source`.
 
-`--source` accepts a **source id only**. The value must name an **enabled**
-source in machine-local state ([§5.3](#53-machine-local-state)); an unknown or
-disabled id is `unknown_source` (exit `4`). A source must be enabled with
-`tuck source enable` ([§7.9](#79-source)) before it can be selected — there is
-no ad-hoc, path-based source selection.
+`--source` accepts an enabled source id only. It is scoped to `adopt`, `eject`,
+`status`, and all `package` subcommands. It is not valid on `source` commands.
 
-Package refs are plain names and never encode a source (see
-[§6](#6-package-references)); a package that does not exist in the active source
-is `package_not_found` (exit `4`) — there is **no cross-source search**. To
-operate on a different source, select it with `--source` (or change the default)
-and run the command again.
-
-There is **no simultaneous multi-source operation**. The listing commands
-`packages` and `tree` (without a ref) list only the **active source**. The
-path-based commands `eject` and `status --path` infer ownership in the **active
-source only** ([§12.5](#125-ownership-resolution)); `--source` is valid on them.
-A managed symlink that points into a non-active source reads as `unmanaged`
-unless that source is made active.
+There is no simultaneous multi-source operation. The listing commands operate
+only on the active source. `eject` and `status <file>` infer ownership in the
+active source only. A managed symlink that points into a non-active source reads
+as unmanaged unless that source is made active.
 
 ---
 
-## 4. Global flags
+## 4. Flags
 
-These apply to every command unless noted.
+No flag is global unless it is meaningful for every command.
 
-| Flag | Alias | Argument | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `--root` | | — | off | Select the `root` context (target root `/`); default context is `home`. |
-| `--source` | `-s` | id | §3.2 | Select the active source by enabled id. |
-| `--json` | | — | off | Emit a single JSON document; suppress human output. |
-| `--apply` | | — | off | Execute the plan: perform mutations for `deploy`/`undeploy`/`redeploy`/`adopt`/`eject`. Without it, mutating verbs only print the plan. |
-| `--no-color` | | — | off | Disable ANSI color in human output (otherwise color is auto-enabled on a TTY). |
-| `--version` | `-v` | — | — | Print version and exit `0`. |
-| `--help` | `-h` | — | — | Print help for the program or command and exit `0`. |
+| Flag | Alias | Scope | Meaning |
+| --- | --- | --- | --- |
+| `--json` | | universal | Emit one JSON document instead of human output. |
+| `--no-color` | | universal | Disable colored output. Kept for now; may later defer to `NO_COLOR` only. |
+| `--help` | `-h` | universal | Print help for the program or command. |
+| `--version` | `-v` | root only | Print version. |
+| `--source <id>` | `-s` | domain commands | Select the active source by enabled id. |
+| `--root` | | domain commands | Select the root context. |
+| `--apply` | | mutating target-tree commands | Execute the plan. Without it, print the plan only. |
+| `--default` | | `source add` | Make the added source the machine-local default. |
+| `--all` | | `package use` | Use every package in the active source/context. |
+
+Domain commands are `adopt`, `eject`, `status`, and all `package` subcommands.
+Mutating target-tree commands are `adopt`, `eject`, `package use`,
+`package drop`, and `package refresh`.
 
 Flag interaction rules:
 
-- Mutating verbs build a plan and **print it without mutating** unless `--apply`
-  is given; this dry-run-by-default is the only no-op mode (there is no
-  `--dry-run` flag — see [Appendix B](#appendix-b--relationship-to-the-draft)).
-- `--json` implies `--no-color` and emits the machine payload instead of human
-  output.
-- `--source` selects the single active source by enabled id
-  (see [§3.2](#32-source-selection)). It is valid on every command, including
-  `eject` and `status --path`.
+- Mutating target-tree commands build and print a plan unless `--apply` is
+  given.
+- `--json` implies `--no-color`.
+- `package use` requires either one or more package refs or `--all`, but not
+  both.
 
 ---
 
 ## 5. Configuration
 
-`tuck` has **no central config file**. Configuration is split between two
-artifacts, matching what is portable versus what is machine-specific:
+`tuck` has no central config file. Configuration is split between two artifacts:
 
-- a **repository manifest** committed in each dotfiles repo (`<repo>/tuck.toml`),
-  which carries the repo's portable identity ([§5.2](#52-repository-manifest));
-- **machine-local state** (`sources.toml`), generated by the `tuck source`
-  commands, which records which repos are enabled on *this* machine and where
-  they live ([§5.3](#53-machine-local-state)).
+- a repository manifest committed in each dotfiles repo (`<repo>/tuck.toml`),
+  which carries the repo's portable identity;
+- machine-local state (`sources.toml`), generated by `tuck source` commands,
+  which records which repos are enabled on this machine and where they live.
 
-This split dissolves the bootstrap loop that a repo-managed central config would
-create (the file that locates the repo cannot itself live in the repo it
-locates): on a new machine the only machine-specific fact you supply is the
-clone path, via `tuck source enable <path>`.
-
-There is no `--config` flag and no `$TUCK_CONFIG`; both are removed. There is no
-config setting for the default context; `home` is always the default unless
-`--root` is passed (see [§3.1](#31-context-selection)).
+There is no `--config` flag and no `$TUCK_CONFIG`. There is no config setting for
+the default context; `home` is always the default unless `--root` is passed.
 
 ### 5.1 Bootstrap
 
-A new machine needs three steps; the loop is dissolved because `tuck source
-enable` takes the clone **path** explicitly:
-
 ```text
 git clone <repo> ~/.dotfiles
-tuck source enable ~/.dotfiles        # reads ~/.dotfiles/tuck.toml, writes machine state
-tuck deploy <packages> --apply
+tuck source add ~/.dotfiles --default
+tuck pkg use zsh git --apply
 ```
 
-`tuck.toml` is a **file** at the repository root, not a package directory, so it
-is ignored by package enumeration ([§12.8](#128-listing-algorithms)).
+`tuck.toml` is a file at the repository root, not a package directory, so it is
+ignored by package enumeration.
 
 ### 5.2 Repository manifest
 
-Committed in the repo at `<repo>/tuck.toml`. Portable across machines because it
-describes the repo's identity, not any machine's paths. TOML:
+Committed in the repo at `<repo>/tuck.toml`:
 
 ```toml
-name        = "public"            # required: short source id / display identity
-description = "public dotfiles"   # optional
+name        = "public"
+description = "public dotfiles"
 ```
 
 Fields:
 
-- `name` (required) — the repo's short id. Used as the source id and in display
-  identities ([§12.1](#121-contexts-bases-and-identities)). Must not be empty and
-  must not contain a path separator or `:`.
-- `description` (optional) — a human-readable label shown in `source list`.
+- `name` (required) -- the repo's short id. Used as the source id and in display
+  identities. Must not be empty and must not contain a path separator or `:`.
+- `description` (optional) -- a human-readable label shown in `source list`.
 
-The format is **open to additive keys**; a future `[security]` block is
-reserved. Unknown top-level keys are ignored so that newer repos remain readable
-by older binaries. A missing or unreadable `tuck.toml` is `manifest_missing`
-(exit `3`); a malformed one, or one missing a valid `name`, is `manifest_invalid`
-(exit `3`).
+The format is open to additive keys. Unknown top-level keys are ignored so that
+newer repos remain readable by older binaries. A missing or unreadable
+`tuck.toml` is `manifest_missing`; a malformed manifest or invalid/missing
+`name` is `manifest_invalid`.
 
 ### 5.3 Machine-local state
 
-Generated and updated by `tuck source enable` ([§7.9](#79-source)); **not**
-committed. Location:
+Generated and updated by `tuck source` commands; not committed. Location:
 
 ```text
 ${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml
 ```
 
-(For tests, the state directory may be overridden by `TUCK_TEST_STATE_DIR`, which
-is compiled in only under the `tuck_testhooks` build tag and is absent from
-release builds — see `docs/testing-strategy.md`.) TOML:
+For tests, the state directory may be overridden by `TUCK_TEST_STATE_DIR`, which
+is compiled in only under the `tuck_testhooks` build tag.
 
 ```toml
-default = "public"                    # optional: effective id of default active source
+default = "public"
 
 [[source]]
-path    = "/home/me/.dotfiles"        # canonical repository path on this machine
-id      = "public"                    # effective id (the manifest name)
+path    = "/home/me/.dotfiles"
+id      = "public"
 enabled = true
 
 [[source]]
@@ -304,457 +265,348 @@ enabled = true
 
 Fields per `[[source]]` entry:
 
-- `path` (required) — the canonical repository path on this machine.
-- `id` (required) — the **effective** source id, authoritative for selection and
-  display identities. In MVP it is always the manifest `name`; a machine-local
-  id override (to resolve collisions) is a Post-Release addition.
-- `enabled` (optional, default `true`) — whether the source participates.
+- `path` (required) -- the canonical repository path on this machine.
+- `id` (required) -- the effective source id, authoritative for selection and
+  display identities. In MVP it is always the manifest `name`.
+- `enabled` (optional, default `true`) -- whether the source participates.
 
 Top-level fields:
 
-- `default` (optional) — the effective id of the machine-local default active
+- `default` (optional) -- the effective id of the machine-local default active
   source. Default status belongs only to the registry, never to individual source
-  entries. Machine-local state always wins over anything a repo declares.
+  entries.
 
-If the state file is absent or has no entries, no source is enabled; a command
-that needs an active source fails with `no_source` (exit `3`) and a hint to run
-`tuck source enable`. Reading the state for `source list` is not itself an error.
+If the state file is absent or has no entries, no source is enabled. A command
+that needs an active source fails with `no_source`. Reading the state for
+`source list` is not itself an error.
 
 ### 5.4 Validation
 
-Performed when the state is loaded, before any command logic:
+Performed when state is loaded:
 
-- Effective `id` values are **unique** across enabled entries and must not be
-  empty or contain a path separator or `:`.
+- Effective `id` values are unique across enabled entries and must not be empty
+  or contain a path separator or `:`.
 - If top-level `default` is set, it must name an enabled entry.
-- Each enabled `path` is expanded and canonicalized
-  ([§12.2](#122-path-primitives)); a path that does not exist is a state error.
-- **Enabled source roots must not overlap:** no enabled `path` may equal,
-  contain, or be contained by another enabled `path` (path-segment aware,
-  [§12.2](#122-path-primitives)). This prevents one repo's files from being
-  misattributed to another during ownership inference ([§12.5](#125-ownership-resolution)).
-- Each enabled `path` must contain a readable, valid `tuck.toml`
-  ([§5.2](#52-repository-manifest)).
+- Each enabled `path` is expanded and canonicalized. A missing path is a state
+  error.
+- Enabled source roots must not overlap: no enabled `path` may equal, contain,
+  or be contained by another enabled `path` (path-segment aware).
+- Each enabled `path` must contain a readable, valid `tuck.toml`.
 - For the `root` context, the package base is `<source.path>/.root`. A source
-  that has no `.root` directory contributes **no** packages in the root context
-  but is not itself an error.
+  that has no `.root` directory contributes no packages in the root context but
+  is not itself an error.
 
-All state and manifest failures use exit code `3` and the `error` JSON envelope
-when `--json` is set.
+State and manifest failures exit `1`; `--json` exposes the stable `error.code`.
 
 ---
 
 ## 6. Package references
 
-A package reference is a plain package name; the source is selected separately
-(see [§3.2](#32-source-selection)) and is never part of the ref.
+A package reference is a plain package name:
 
 ```text
 package-ref := package-name
 ```
 
-- Examples: `zsh`, `ssh`, `git`.
-- A ref names a package within the **active source** and the active context.
+Examples: `zsh`, `ssh`, `git`.
 
 Rejected before package resolution:
 
-- A ref containing `:`. (Source qualification via `source:name` is **not**
-  supported; use `--source`. The `:` is reserved and rejected to avoid silent
-  misuse.)
-- Empty package name.
-- Absolute package name, or a name containing `..` path segments.
-- A package name containing a path separator. Packages are direct children of
-  the package base; nested package names are reserved for a future revision and
-  are rejected here so that ownership inference (which keys on the first path
-  segment, [§12.5](#125-ownership-resolution)) cannot disagree with deployment.
+- a ref containing `:`;
+- an empty package name;
+- an absolute package name;
+- a name containing `..` path segments;
+- a name containing a path separator.
 
-Resolution of a ref to a concrete package (the algorithms in
-[§12.3](#123-source-and-package-resolution) apply, with the source fixed to the
-active source rather than searched):
+Resolution rules:
 
-- `deploy`, `undeploy`, `redeploy`, `tree <ref>`, `status <ref>` — the package
-  must exist in the active source and context, else `package_not_found`
-  (exit `4`).
-- `adopt` — the package may already exist in the active source, or be created
-  there if absent. Because the source is fixed, there is no "new package
-  requires source qualification" case (see
-  [§12.3 Resolve package for adopt](#123-source-and-package-resolution)).
+- `package use`, `package drop`, `package refresh`, `package show`, and
+  `package status <ref>` require the package to exist in the active source and
+  context, else `package_not_found`.
+- `adopt <file> <ref>` may create the package if absent. The source is still
+  fixed by active-source resolution.
 
 ---
 
 ## 7. Command reference
 
-Each command below specifies: synopsis, arguments, flags, behavior, output,
-errors, and exit codes. All mutating commands first build a **complete plan**;
-if any conflict is found they print conflicts and mutate nothing
-([§12.7](#127-operation-algorithms), [§12.9](#129-execution-planning)).
+Every mutating target-tree command first builds a complete plan. If any conflict
+is found, it prints conflicts and mutates nothing.
 
-In addition to the per-command exit codes listed, **every** domain command may
-return the global codes from [§10](#10-exit-codes): `3` (config/state, e.g.
-invalid machine state, a missing/invalid manifest, or `no_source`) and `4`
-(resolution, e.g. an unknown `--source` id or a package not found). These are
-not repeated in each command for brevity. CLI shell errors owned by urfave/cli
-are covered separately by acceptance tests.
-
-### 7.1 `deploy`
+### 7.1 `adopt`
 
 ```text
-tuck [--root] deploy <package-ref>...
+tuck [--json] adopt [--source <id>] [--root] [--apply] <file> <package-ref>
 ```
 
-- **Arguments:** one or more package names; each must exist in the active source and context.
-- **Relevant flags:** `--apply`, `--json`, `--source`, `--root`.
-- **Behavior:** for each resolved package, enumerate entries; plan `mkdir` for
-  absent directory entries and `symlink` for linkable leaf entries; treat the
-  rest as conflicts ([§12.7](#127-operation-algorithms)). A target produced by
-  two different packages in the same invocation is a conflict
-  (`multiple_providers`). Symlink payloads are relative
-  (`relativePath(dirname(targetPath), packageEntryPath)`).
-- **Execution:** **dry-run by default**; mutates only with `--apply` (and only
-  when conflict-free).
-- **Exit codes:** `0` applied/dry-run clean · `2` conflicts · `4` ref
-  resolution · `5` privilege (root) · `6` runtime.
+- **Arguments:** one existing real target file and one package name. The package
+  may already exist or be created in the active source.
+- **Behavior:** expand `<file>` without following the final symlink; reject if
+  outside the target root or inside any enabled source repository; reject unless
+  it is a real file. Convert the target path to the destination package path and
+  reject if that path already exists. Plan: make package parents, move
+  target-to-package, symlink target-to-package.
+- **Execution:** dry-run by default; mutates only with `--apply`.
 
-### 7.2 `undeploy`
+### 7.2 `eject`
 
 ```text
-tuck [--root] undeploy <package-ref>...
+tuck [--json] eject [--source <id>] [--root] [--apply] <file>
 ```
 
-- **Arguments:** one or more package names; each must exist in the active source and context.
-- **Relevant flags:** `--apply`, `--json`, `--source`, `--root`.
-- **Behavior:** for each leaf entry, plan `remove_symlink` only when the target
-  is a symlink managed by the selected package for the same entry; absent
-  targets are no-ops; anything else is a conflict / "not owned by selected
-  package" ([§12.7](#127-operation-algorithms)). Directories are **never**
-  pruned.
-- **Execution:** **dry-run by default**; mutates only with `--apply` (and only
-  when conflict-free).
-- **Exit codes:** as `deploy`.
+- **Arguments:** one target path that is a managed symlink.
+- **Behavior:** expand `<file>` without following the final symlink; classify in
+  the active source/context; reject unless it is a managed symlink whose link
+  path matches the package-relative target and whose package file exists and is
+  not a directory. Plan: remove symlink, move package-to-target.
+- **Execution:** dry-run by default; mutates only with `--apply`.
 
-### 7.3 `redeploy`
+### 7.3 `status`
 
 ```text
-tuck [--root] redeploy <package-ref>...
+tuck [--json] status [--source <id>] [--root] <file>
 ```
 
-- **Arguments:** one or more package names; each must exist in the active source and context.
-- **Behavior:** build an undeploy plan, then a deploy plan against the
-  post-undeploy state; if either has conflicts, stop. Apply removals first, then
-  links ([§12.7](#127-operation-algorithms)). Already-owned links are removed
-  and recreated to normalize the payload.
-- **Relevant flags / execution / exit codes:** as `deploy` (dry-run by default;
-  mutates only with `--apply`).
+- **Arguments:** one target path.
+- **Behavior:** classify the target path as absent, managed, unmanaged,
+  mismatched, owned by another package, real file, real directory, or special
+  file. Ownership is inferred only in the active source.
+- **Execution:** read-only.
 
-### 7.4 `adopt`
+### 7.4 `package use`
 
 ```text
-tuck [--root] adopt <package-ref> <target-file>
+tuck [--json] package use [--source <id>] [--root] [--apply] <package-ref>...
+tuck [--json] package use [--source <id>] [--root] [--apply] --all
 ```
 
-- **Arguments:** one package name (in the active source; created there if it
-  does not yet exist) and one existing **real** target file.
-- **Relevant flags:** `--apply`, `--json`, `--source`,
-  `--root`.
-- **Behavior:** expand `<target-file>` without following the final symlink;
-  reject if outside the target root or inside **any enabled source repository**;
-  reject unless it classifies as a real file;
-  convert to the destination package path in the active source; reject if that
-  path already exists. Plan: `mkdir` parents → `move` target→package →
-  `symlink` target→package ([§12.7](#127-operation-algorithms)).
-- **Execution:** **dry-run by default**; mutates only with `--apply`.
-- **Exit codes:** `0` applied or dry-run printed · `2` conflict · `3`
-  config/state (incl. `no_source`) · `4` resolution · `5` privilege · `6`
-  runtime.
+- **Arguments:** one or more existing package names, or `--all`.
+- **Behavior:** enumerate package entries; plan `mkdir` for absent directory
+  entries and `symlink` for linkable leaf entries; treat conflicts as conflicts.
+  Symlink payloads are relative.
+- **Execution:** dry-run by default; mutates only with `--apply`.
 
-### 7.5 `eject`
+### 7.5 `package drop`
 
 ```text
-tuck [--root] eject <target-link>
+tuck [--json] package drop [--source <id>] [--root] [--apply] <package-ref>...
 ```
 
-- **Arguments:** one target path that is a managed symlink. Its owner is inferred
-  in the **active source** ([§3.2](#32-source-selection),
-  [§12.5](#125-ownership-resolution)); a symlink that points into a non-active
-  source reads as `unmanaged` and is rejected — point `--source` at the owning
-  repo to eject it.
-- **Relevant flags:** `--apply`, `--json`, `--source`, `--root`.
-- **Behavior:** expand `<target-link>` without following the final symlink;
-  classify in the selected context and active source; reject unless it is a
-  managed symlink whose link path matches the package-relative target and whose
-  package file exists and is not a directory. Plan: `remove_symlink` → `move`
-  package→target ([§12.7](#127-operation-algorithms)). The now-empty package
-  directory is left in place.
-- **Execution:** **dry-run by default**; mutates only with `--apply`.
-- **Exit codes:** `0` applied or dry-run printed · `2` conflict · `3`
-  config/state (incl. `no_source`) · `4` resolution · `5` privilege · `6`
-  runtime.
+- **Arguments:** one or more existing package names.
+- **Behavior:** for each leaf entry, plan `remove_symlink` only when the target is
+  a symlink managed by the selected package for the same entry. Absent targets
+  are no-ops; anything else is a conflict. Directories are never pruned.
+- **Execution:** dry-run by default; mutates only with `--apply`.
 
-### 7.6 `packages`
+### 7.6 `package refresh`
 
 ```text
-tuck [--root] packages
+tuck [--json] package refresh [--source <id>] [--root] [--apply] <package-ref>...
 ```
 
-- **Behavior:** list the direct child package directories of the **active
-  source's** package base ([§12.8](#128-listing-algorithms)). The reserved
-  `.root` directory and the `tuck.toml` manifest are not packages and are
-  omitted.
-- **Flags:** `--source`, `--json`.
-- **Exit codes:** `0` · `3` config/state (incl. `no_source`) · `4` unknown
-  `--source`.
+- **Arguments:** one or more existing package names.
+- **Behavior:** build a drop plan, then a use plan against the post-drop state.
+  Already-owned links may be removed and recreated to normalize relative
+  payloads. Apply removals before creations.
+- **Execution:** dry-run by default; mutates only with `--apply`.
 
-### 7.7 `tree`
+### 7.7 `package list`
 
 ```text
-tuck [--root] tree [package-ref]
+tuck [--json] package list [--source <id>] [--root]
 ```
 
-- **Behavior:** without a ref, show the **active source's** package tree grouped
-  by package; with a ref, resolve it in the active source and show that package
-  root's tree ([§12.8](#128-listing-algorithms)).
-- **Flags:** `--source`, `--json`.
-- **Exit codes:** `0` · `3` config/state (incl. `no_source`) · `4` unknown
-  `--source` / package not found.
+- **Behavior:** list direct child package directories of the active source's
+  package base. Skip `.root` and `tuck.toml`.
+- **Aliases:** `package ls`, `pkg list`, `pkg ls`.
 
-### 7.8 `status`
+### 7.8 `package show`
 
 ```text
-tuck [--root] status [package-ref] [--path <target-path>]
+tuck [--json] package show [--source <id>] [--root] <package-ref>
 ```
 
-- **Behavior:** read-only classification using
-  [§12.5 Classify target path](#125-ownership-resolution).
-  - With `--path <target-path>`: classify a single target path and report its
-    state (and owner, if managed). The owner is inferred in the **active source**,
-    so `--source` applies; a symlink owned by a non-active source reads as
-    `unmanaged`.
-  - With `<package-ref>`: resolve the package in the active source; for each leaf
-    entry report one of: `deployed` (managed by this package, matching entry),
-    `absent`, `conflict` (with reason), `mismatch` (managed-path mismatch), or
-    `owned_by_other` (managed by a different package).
-  - With neither: summarize every package in the active source and context
-    (counts of deployed / absent / conflicting entries per package).
-- **Flags:** `--path` (mutually exclusive with a package ref), `--source`,
-  `--json`.
-- **Exit codes:** `0` always for a successful read (the presence of conflicts is
-  reported in the body, not via exit code) · `3` config/state (incl. `no_source`)
-  · `4` unknown `--source` / not found.
+- **Behavior:** resolve the package in the active source/context and show its
+  file tree.
+- **Aliases:** `package tree`, `pkg show`, `pkg tree`.
 
-Mapping from [§12.5 Classify target path](#125-ownership-resolution) to reported
-`state`:
-
-| Classification | `state` (with package ref) | `state` (`--path`, no package) |
-| --- | --- | --- |
-| `Absent` | `absent` | `absent` |
-| `ManagedBySelectedPackage` (matching entry) | `deployed` | — |
-| `ManagedSymlink` (any owner) | — | `deployed` |
-| `ManagedByOtherPackage` | `owned_by_other` | `owned_by_other` |
-| `ManagedPathMismatch` | `mismatch` | `mismatch` |
-| `UnmanagedSymlink` | `conflict` (`unmanaged_symlink`) | `unmanaged` |
-| `RealFile` | `conflict` (`real_file`) | `unmanaged` |
-| `RealDirectory` | `conflict` (`real_directory`) | `unmanaged` |
-| `SpecialFile` | `conflict` (`special_file`) | `unmanaged` |
-
-With a package ref, `state` reflects whether each leaf entry can be/ is deployed
-by that package, so non-owned real/unmanaged targets are `conflict` with the
-matching `code`. With `--path` (no selected package), the same filesystem
-states that are not managed are reported neutrally as `unmanaged`.
-
-### 7.9 `source`
-
-Manage which dotfiles repositories are enabled on this machine
-([§5.3](#53-machine-local-state)). These commands operate on machine-local state,
-not on the target tree; they do **not** select or require a pre-existing active
-source.
+### 7.9 `package status`
 
 ```text
-tuck source enable <path> [--default]
-tuck source list
+tuck [--json] package status [--source <id>] [--root] [package-ref]
 ```
 
-#### `source enable`
+- **With `<package-ref>`:** resolve the package and report each leaf entry as
+  `deployed`, `absent`, `conflict`, `mismatch`, or `owned_by_other`.
+- **Without a ref:** summarize every package in the active source/context.
+- **Execution:** read-only. Reported conflicts in the body do not make the
+  command fail; it exits `0` when the query succeeds.
 
-- **Arguments:** one repository `<path>` (expanded and canonicalized).
-- **Flags:** `--default` (make this the machine-local default active source),
-  `--json`.
-- **Behavior:** read `<path>/tuck.toml` ([§5.2](#52-repository-manifest)); the
-  effective id is the manifest `name`. Record
-  (or update in place) the `[[source]]` entry in machine-local state with the
-  canonical path, effective id, `enabled = true`, and `default` per `--default`.
-  Setting `--default` clears any other entry's default. The write is validated
-  against [§5.4](#54-validation) (unique ids, no overlapping roots, at most one
-  default) and is **atomic**; on any validation failure nothing is written.
-  Enabling a path already present is idempotent (updates the existing entry).
-- **Exit codes:** `0` enabled · `3` config/state (missing/invalid manifest, id
-  collision, overlapping root, invalid state) · `6` runtime (state write
-  failure).
+### 7.10 `source add`
 
-Id collisions: if the effective id is already used by a **different** path,
-`enable` fails (`state_invalid`, exit `3`). Resolving a collision with a
-machine-local id override is a Post-Release feature; in MVP the two repos must
-carry distinct manifest names.
+```text
+tuck [--json] source add <path> [--default]
+```
 
-#### `source list`
+- **Arguments:** one repository path.
+- **Behavior:** read `<path>/tuck.toml`; record or update the source entry in
+  machine-local state with canonical path, manifest id, `enabled = true`, and
+  top-level default per `--default`. Validate the complete write; on validation
+  failure, write nothing.
 
-- **Behavior:** list the `[[source]]` entries from machine-local state — id,
-  path, enabled, and whether each is the default — in declaration order. Absent
-  or empty state reports "no sources enabled" and exits `0`.
-- **Flags:** `--json`.
-- **Exit codes:** `0` · `3` invalid state.
+### 7.11 `source rm`
+
+```text
+tuck [--json] source rm <id>
+```
+
+- **Arguments:** one source id.
+- **Behavior:** remove the entry from machine-local state. If it was the default,
+  clear the default. Removing a missing source is an error (`unknown_source`).
+
+### 7.12 `source list`
+
+```text
+tuck [--json] source list
+```
+
+- **Behavior:** list source entries from machine-local state: id, path, enabled,
+  and default marker. Absent or empty state reports "no sources enabled" and exits
+  `0`.
+- **Aliases:** `source ls`.
+
+### 7.13 `source default`
+
+```text
+tuck [--json] source default <id>
+```
+
+- **Arguments:** one enabled source id.
+- **Behavior:** set the top-level machine-local default source id. Unknown or
+  disabled source ids are errors.
 
 ---
 
 ## 8. Plan and action model
 
-Mutating commands emit an ordered list of **actions**
-([§12.9](#129-execution-planning)):
+Mutating target-tree commands emit an ordered list of actions:
 
 | Action | Fields | Meaning |
 | --- | --- | --- |
 | `mkdir` | `path` | Create a real directory in the target tree. |
-| `symlink` | `linkPath`, `payload`, `target` | Create a symlink; `payload` is the (relative) link text, `target` its resolved absolute destination. |
+| `symlink` | `linkPath`, `payload`, `target` | Create a symlink. `payload` is relative link text; `target` is the resolved destination. |
 | `remove_symlink` | `path` | Remove a managed target symlink. |
-| `move` | `src`, `dst` | Move a real file (adopt: target→package; eject: package→target). |
+| `move` | `src`, `dst` | Move a real file. |
 
 Planning rules:
 
 1. Resolve all sources, packages, target paths, and ownership before mutating.
-2. Accumulate **all** conflicts (do not stop at the first).
-3. If any conflict exists: print conflicts, print no actions as applied, exit
-   `2`. Nothing is mutated.
-4. If conflict-free: print the planned actions.
-5. Mutate only when the command's execution mode permits it (§2, §4): every
-   mutating verb (`deploy`/`undeploy`/`redeploy`/`adopt`/`eject`) is dry-run by
-   default and mutates only with `--apply`.
-6. Apply actions in listed order. For `redeploy`, all removals precede all
+2. Accumulate all conflicts; do not stop at the first.
+3. If any conflict exists, print conflicts, exit `1`, and mutate nothing.
+4. If conflict-free, print the planned actions.
+5. Mutate only when `--apply` is given.
+6. Apply actions in listed order. For `package refresh`, removals precede
    creations.
 
 Collision and deduplication rules:
 
-- Duplicate package names within one invocation are de-duplicated; the package
-  is planned once.
-- Two **different** packages producing the same leaf target is a
-  `multiple_providers` conflict ([§12.6](#126-conflict-rules)).
-- Two planned actions targeting the same path with incompatible types (e.g. one
-  package plans `mkdir P` while another plans `symlink` at `P`) is a planned
-  collision and is reported as a conflict; the plan does not apply.
+- Duplicate package names within one invocation are de-duplicated.
+- Two different packages producing the same leaf target are a
+  `multiple_providers` conflict.
+- Two planned actions targeting the same path with incompatible types are a
+  conflict.
 
 ### 8.1 Privilege (root context)
 
-`tuck` never silently self-escalates. Privilege is decided by a **preflight
-check**, before any mutation, and is **separate** from where the root context's
-filesystem writes land. It is not inferred from whether the target root happens
-to be writable: a root-context plan may touch read-only subtrees, and
-`remove_symlink`/`move` depend on parent directories rather than the root
-itself.
+`tuck` never silently self-escalates. Privilege is decided by a preflight check
+before any mutation and is separate from where test writes land.
 
-For `root`-context commands whose conflict-free plan contains **actions that
-would write** under the root context (`mkdir`, `symlink`, `remove_symlink`,
-`move`):
+For root-context commands whose conflict-free plan contains write actions:
 
-- The plan is **marked** as requiring privilege (`privilege.required`, §9.2.1).
-  The marker is informational and tied to the context and action set; it does
-  not by itself imply the command cannot apply.
-- A separate **preflight predicate** determines whether the process is
-  privileged to perform those mutations (`privilege.satisfied`). In production
-  this is the process privilege (e.g. effective uid `0`, or the equivalent
-  capability).
-- When `--apply` is requested, `required` is true, and `satisfied` is false,
-  `tuck` prints the plan, **performs no mutation**, and exits `5`, instructing
-  the user to re-run under `sudo`. Because the check is preflight, exit `5`
-  always leaves the target tree untouched; a filesystem error encountered *after*
-  mutation has begun is exit `6` (§10), never `5`.
-- A plan-only run (no `--apply`) only marks the requirement and exits `0`.
-- A conflict-free plan with **no** write actions (a complete no-op), any
-  plan-only run, and all read-only commands never require privilege.
+- The plan is marked as requiring privilege (`privilege.required`).
+- A separate predicate determines whether privilege is satisfied.
+- When `--apply` is requested, privilege is required, and privilege is not
+  satisfied, `tuck` prints the plan, performs no mutation, exits `1`, and reports
+  `error.code = "privilege_required"`.
+- Plan-only runs mark the requirement and exit `0`.
+- Read-only commands never require privilege.
 
 ---
 
 ## 9. Output formats
 
-Every command supports two mutually exclusive modes: human (default) and
-`--json`.
+Every command supports human output (default) and `--json`.
 
-**Streams.** Primary results — plans, listings, status, and the `--json`
-envelope — are written to **stdout**. Diagnostics — error messages and hints —
-are written to **stderr**. Framework-rendered help and parse-error usage text
-follow urfave/cli's stream behavior. A successful command writes nothing to
-stderr; on a non-zero domain-command exit, human-readable `error:`/`hint:` lines
-go to stderr, leaving stdout for any partial result (e.g. a printed plan that
-was not applied). With `--json` the single envelope is still emitted to stdout
-(it carries `exitCode` and, on failure, the `error` payload), and stderr stays
-empty.
+**Streams.** Primary results -- plans, listings, status, and JSON envelopes -- go
+to stdout. Diagnostics -- error messages and hints -- go to stderr. With
+`--json`, exactly one JSON document is written to stdout and stderr stays empty.
 
 ### 9.1 Human output
 
-A plan renders as a header, a `plan:` block, an optional `conflicts:` block, and
-a summary line.
+A plan renders as a header, a `plan:` block, optional `conflicts:` block, and
+summary. Exact glyphs and color are not locked down yet; color decisions are
+deferred until color output is implemented.
+
+Example:
 
 ```text
-tuck deploy zsh   (context: home, dry-run)
+tuck pkg use zsh   (context: home, dry-run)
 
 plan:
   + mkdir  ~/.config/zsh
   + link   ~/.config/zsh/.zshrc -> ~/.dotfiles/zsh/.config/zsh/.zshrc
 
 2 actions, 0 conflicts
+re-run with --apply to execute
 ```
 
-Action glyphs: `+ mkdir`, `+ link` (symlink), `- unlink` (remove_symlink),
-`~ move`. Conflicts use `!`. Paths under `$HOME` are abbreviated with `~`.
-
-Conflict example:
+Error format:
 
 ```text
-tuck deploy git   (context: home)
-
-conflicts:
-  ! ~/.gitconfig  target exists as real file
-    hint: use `tuck adopt git ~/.gitconfig` to move it into a package
-
-error: 1 conflict; nothing was changed
+error: <message>
+hint: <actionable suggestion>
 ```
 
-Resolved absolute paths and owning-package identities are available in full via
-`--json` (§9.2).
+### 9.2 JSON envelope
 
-### 9.2 JSON output
-
-With `--json`, a command prints exactly one JSON document to stdout and nothing
-else. Envelope:
+With `--json`, a command prints exactly one JSON document:
 
 ```json
 {
   "schemaVersion": 1,
-  "command": "deploy",
+  "command": "package use",
   "context": "home",
   "kind": "plan",
-  "data": { },
+  "data": {},
   "exitCode": 0
 }
 ```
 
-- `schemaVersion` — integer; incremented on breaking changes.
-- `command` — the invoked command.
-- `context` — `"home"` or `"root"`.
-- `kind` — one of `plan`, `packages`, `tree`, `status`, `error`.
-- `data` — payload determined by `kind` (below).
-- `exitCode` — mirrors the process exit code.
+- `schemaVersion` -- integer; incremented on breaking changes.
+- `command` -- canonical command name, including group when present.
+- `context` -- `"home"` or `"root"` for domain commands; omitted or `"home"` for
+  source/meta commands.
+- `kind` -- one of `plan`, `sources`, `packages`, `tree`, `status`, `help`,
+  `version`, `error`.
+- `data` -- payload determined by `kind`.
+- `exitCode` -- process exit code (`0` or `1`).
 
-#### 9.2.1 `kind: "plan"` (deploy / undeploy / redeploy / adopt / eject)
+#### 9.2.1 `kind: "plan"`
+
+Used by `adopt`, `eject`, `package use`, `package drop`, and
+`package refresh`.
 
 ```json
 {
   "schemaVersion": 1,
-  "command": "deploy",
+  "command": "package use",
   "context": "home",
   "kind": "plan",
   "data": {
     "dryRun": true,
     "applied": false,
     "packages": ["public:home:zsh"],
-    "privilege": { "required": false, "satisfied": true },
+    "privilege": { "required": false },
     "actions": [
       { "type": "mkdir", "path": "/home/me/.config/zsh" },
       {
@@ -770,81 +622,17 @@ else. Envelope:
 }
 ```
 
-A conflict object:
-
-```json
-{
-  "code": "real_file",
-  "targetPath": "/home/me/.gitconfig",
-  "package": "public:home:git",
-  "entry": "/home/me/.dotfiles/git/.gitconfig",
-  "message": "target exists as real file",
-  "hint": "use `tuck adopt git ~/.gitconfig` to move it into a package"
-}
-```
-
-When conflicts are non-empty, `applied` is `false` and `exitCode` is `2`.
-
-**Privilege-required (exit `5`).** `kind` stays `"plan"`; the plan is conflict-
-free but not applied because `required` is true and `satisfied` is false:
-
-```json
-{
-  "schemaVersion": 1, "command": "deploy", "context": "root",
-  "kind": "plan",
-  "data": {
-    "dryRun": false,
-    "applied": false,
-    "packages": ["public:root:sshd"],
-    "privilege": { "required": true, "satisfied": false, "reason": "root-context write requires elevated privileges" },
-    "actions": [ { "type": "symlink", "linkPath": "/etc/ssh/sshd_config", "payload": "…", "target": "…" } ],
-    "conflicts": []
-  },
-  "exitCode": 5
-}
-```
-
-The `privilege` object reports the preflight policy (§8.1):
-
-- `required` — boolean; the context is `root` and the plan contains write
-  actions. Informational; present (as `false`) on every plan.
-- `satisfied` — boolean; whether the preflight privilege predicate passed.
-  Present whenever `required` is `true`.
-- `reason` — string; included when `required` is `true`.
-
-Exit `5` occurs exactly when `--apply` is given, `required` is `true`, and
-`satisfied` is `false`. A root-context apply with `satisfied: true` proceeds
-normally (`applied: true`, exit `0`).
-
-**Runtime failure during apply (exit `6`).** `kind` stays `"plan"`; mutation
-started but an action failed. `applied` is `false`, `completedActions` counts
-actions that succeeded before the failure (not rolled back), and `failure`
-identifies the failing action:
-
-```json
-{
-  "schemaVersion": 1, "command": "adopt", "context": "home",
-  "kind": "plan",
-  "data": {
-    "dryRun": false,
-    "applied": false,
-    "completedActions": 1,
-    "actions": [ { "type": "mkdir", "path": "…" }, { "type": "move", "src": "…", "dst": "…" } ],
-    "failure": { "actionIndex": 1, "code": "io_error", "message": "permission denied" },
-    "conflicts": []
-  },
-  "exitCode": 6
-}
-```
-
-For a successfully applied plan, `applied` is `true` and `completedActions`
-equals the number of actions.
+Conflicts are included in the plan data and make `exitCode` `1`.
 
 #### 9.2.2 `kind: "packages"`
 
+Emitted by `package list`:
+
 ```json
 {
-  "schemaVersion": 1, "command": "packages", "context": "home",
+  "schemaVersion": 1,
+  "command": "package list",
+  "context": "home",
   "kind": "packages",
   "data": {
     "source": "public",
@@ -856,21 +644,23 @@ equals the number of actions.
 
 #### 9.2.3 `kind: "tree"`
 
+Emitted by `package show`:
+
 ```json
 {
-  "schemaVersion": 1, "command": "tree", "context": "home",
+  "schemaVersion": 1,
+  "command": "package show",
+  "context": "home",
   "kind": "tree",
   "data": {
-    "packages": [
-      {
-        "identity": "public:home:zsh",
-        "root": "/home/me/.dotfiles/zsh",
-        "entries": [
-          { "rel": ".config/zsh",        "type": "dir"  },
-          { "rel": ".config/zsh/.zshrc", "type": "leaf" }
-        ]
-      }
-    ]
+    "package": {
+      "identity": "public:home:zsh",
+      "root": "/home/me/.dotfiles/zsh",
+      "entries": [
+        { "rel": ".config/zsh", "type": "dir" },
+        { "rel": ".config/zsh/.zshrc", "type": "leaf" }
+      ]
+    }
   },
   "exitCode": 0
 }
@@ -878,9 +668,13 @@ equals the number of actions.
 
 #### 9.2.4 `kind: "status"`
 
+Emitted by `status` and `package status`:
+
 ```json
 {
-  "schemaVersion": 1, "command": "status", "context": "home",
+  "schemaVersion": 1,
+  "command": "package status",
+  "context": "home",
   "kind": "status",
   "data": {
     "entries": [
@@ -889,12 +683,6 @@ equals the number of actions.
         "state": "deployed",
         "package": "public:home:zsh",
         "entry": "/home/me/.dotfiles/zsh/.config/zsh/.zshrc"
-      },
-      {
-        "targetPath": "/home/me/.gitconfig",
-        "state": "conflict",
-        "code": "real_file",
-        "message": "target exists as real file"
       }
     ]
   },
@@ -902,159 +690,159 @@ equals the number of actions.
 }
 ```
 
-`state` is one of: `deployed`, `absent`, `conflict`, `mismatch`,
-`owned_by_other`, `unmanaged`.
+`state` is one of `deployed`, `absent`, `conflict`, `mismatch`,
+`owned_by_other`, or `unmanaged`.
 
 #### 9.2.5 `kind: "sources"`
 
-Emitted by `source list` (and the data block written/echoed by `source enable`):
+Emitted by `source list`, `source add`, `source rm`, and `source default`:
 
 ```json
 {
-  "schemaVersion": 1, "command": "source", "context": "home",
+  "schemaVersion": 1,
+  "command": "source list",
   "kind": "sources",
   "data": {
     "sources": [
-      { "id": "public",  "path": "/home/me/.dotfiles",         "enabled": true, "default": true  },
-      { "id": "private", "path": "/home/me/.dotfiles-private", "enabled": true, "default": false }
+      { "id": "public", "path": "/home/me/.dotfiles", "enabled": true, "default": true }
     ]
   },
   "exitCode": 0
 }
 ```
 
-#### 9.2.6 `kind: "error"`
+#### 9.2.6 `kind: "help"` and `kind: "version"`
+
+`tuck --help --json` emits command metadata. `tuck --version --json` emits
+version metadata. There is no `help` command:
 
 ```json
 {
-  "schemaVersion": 1, "command": "deploy", "context": "home",
+  "schemaVersion": 1,
+  "command": "tuck",
+  "kind": "help",
+  "data": { "...": "..." },
+  "exitCode": 0
+}
+```
+
+```json
+{
+  "schemaVersion": 1,
+  "command": "version",
+  "kind": "version",
+  "data": { "version": "dev" },
+  "exitCode": 0
+}
+```
+
+#### 9.2.7 `kind: "error"`
+
+```json
+{
+  "schemaVersion": 1,
+  "command": "package use",
+  "context": "home",
   "kind": "error",
   "data": {
-    "code": "package_not_found",
-    "message": "package \"ssh\" not found in source \"public\"",
-    "hint": "pass --source private if it lives there, or check `tuck packages`",
-    "details": { "ref": "ssh", "source": "public", "context": "home" }
+    "error": {
+      "code": "package_not_found",
+      "message": "package \"ssh\" not found in source \"public\"",
+      "hint": "pass --source private if it lives there, or check `tuck pkg list`",
+      "details": { "ref": "ssh", "source": "public", "context": "home" }
+    }
   },
-  "exitCode": 4
+  "exitCode": 1
 }
 ```
 
 ---
 
-## 10. Exit codes
+## 10. Exit codes and error codes
 
-| Code | Name | Meaning |
-| --- | --- | --- |
-| `0` | OK | Success: applied cleanly, dry-run printed, or read completed. |
-| `1` | Command line | CLI parse/dispatch issue such as an unknown flag or command. |
-| `2` | Conflict | Plan had conflicts; nothing was mutated. |
-| `3` | Config/state | Machine state invalid, a repository manifest missing/invalid, an enabled source root missing or overlapping, or no source selected (`no_source`). |
-| `4` | Resolution | Package not found in the active source, or an unknown/disabled `--source` id. |
-| `5` | Privilege | Root-context mutation requires elevated privileges. |
-| `6` | Runtime | A filesystem error occurred while applying a conflict-free plan (or writing machine state). |
+Exit codes are binary:
 
-Notes:
+| Code | Meaning |
+| --- | --- |
+| `0` | Success: command completed, dry-run printed, read completed, or help/version printed. |
+| `1` | Failure: CLI parse/dispatch issue, config/state problem, resolution error, conflict, privilege failure, or runtime error. |
 
-- `status` never returns `2` for in-body conflicts; it reports them in `data`
-  and exits `0`.
-- CLI shell errors owned by urfave/cli, such as unknown commands/help topics and
-  parse errors, use exit `1`. Their exact text and help rendering are covered by
-  acceptance tests.
-- A partial failure during apply (exit `6`) stops at the failing action; already
-  applied actions are not rolled back. Human output and the JSON `failure`
-  object (with `actionIndex`/`completedActions`, §9.2.1) name the failing action.
+Detailed failure classification is carried by stderr and, with `--json`, by
+`data.error.code`.
 
-### 10.1 Error message format (human)
+Stable error codes include:
 
-```text
-error: <message>
-hint: <actionable suggestion>     # optional, when one applies
-```
+- configuration/state: `manifest_missing`, `manifest_invalid`,
+  `state_invalid`, `source_root_missing`, `no_source`, `unknown_source`;
+- references/resolution: `invalid_ref`, `package_not_found`;
+- target classification/conflicts: `real_file`, `real_directory`,
+  `special_file`, `unmanaged_symlink`, `owned_by_other`, `path_mismatch`,
+  `multiple_providers`, `outside_target_root`, `inside_source_repo`,
+  `package_path_exists`, `not_a_managed_symlink`;
+- execution: `privilege_required`, `io_error`.
 
-Messages are lowercase, specific, and reference the offending path or ref.
-Standard error `code` values (stable identifiers used in JSON and tests)
-include: `manifest_missing`, `manifest_invalid`, `state_invalid`,
-`source_root_missing`, `unknown_source`, `no_source`, `package_not_found`,
-`invalid_ref`, `real_file`, `real_directory`, `special_file`,
-`unmanaged_symlink`, `owned_by_other`, `path_mismatch`, `multiple_providers`,
-`outside_target_root`, `inside_source_repo`, `package_path_exists`,
-`not_a_managed_symlink`, `privilege_required`, `io_error`.
+`package status` exits `0` when the query succeeds, even if it reports conflicts
+inside the response body.
 
 ---
 
 ## 11. Help and usage text
 
 `tuck --help` and per-command help are rendered by urfave/cli's default help
-templates from the command metadata. Top-level help includes the command name,
-usage line, version, visible commands, and global options. The current
-framework-rendered shape includes sections such as `NAME`, `USAGE`, `VERSION`,
-`COMMANDS`, and `GLOBAL OPTIONS`, but exact section order, capitalization,
-spacing, and flag rendering are framework-owned.
+templates from command metadata. Help output includes the command name, usage
+line, version where relevant, visible commands, and options. Exact section order,
+capitalization, spacing, and flag rendering are framework-owned.
 
-Per-command help (for example, `tuck adopt --help`) prints the command synopsis,
-arguments, and flags that affect that command using the same framework-owned
-formatting. Acceptance tests assert help loosely with exit code and stable key
-substrings, not byte-for-byte help text.
+Acceptance tests assert help loosely with exit code and stable key substrings,
+not byte-for-byte output. `--help --json` is the stable machine-readable help
+surface.
 
 ---
 
 ## 12. Resolution algorithms
 
-This section is **normative** and self-contained: it specifies the internal
-resolution, ownership, conflict, and operation algorithms that the command
-reference (§7) and plan model (§8) build on. Pseudocode is illustrative; the
-described behavior is authoritative. The `tuck` model is deliberately narrow:
-package directories map onto real target directories, only **leaf** entries are
-linked, directory folding is never performed, and the process working directory
-never affects correctness except when resolving an explicitly relative input
-path.
+This section is normative. It specifies the internal resolution, ownership,
+conflict, and operation algorithms that the command reference and plan model
+build on.
 
 ### 12.1 Contexts, bases, and identities
-
-The two contexts (§3.1) are defined by two helpers:
 
 | Context | `packageBase(source, context)` | `targetRoot(context)` |
 | --- | --- | --- |
 | `home` | `<source.path>` | `$HOME` |
 | `root` | `<source.path>/.root` | `/` |
 
-- A **package base** is the directory that holds packages for one source and
-  context. A **package root** is one concrete package directory inside a base:
+- A package base is the directory that holds packages for one source and
+  context.
+- A package root is one concrete package directory inside a base:
   `packageRoot(source, context, name) = join(packageBase(source, context), name)`.
-- A **package identity** is `source-id + context + package-name`, written in
-  display form as `source:context:name` (e.g. `public:home:zsh`,
-  `public:root:sshd`). The `source-id` is the **effective id** from machine-local
-  state ([§5.3](#53-machine-local-state)) — the manifest `name`. Identities are
-  internal/display only; CLI
-  refs are plain names (§6) and the context comes from `--root`, never from the
-  ref.
-- A **managed entry** is a target symlink whose payload resolves to a path inside
-  the **active source's** package root and whose target location matches the
-  package-relative path. Ownership is inferred from the payload
-  ([§12.5](#125-ownership-resolution)); no manifest of deployed links is kept.
+- A package identity is `source-id + context + package-name`, displayed as
+  `source:context:name`.
+- A managed entry is a target symlink whose payload resolves inside the active
+  source's package root and whose target location matches the package-relative
+  path.
 
 ### 12.2 Path primitives
 
 #### Expand input path
 
-For any user-supplied path: (1) expand a leading `~`; (2) if relative, resolve
-against the process current working directory; (3) clean lexical components
-(`.`, redundant separators); (4) do **not** follow the final component when the
-command must inspect the symlink itself (`eject`, `adopt`, `status --path`).
+For any user-supplied path: expand a leading `~`; if relative, resolve against
+the process current working directory; clean lexical components; do not follow
+the final component when the command must inspect the symlink itself (`adopt`,
+`eject`, `status`).
 
 #### Canonicalize source roots
 
-For each enabled source and its context root:
-expand `~`, make absolute, clean, and resolve symlinks **in the root itself**. A
-source root that does not exist is a state error (exit `3`).
+For each enabled source, expand `~`, make absolute, clean, and resolve symlinks
+in the root itself. A source root that does not exist is a state error.
 
 #### Check containment
 
 `inside(child, root)` is true only when `child` equals `root` or is a descendant
-after both are absolute and clean. The test is **path-segment aware**:
-`/home/me/.dotfiles-private` is **not** inside `/home/me/.dotfiles`.
+after both are absolute and clean. The test is path-segment aware:
+`/home/me/.dotfiles-private` is not inside `/home/me/.dotfiles`.
 
-#### Convert package path → target path
+#### Convert package path to target path
 
 ```text
 rel = relativePath(packageRoot, packageEntryPath)
@@ -1064,11 +852,7 @@ reject if not inside(targetPath, targetRoot)
 return targetPath
 ```
 
-For `root`, `targetRoot` is `/`, so every absolute path is technically inside it;
-root commands must still reject paths inside **any enabled source repository** to
-avoid adopting the dotfiles repo into itself.
-
-#### Convert target path → package path
+#### Convert target path to package path
 
 ```text
 absTarget = expand input path
@@ -1080,60 +864,55 @@ reject if not inside(packagePath, packageRoot)
 return packagePath
 ```
 
+For `root`, `targetRoot` is `/`; root commands must still reject paths inside
+any enabled source repository to avoid adopting a source into itself.
+
 ### 12.3 Source and package resolution
 
 #### Select active source
 
-Every command that operates on a single source resolves it (cf. §3.2):
-
 ```text
 if --source given:
-    look up enabled source by id            (else unknown_source, exit 4)
-else if a machine-local default source is set: use it
-else if exactly one source is enabled:         use it
-else:                                          error no_source (exit 3)
+    look up enabled source by id            (else unknown_source)
+else if a machine-local default source is set:
+    use it
+else if exactly one source is enabled:
+    use it
+else:
+    error no_source
 ```
 
-The path-based commands `eject` and `status --path` select the active source the
-same way and infer ownership **within it** ([§12.5](#125-ownership-resolution));
-`--source` is valid on them.
+`eject` and `status` select the active source the same way and infer ownership
+within it.
 
 #### Parse package reference
 
-A ref is a plain `<package-name>` (§6). Reject before resolution: any `:`
-(source qualification is not supported — use `--source`), an empty name, an
-absolute name, a name with `..` segments, or a name containing a path separator
-(packages are direct children of the base; this keeps the ownership-inference
-key — the first path segment — unambiguous).
+Reject before resolution: any `:`, an empty name, an absolute name, a name with
+`..` segments, or a name containing a path separator.
 
 #### Resolve existing package
 
-For `deploy`, `undeploy`, `redeploy`, `tree <ref>`, and `status <ref>`:
+For `package use`, `package drop`, `package refresh`, `package show`, and
+`package status <ref>`:
 
 ```text
 parse ref
 source = select active source
 packageRoot = packageRoot(source, context, name)
-if packageRoot does not exist: error package_not_found (exit 4)
+if packageRoot does not exist: error package_not_found
 return source, context, name, packageRoot
 ```
 
-There is **no** cross-source search and therefore no ambiguity case: a name
-either exists in the active source/context or it does not.
-
 #### Resolve package for adopt
 
-`adopt` may create a new package path, but the source is still fixed:
+`adopt` may create a new package path, but the source is fixed:
 
 ```text
 parse ref
 source = select active source
-packageRoot = packageRoot(source, context, name)   # may or may not exist yet
+packageRoot = packageRoot(source, context, name)   # may or may not exist
 return source, context, name, packageRoot
 ```
-
-Because the source is fixed there is no "new package requires source
-qualification" case.
 
 ### 12.4 Package entry enumeration
 
@@ -1146,17 +925,16 @@ for each entry (skip packageRoot itself):
     else:                    record a leaf entry
 ```
 
-Rules: directory entries cause real directories to be created in the target tree
-and are **never** represented as symlinks; leaf entries are linked. If a package
-leaf is itself a symlink, the target link points at the package symlink **itself**
-(not its resolved destination), keeping ownership local to the package tree.
+Directory entries cause real directories to be created in the target tree and
+are never represented as symlinks. Leaf entries are linked. If a package leaf is
+itself a symlink, the target link points at the package symlink itself.
 
 ### 12.5 Ownership resolution
 
 #### Classify target path
 
-Input: `targetPath`, optional selected package identity, context, the **active
-source**.
+Input: `targetPath`, optional selected package identity, context, and active
+source.
 
 ```text
 stat = lstat(targetPath)
@@ -1175,11 +953,7 @@ return ManagedByOtherPackage(owner)
 
 #### Infer symlink owner
 
-Ownership inference scans only the **active source** ([§3.2](#32-source-selection)).
-A symlink that points into a different (non-active) source therefore reads as
-`none`/`UnmanagedSymlink`; select that source with `--source` to operate on it.
-Because enabled source roots may not overlap ([§5.4](#54-validation)), the single
-active base cannot misattribute a link that belongs to another enabled repo:
+Ownership inference scans only the active source.
 
 ```text
 payload = readlink(targetLinkPath)
@@ -1199,44 +973,43 @@ if clean(targetLinkPath) != expectedTarget:
 return ManagedOwner(activeSource, context, packageName, packageRoot, packageRel)
 ```
 
-Notes: ownership needs no manifest; broken symlinks are still classifiable if
-their lexical target is inside a package root; a managed symlink whose link path
-does not match its package-relative path is reported as a mismatch and is never
-mutated automatically.
+Broken symlinks are still classifiable if their lexical target is inside a
+package root. A managed symlink whose link path does not match its
+package-relative path is reported as a mismatch and is never mutated
+automatically.
 
 ### 12.6 Conflict rules
 
-**Deploy (leaf).** A leaf target is **linkable** when it is absent, or already a
-symlink owned by the selected package pointing at the same entry. It **conflicts**
-when it is a real file, a real directory, a special file, an unmanaged symlink,
-managed by another package, or managed by the selected package but mapping to a
-different package-relative path.
+**Package use (leaf).** A leaf target is linkable when it is absent, or already a
+symlink owned by the selected package pointing at the same entry. It conflicts
+when it is a real file, real directory, special file, unmanaged symlink, managed
+by another package, or managed by the selected package but mapping to a different
+package-relative path.
 
-**Directory.** A package directory entry's target is valid when absent (created
-as a real directory) or already a real directory. It conflicts when the target is
-a file, a symlink, or any non-directory special file.
+**Directory.** A package directory entry's target is valid when absent or already
+a real directory. It conflicts when the target is a file, symlink, or
+non-directory special file.
 
-**Adopt.** Requires: the target exists, is a real file (not a symlink, not a
-directory), is inside the selected target root, is **not** inside any enabled
-source repository, and the destination package path
+**Adopt.** Requires: target exists, is a real file, is inside the selected target
+root, is not inside any enabled source repository, and destination package path
 does not already exist.
 
-**Eject.** Requires: the target is a symlink managed in the selected context, the
-managed package file exists and is **not** a directory, the symlink path matches
-the package-relative target path, and materializing the real file does not
-overwrite unrelated content.
+**Eject.** Requires: target is a symlink managed in the selected context, managed
+package file exists and is not a directory, symlink path matches the
+package-relative target path, and materializing the file does not overwrite
+unrelated content.
 
 ### 12.7 Operation algorithms
 
-Every mutating command first builds a **complete** plan; if any conflict is
-found it prints the conflicts and mutates nothing (§8). All five are dry-run by
-default and mutate only with `--apply` (§2, §4).
+Every mutating command first builds a complete plan. If any conflict is found,
+it prints conflicts and mutates nothing. All are dry-run by default and mutate
+only with `--apply`.
 
-#### `deploy`
+#### `package use`
 
 ```text
-resolvedPackages = resolve existing package for each ref
-plannedTargets = {}            # targetPath -> packageEntry
+resolvedPackages = resolve existing package for each ref (or all packages)
+plannedTargets = {}
 
 for each package:
     for each directory entry:
@@ -1250,40 +1023,35 @@ for each package:
         if targetPath in plannedTargets with a different entry:
             conflict multiple_providers; continue
         switch classify(targetPath, selected package):
-            Absent:                              plan symlink targetPath -> entry
-            ManagedBySelectedPackage(same entry): no-op
-            else:                                conflict
+            Absent:                                plan symlink targetPath -> entry
+            ManagedBySelectedPackage(same entry):  no-op
+            else:                                  conflict
 ```
 
 Symlink payloads are relative:
 `payload = relativePath(dirname(targetPath), packageEntryPath)`.
 
-#### `undeploy`
+#### `package drop`
 
 ```text
 resolvedPackages = resolve existing package for each ref
 for each package, for each leaf entry:
     targetPath = convert package path -> target path
     switch classify(targetPath, selected package):
-        Absent:                              no-op
-        ManagedBySelectedPackage(same entry): plan remove_symlink targetPath
-        else:                                conflict / "not owned by selected package"
+        Absent:                                no-op
+        ManagedBySelectedPackage(same entry):  plan remove_symlink targetPath
+        else:                                  conflict
 ```
 
-Directories are **never** pruned (the tool does not record which real
-directories it created); a future `prune`/`doctor` command could remove empty
-directories under explicit intent.
+Directories are never pruned.
 
-#### `redeploy`
+#### `package refresh`
 
 ```text
-build undeploy plan for the selected packages; if conflicts: stop
-build deploy plan against the post-undeploy state; if conflicts: stop
+build drop plan for selected packages; if conflicts: stop
+build use plan against the post-drop state; if conflicts: stop
 apply all remove_symlink actions, then all symlink/mkdir actions
 ```
-
-An already-owned link may be removed and recreated so its payload is normalized
-to the preferred relative form.
 
 #### `adopt`
 
@@ -1300,7 +1068,7 @@ reject if not inside(packagePath, packageRoot)
 
 plan mkdir dirname(packagePath)
 plan move targetPath -> packagePath
-plan symlink targetPath -> packagePath        # payload relative, as in deploy
+plan symlink targetPath -> packagePath
 ```
 
 #### `eject`
@@ -1324,58 +1092,56 @@ The now-empty package directory is left in place.
 
 ### 12.8 Listing algorithms
 
-#### `packages`
+#### `package list`
 
 ```text
 base = packageBase(activeSource, context)
 list direct child directories of base as packages
-    skip the reserved `.root` directory (it is the root-context base, not a package)
-    (tuck.toml is a file at the source root, not a directory, so it is never a package)
+    skip reserved `.root`
+    skip non-directories
 ```
 
-#### `tree`
+#### `package show`
 
-Without a ref: show the **active source's** package tree grouped by package. With
-a ref: resolve it in the active source
-([§12.3](#123-source-and-package-resolution)) and show that package root's tree.
+Resolve the package in the active source and show that package root's tree.
+
+#### `package status`
+
+With a ref, enumerate package leaf entries and classify each target path. Without
+a ref, summarize every package in the active source/context.
 
 ### 12.9 Execution planning
 
-Mutations are the explicit actions defined in §8 (`mkdir`, `symlink`,
-`remove_symlink`, `move`). Planning rules: resolve the active source, packages,
-target paths, and ownership before mutating; accumulate **all** conflicts (do not
-stop at the first); on any conflict print them and exit `2` without mutating; on a
-conflict-free plan print the actions and mutate only when `--apply` is given
-(§8). Root-context mutations make their privilege requirement visible in the plan
-and never self-escalate (§8.1).
+Mutations are explicit actions: `mkdir`, `symlink`, `remove_symlink`, and
+`move`. Planning resolves the active source, packages, target paths, and
+ownership before mutating; accumulates all conflicts; exits `1` without mutation
+on any conflict; prints actions on a clean plan; and mutates only with `--apply`.
+Root-context mutations make their privilege requirement visible in the plan and
+never self-escalate.
 
 ---
 
-## Appendix A — Worked examples
+## Appendix A -- Worked examples
 
 ### A.0 Bootstrap a new machine
 
 ```text
-$ git clone git@github.com:me/dotfiles.git ~/.dotfiles   # repo contains tuck.toml (name = "public")
-$ tuck source enable ~/.dotfiles
-enabled source "public" -> /home/me/.dotfiles (default)
+$ git clone git@github.com:me/dotfiles.git ~/.dotfiles
+$ tuck source add ~/.dotfiles --default
+added source "public" -> /home/me/.dotfiles (default)
 
 $ tuck source list
 * public   /home/me/.dotfiles          (default)
 
-$ tuck deploy zsh --apply
-2 actions, 0 conflicts — applied
+$ tuck pkg use zsh git --apply
+2 actions, 0 conflicts -- applied
 ```
 
-`* ` marks the machine-local default source. Before the first `source enable`, any
-command needing an active source fails: `error: no source selected; run
-\`tuck source enable <path>\` or pass --source` (exit 3).
-
-### A.1 Home deploy
+### A.1 Package use
 
 ```text
-$ tuck deploy zsh
-tuck deploy zsh   (context: home, dry-run)
+$ tuck pkg use zsh
+tuck pkg use zsh   (context: home, dry-run)
 
 plan:
   + mkdir  ~/.config/zsh
@@ -1383,184 +1149,90 @@ plan:
 
 2 actions, 0 conflicts
 re-run with --apply to execute
-
-$ tuck deploy zsh --apply
-2 actions, 0 conflicts — applied
 ```
 
-### A.2 Package not found in the active source
+### A.2 Adopt a file
 
 ```text
-$ tuck deploy ssh                 # active source = public (the default)
-error: package "ssh" not found in source "public"
-hint: pass --source private if it lives there, or check `tuck packages`
-# exit 4
-```
-
-### A.3 Selecting a different source
-
-```text
-$ tuck --source private deploy ssh --apply   # source=private, context=home, root=~/.dotfiles-private/ssh
-```
-
-### A.4 Root package
-
-```text
-$ tuck --root deploy sshd        # context=root, root=~/.dotfiles/.root/sshd, target=/
-# dry-run by default; add --apply to execute
-# package file ~/.dotfiles/.root/sshd/etc/ssh/sshd_config -> /etc/ssh/sshd_config
-# if unprivileged: `tuck --root deploy sshd --apply` prints plan, exits 5 (privilege required)
-```
-
-### A.5 Adopt an existing user file
-
-```text
-$ tuck --source private adopt ssh ~/.ssh/config   # dry-run by default
+$ tuck adopt ~/.gitconfig git
 plan:
-  + mkdir  ~/.dotfiles-private/ssh/.ssh
-  ~ move   ~/.ssh/config -> ~/.dotfiles-private/ssh/.ssh/config
-  + link   ~/.ssh/config -> ~/.dotfiles-private/ssh/.ssh/config
+  ~ move   ~/.gitconfig -> ~/.dotfiles/git/.gitconfig
+  + link   ~/.gitconfig -> ~/.dotfiles/git/.gitconfig
 
-re-run with --apply to execute
-
-$ tuck --source private adopt ssh ~/.ssh/config --apply   # applies
-```
-
-### A.6 Eject a managed file
-
-```text
-$ tuck --source private eject ~/.ssh/config --apply   # owner is in the private source
-plan:
-  - unlink ~/.ssh/config
-  ~ move   ~/.dotfiles-private/ssh/.ssh/config -> ~/.ssh/config
+$ tuck adopt ~/.gitconfig git --apply
 applied
 ```
 
-Without `--source private` (and with `public` as the default), the same link
-points into a non-active source and reads as `unmanaged`:
-`error: ~/.ssh/config is not a managed symlink in source "public"`.
-
-### A.7 Deploy conflict
+### A.3 Eject a file
 
 ```text
-$ tuck deploy git
-conflicts:
-  ! ~/.gitconfig  target exists as real file
-    hint: use `tuck adopt git ~/.gitconfig` to move it into a package
-error: 1 conflict; nothing was changed
-# exit 2
+$ tuck eject ~/.gitconfig --apply
+plan:
+  - unlink ~/.gitconfig
+  ~ move   ~/.dotfiles/git/.gitconfig -> ~/.gitconfig
+applied
 ```
 
-### A.8 Managed by another package in the same source
+### A.4 Status
 
 ```text
-$ tuck deploy git                 # active source = public; ~/.gitconfig owned by public:home:work
-conflicts:
-  ! ~/.gitconfig  already managed by public:home:work
-error: 1 conflict; nothing was changed
-# exit 2
+$ tuck status ~/.gitconfig
+deployed by public:home:git
+
+$ tuck pkg status git
+git: 1 deployed, 0 absent, 0 conflicts
+```
+
+### A.5 Root context
+
+```text
+$ tuck pkg use sshd --root
+# dry-run by default
+
+$ tuck pkg use sshd --root --apply
+error: root-context write requires elevated privileges
+hint: re-run with sudo
+# exit 1; with --json, error.code is privilege_required
 ```
 
 ---
 
-## Appendix B — Relationship to the draft
+## Appendix B -- Relationship to the previous CLI surface
 
-This spec **redesigns the CLI surface from first principles**; the CLI sketch in
-the earlier `resolution-algorithms.md` draft (since removed) was
-non-authoritative input only. Deliberate overrides:
+This spec redesigns the CLI surface from first principles while keeping the
+domain model fixed.
 
-1. **Command names.** `link/unlink/relink/capture/release` →
-   `deploy/undeploy/redeploy/adopt/eject`. The two verb sets are now
-   distinguished by whether a real file moves, and `eject` (not `undeploy`) is
-   the materialization workflow — removing the draft's documented naming
-   footgun.
-2. **Context naming.** The draft's default context `user` is renamed to `home`,
-   so both contexts are named after their target root (`home` → `$HOME`,
-   `root` → `/`) rather than mixing a privilege-noun with a location-noun.
-   Display identities change accordingly (`public:user:zsh` → `public:home:zsh`).
-   The `root` context keeps its name (and its `.root` package-base convention).
-3. **Context selection.** The draft's `tuck root <command>` prefix is replaced
-   by a single global boolean `--root` flag; `home` is the unconditional default
-   context and `--root` selects the `root` context. This avoids a parser
-   special-case (a "root subcommand" vs. a package literally named `root`) and
-   applies uniformly to every command.
-   - *Rejected alternative:* a `--context home|root` flag. Dropped because there
-     are exactly two contexts and `home` is always the default, so a boolean
-     `--root` is simpler and there is nothing to set a default for.
-   - *Rejected alternative:* keep `tuck root …` as a sugar alias. Dropped to
-     keep a single, unambiguous invocation grammar.
-   - *Rejected alternative:* user-**configurable** contexts (arbitrary
-     `[contexts.*]` beyond home/root). Deferred (YAGNI): `$HOME` and `/` cover
-     known dotfiles use cases, and the internals already treat context as
-     pluggable (`packageBase(source, context)` / `targetRoot(context)`), so a
-     third context can be added later without redesign.
-4. **Source selection & configuration.** The draft's `[source:]name` ref grammar
-   and cross-source ambiguity scan are removed, and the central config file is
-   removed entirely. Every command operates on exactly one **active source**,
-   chosen by `--source <id>` > the machine-local default > the sole enabled
-   source, else `no_source` (exit `3`). Sources are no longer declared in a
-   central config; each repo carries a committed `tuck.toml` manifest (its
-   `name`), and machine-local state (`sources.toml`, written by `tuck source
-   enable`) records which repos are enabled on a machine and where they live.
-   This split keeps portable identity in the repo and machine-specific paths
-   local, and dissolves the bootstrap loop of a repo-managed central config.
-   Package refs are plain names; a missing package is `package_not_found` in the
-   active source (no cross-source search).
-   - *Consequence:* `adopt` no longer needs a "new package requires source
-     qualification" rule (the source is fixed). Existing-package resolution is a
-     direct lookup in the active source and context.
-   - *No simultaneous multi-source:* `packages`/`tree` list only the active
-     source, and `eject`/`status --path` infer ownership in the active source
-     only (`--source` is valid on them). A link into a non-active source reads as
-     `unmanaged` until that source is selected. This trades cross-source
-     operations for deterministic, explicit operator control.
-   - *Rejected alternative:* a central `config.toml` registry with
-     `[sources.<id>]` + `[defaults].source`. Dropped because source paths are
-     inherently machine-specific (so a committed registry is not portable) and a
-     repo-managed central config creates a chicken-and-egg loop on a new machine.
-   - *Rejected alternative:* keep the inline `source:name` qualifier (a hybrid).
-     Dropped in favor of a single, unambiguous selection mechanism.
-5. **Machine output.** A stable, versioned `--json` mode is mandatory for every
-   command; the draft did not specify one.
-6. **Exit codes & error codes.** A fixed taxonomy (§10) is defined; the draft
-   only showed sample messages.
-7. **Privilege.** Root-context mutations surface required privilege and exit `5`
-   rather than self-escalating; the draft left escalation unspecified.
-8. **Confirmation model.** All five mutating verbs
-   (`deploy`/`undeploy`/`redeploy`/`adopt`/`eject`) **plan by default and mutate
-   only with `--apply`**; the draft auto-applied symlink operations.
-   - *Rationale:* one uniform rule (no "which verbs auto-apply?" special case)
-     and a safe default for writes to `$HOME` and `/`. The common workflow here
-     is incremental `adopt`/`eject`; `deploy`/`undeploy` are rare bootstrap
-     operations.
-   - *Rejected alternative:* a `--dry-run`/`-n` flag. Dropped because plan-only
-     is already the default, so the flag would be a pure no-op. It may return if
-     the default apply/plan behavior is ever made configurable (e.g. a future
-     machine-local preference).
+Deliberate changes:
 
-The **internal algorithms** (path primitives, package-entry enumeration,
-ownership inference, conflict rules, operation algorithms) have been **merged
-into this document** as the normative [§12](#12-resolution-algorithms),
-translated into the current vocabulary (`deploy`/`undeploy`/`redeploy`/`adopt`/
-`eject`, `home`/`root`, single active source, `--apply`). The draft's logic is
-preserved except for source/package-ref **resolution**, which is replaced by the
-single-active-source model ([§3.2](#32-source-selection),
-[§6](#6-package-references), [§12.3](#123-source-and-package-resolution)): no
-cross-source search and no "ambiguous package" case. The original
-`resolution-algorithms.md` draft has been removed now that its content lives
-here.
+1. **Command depth mirrors operation frequency.** File operations are top-level,
+   package operations are grouped under `package`/`pkg`, and rare source
+   operations are grouped under `source`.
+2. **Package verbs changed.** `deploy`/`undeploy`/`redeploy` became
+   `package use`/`package drop`/`package refresh`. A package is a collection of
+   files; it does not itself get "linked".
+3. **File operations are file-first.** `adopt <pkg> <file>` became
+   `adopt <file> <pkg>`. The file is the subject of the command.
+4. **Status split by level.** File status is `tuck status <file>`. Package status
+   is `tuck package status [pkg]`.
+5. **Source commands aligned with package commands.** `source enable` became
+   `source add`; `source rm` and `source default` are part of the designed
+   surface.
+6. **No false globals.** `--source`, `--root`, and `--apply` are scoped to the
+   commands where they matter. `--json` and `--no-color` are universal.
+7. **Exit codes are binary.** Detailed classification moved from process exit
+   codes into stderr and the JSON `error.code`.
+8. **Machine-readable meta output.** `--help --json` and `--version --json` are
+   supported for tooling; `help` is not a command.
+
+The internal algorithms for path primitives, package enumeration, ownership
+inference, conflict rules, and execution planning are preserved, translated into
+the current vocabulary.
 
 ### Implementation framework
 
-The CLI is built on [`urfave/cli`](https://github.com/urfave/cli) (v3). The
-framework — not this document — is authoritative for surface mechanics:
-command/flag parsing, exact flag placement, `--help`/`--version` rendering, and
-usage-error formatting. The spec aims to be **close to**, not byte-identical
-with, the framework's defaults; where they differ, prefer the framework's
-idiomatic behavior when that is the intended product decision, then update this
-spec and the acceptance tests to match. Flag value sourcing (e.g. an env-var
-fallback such as `NO_COLOR` for `--no-color`, or the build-tag-gated
-`TUCK_TEST_*` test hooks) uses the framework's flag-source resolvers rather than
-bespoke env parsing. Golden acceptance tests pin the human and JSON output that
-actually matters; help and usage text are asserted loosely (presence/exit code),
-not pinned verbatim, so a CLI-framework upgrade does not churn goldens.
+The CLI is built on urfave/cli v3. The framework is authoritative for surface
+mechanics: command/flag parsing, exact flag placement behavior, help/version
+rendering, and usage-error formatting. The spec aims to be close to, not
+byte-identical with, framework defaults. Where they differ, prefer idiomatic
+urfave/cli behavior when that is the intended product decision, then update this
+spec and acceptance tests to match.

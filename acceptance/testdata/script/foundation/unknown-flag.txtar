@@ -1,4 +1,4 @@
 # Unknown flags use urfave/cli's default parse-error output.
-wantexit 1 tuck --bogus
+! exec tuck --bogus
 stderr 'Incorrect Usage'
 stderr 'flag provided'
