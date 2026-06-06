@@ -18,10 +18,12 @@ import (
 
 func TestMain(m *testing.M) {
 	testscript.Main(m, map[string]func(){
-		"tuck": func() {
-			_ = app.Run(os.Args, os.Environ(), os.Stdout, os.Stderr)
-		},
+		"tuck": tuckMain,
 	})
+}
+
+func tuckMain() {
+	os.Exit(app.Run(os.Args, os.Environ(), os.Stdout, os.Stderr))
 }
 
 func setupScriptEnv(e *testscript.Env) error {

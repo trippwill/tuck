@@ -27,8 +27,7 @@ func Run(args []string, env []string, stdout, stderr io.Writer) int {
 		return ExitOK
 	}
 
-	var exitErr cli.ExitCoder
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[cli.ExitCoder](err); ok {
 		if message := strings.TrimSpace(exitErr.Error()); message != "" {
 			fmt.Fprintln(stderr, message)
 		}

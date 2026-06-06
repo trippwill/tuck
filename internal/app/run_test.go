@@ -65,7 +65,11 @@ func TestRun(t *testing.T) {
 
 			got := Run(tt.args, nil, &stdout, &stderr)
 			if got != tt.wantExit {
-				t.Fatalf("Run() exit = %d, want %d\nstdout:\n%s\nstderr:\n%s", got, tt.wantExit, stdout.String(), stderr.String())
+				t.Fatalf(`Run() exit = %d, want %d
+stdout:
+%s
+stderr:
+%s`, got, tt.wantExit, stdout.String(), stderr.String())
 			}
 			if tt.wantStdoutPart != "" && !strings.Contains(stdout.String(), tt.wantStdoutPart) {
 				t.Fatalf("stdout = %q, want substring %q", stdout.String(), tt.wantStdoutPart)
