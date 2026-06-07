@@ -28,15 +28,20 @@ type Manifest struct {
 	Description string
 }
 
-var ErrMissing error
-var ErrInvalid error
+type Error = apperr.Error[ErrManifest]
+type ErrManifest string
+
+const (
+	ErrInvalid ErrManifest = "invalid manifest"
+	ErrMissing ErrManifest = "missing manifest"
+)
 
 func Load(repoRoot string) (Manifest, error)
 ```
 
 `Load` reads `filepath.Join(repoRoot, "tuck.toml")`, decodes it as TOML, validates it, and returns a `Manifest`.
 
-Errors should wrap `ErrMissing` or `ErrInvalid` so callers can use `errors.Is`. Keep CLI-specific error codes and exit code `3` translation out of this package; later source/CLI stories will map these engine errors to user-facing diagnostics.
+Errors should use `internal/apperr`: wrap `ErrMissing` or `ErrInvalid` with `apperr.Wrapf` / `WrapErr` so callers can use `errors.Is`, recover `*manifest.Error` with `errors.As`, and inspect `Sentinel()`. Keep CLI-specific error codes and process exit handling out of this package; later source/CLI stories will map these engine errors to user-facing diagnostics.
 
 ## TOML parsing
 
@@ -73,10 +78,10 @@ Classify read failures as `ErrMissing`, including absent and unreadable `tuck.to
 
 2. Implement the manifest package
    - Add `internal/manifest/manifest.go`.
-   - Define `Manifest`, `ErrMissing`, `ErrInvalid`, and `Load`.
-   - Read `<repoRoot>/tuck.toml`; wrap all read errors with `ErrMissing`.
-   - Decode TOML into a private file struct; wrap decode errors with `ErrInvalid`.
-   - Validate `name`; wrap validation errors with `ErrInvalid`.
+   - Define `Manifest`, `ErrManifest`, `ErrMissing`, `ErrInvalid`, `Error`, and `Load`.
+   - Read `<repoRoot>/tuck.toml`; wrap all read errors with `apperr.Wrapf(ErrMissing, ...)`.
+   - Decode TOML into a private file struct; wrap decode errors with `apperr.Wrapf(ErrInvalid, ...)`.
+   - Validate `name`; wrap validation errors with `apperr.Wrapf(ErrInvalid, ...)`.
 
 3. Keep the package engine-only
    - Do not import `internal/cli`.
@@ -99,3 +104,4 @@ Classify read failures as `ErrMissing`, including absent and unreadable `tuck.to
 - Unknown TOML keys and sections do not fail manifest loading.
 - Invalid manifests can be classified with `errors.Is(err, manifest.ErrInvalid)`.
 - Missing or unreadable manifests can be classified with `errors.Is(err, manifest.ErrMissing)`.
+- Contextual manifest errors can be recovered with `errors.As(err, *manifest.Error)` and expose the expected `Sentinel()`.

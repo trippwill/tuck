@@ -57,7 +57,7 @@ func TestLoadErrors(t *testing.T) {
 	tests := []struct {
 		name     string
 		contents *string
-		wantErr  error
+		wantErr  ErrManifest
 	}{
 		{
 			name:    "missing manifest",
@@ -102,6 +102,23 @@ func TestLoadErrors(t *testing.T) {
 			_, err := Load(repoRoot)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("Load() error = %v, want errors.Is(..., %v)", err, tt.wantErr)
+			}
+			var manifestErr *Error
+			if !errors.As(err, &manifestErr) {
+				t.Fatalf("Load() error = %T, want errors.As(..., *manifest.Error)", err)
+			}
+			if got := manifestErr.Sentinel(); got != tt.wantErr {
+				t.Fatalf("Load() error sentinel = %v, want %v", got, tt.wantErr)
+			}
+			asTypeErr, ok := errors.AsType[*Error](err)
+			if !ok {
+				t.Fatalf("Load() error = %T, want errors.AsType[*manifest.Error](...) ok", err)
+			}
+			if got := asTypeErr.Sentinel(); got != tt.wantErr {
+				t.Fatalf("Load() AsType error sentinel = %v, want %v", got, tt.wantErr)
+			}
+			if tt.contents == nil && !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("Load() missing error = %v, want errors.Is(..., os.ErrNotExist)", err)
 			}
 		})
 	}
