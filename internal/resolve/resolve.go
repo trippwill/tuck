@@ -1,10 +1,6 @@
 package resolve
 
-import (
-	"errors"
-
-	"github.com/trippwill/tuck/internal/state"
-)
+import "github.com/trippwill/tuck/internal/state"
 
 type ErrSource string
 
@@ -18,5 +14,29 @@ func (e ErrSource) Error() string {
 }
 
 func ActiveSource(registry state.Registry, explicitID string) (state.Source, error) {
-	return state.Source{}, errors.New("active source resolution not implemented")
+	enabledSources := registry.EnabledSources()
+
+	if explicitID != "" {
+		for _, source := range enabledSources {
+			if source.ID == explicitID {
+				return source, nil
+			}
+		}
+		return state.Source{}, ErrUnknownSource
+	}
+
+	if registry.Default != "" {
+		for _, source := range enabledSources {
+			if source.ID == registry.Default {
+				return source, nil
+			}
+		}
+		return state.Source{}, ErrNoSource
+	}
+
+	if len(enabledSources) == 1 {
+		return enabledSources[0], nil
+	}
+
+	return state.Source{}, ErrNoSource
 }

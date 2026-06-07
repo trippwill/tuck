@@ -41,9 +41,9 @@ building every engine primitive before the first command runs._
 **Vertical A — Sources** (`source add` / `source list`)
 
 3. [x] **M3** Read and validate a repository manifest (`<repo>/tuck.toml`: required `name`, optional `description`; ignore unknown keys) `[engine]`
-4. [ ] **M4** Discover and load machine-local source state (`${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml`; `TUCK_TEST_STATE_DIR` override) `[engine]`
-5. [ ] **M5** Validate machine state (unique enabled ids, ≤1 default, roots exist, **no overlapping roots**, readable manifests) `[engine]`
-6. [ ] **M6** Resolve the active source: `--source <id>` (id-only) → machine default → sole enabled source → `no_source` (exit 1, error.code `no_source`) `[engine]`
+4. [x] **M4** Discover and load machine-local source state (`${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml`; `TUCK_TEST_STATE_DIR` override) `[engine]`
+5. [x] **M5** Validate machine state (unique enabled ids, ≤1 default, roots exist, **no overlapping roots**, readable manifests) `[engine]`
+6. [x] **M6** Resolve the active source: `--source <id>` (id-only) → machine default → sole enabled source → `no_source` (exit 1, error.code `no_source`) `[engine]`
 7. [ ] **M7** Return meaningful error codes in JSON envelope and stderr (error.code values: `no_source`, `unknown_source`, `manifest_missing`, etc.) `[output]`
 8. [ ] **M8** Show actionable error messages with hints, on **stderr** `[output]`
 9. [ ] **M9** `source add <path> [--default]` — read manifest, atomic machine-state write, id-collision handling `[cmd]`
