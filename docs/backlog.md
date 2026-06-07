@@ -17,10 +17,11 @@ for reference in commits and task breakdowns, and an **area tag** (`[engine]`
 core logic · `[cmd]` command · `[output]` UX/format · `[eng]` project/build
 plumbing · `[build]` release/distribution · `[test]` tests · `[docs]`
 documentation). Per [`testing-strategy.md`](./testing-strategy.md), **every**
-story is **red/green / test-first**: write the failing test (unit for pure engine
-pieces, a red acceptance script in the slice's suite for commands), then
-implement to green — so test work is folded into the stories it covers rather than
-listed as a separate phase.
+story is **red/green / test-first with compiling red tests**: add any minimal
+production compile seam needed for unit tests, write tests that compile and fail
+for the expected behavior gap (unit tests for pure engine pieces, red acceptance
+scripts in the slice's suite for commands), then implement to green — so test
+work is folded into the stories it covers rather than listed as a separate phase.
 
 **Status.** Stories use GitHub-style task markers: `[x]` complete, `[ ]`
 pending. The next story is the first pending item in dependency order.

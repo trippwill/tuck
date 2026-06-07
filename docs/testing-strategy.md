@@ -6,9 +6,11 @@ document is authoritative for **how that behavior is tested**.
 
 ## 1. Goals
 
-- **Red/green TDD.** Write the test that describes a behavior **first**; watch it
-  fail (red) because the feature is unimplemented; implement until it passes
-  (green). Every backlog story lands with its test written first.
+- **Red/green TDD with compiling red tests.** Write the test that describes a
+  behavior **first**; the repository must still compile, and the test must fail
+  (red) because the behavior is unimplemented or wrong — not because of missing
+  symbols, malformed scripts, broken harness setup, or stale fixtures. Implement
+  until it passes (green). Every backlog story lands with its test written first.
 - **Test the compiled binary.** Acceptance tests drive the real `tuck` program
   end to end — exit code, stdout, and the resulting filesystem — not internal
   Go APIs.
@@ -266,11 +268,27 @@ non-root apply, output distinguishes *marker* from *enforcement*:
 
 For each behavior:
 
-1. **Red.** Add `testdata/script/<feature>.txtar` describing the desired
-   invocation, golden output, exit status, and filetree. It fails because the
-   feature is not built yet or the output/filetree/status assertions mismatch.
-2. **Green.** Implement until the script passes.
-3. Refactor with the script as the safety net.
+1. **Compile seam.** If a unit test needs a new production API, first add the
+   smallest production-owned compile seam for that API. The seam may return a
+   typed not-implemented error or another clear failing result, but it must be
+   narrow, intentional, and usable by production code later. Do not add exported
+   test-only APIs just to satisfy tests.
+2. **Red.** Add the unit test and/or `testdata/script/<feature>.txtar`
+   describing the desired behavior. The package or acceptance suite must compile,
+   then fail for the expected behavioral reason: unimplemented behavior, wrong
+   output, wrong exit status, missing filesystem effect, or an unmet assertion.
+   A compile error, missing symbol, malformed txtar script, broken helper, stale
+   fixture shape, or harness setup failure is not a valid red state; fix the test
+   before starting the green implementation.
+3. **Green.** Implement until the unit test or script passes.
+4. Refactor with the test as the safety net.
+
+Prefer minimal production compile seams for unit-level red tests. For example, if
+the slice needs `state.Save` or `state.AddSource`, introduce the narrow function
+signature in `internal/state` first with deliberately incomplete behavior, then
+add unit tests that compile and fail because the behavior is missing. Acceptance
+tests should also be added early for command slices because they prove the
+user-observable CLI compiles and fails before command wiring is implemented.
 
 This pairs naturally with **plan-by-default**: a single script first runs the
 command **without `--apply`** and asserts the filetree is **unchanged** (the
