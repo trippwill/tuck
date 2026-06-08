@@ -2,16 +2,13 @@ package resolve
 
 import "github.com/trippwill/tuck/internal/state"
 
+//go:generate go run ../../cmd/errgen -types ErrSource
 type ErrSource string
 
 const (
 	ErrNoSource      ErrSource = "no source"
 	ErrUnknownSource ErrSource = "unknown source"
 )
-
-func (e ErrSource) Error() string {
-	return string(e)
-}
 
 func ActiveSource(registry state.Registry, explicitID string) (state.Source, error) {
 	enabledSources := registry.EnabledSources()

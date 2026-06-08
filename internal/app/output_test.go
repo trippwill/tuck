@@ -28,7 +28,7 @@ func TestClassifyError(t *testing.T) {
 		},
 		{
 			name: "state invalid wraps manifest",
-			err:  apperr.Wrapf(state.ErrInvalid, manifest.ErrMissing, "invalid registry"),
+			err:  apperr.AppErrWrapf(state.ErrInvalid, manifest.ErrMissing, "invalid registry"),
 			code: "state_invalid",
 		},
 		{

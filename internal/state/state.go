@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
-	"github.com/trippwill/tuck/internal/apperr"
 	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/testhooks"
 )
@@ -38,7 +37,7 @@ func (r Registry) EnabledSources() []Source {
 	return enabled
 }
 
-type Error = apperr.Error[ErrState]
+//go:generate go run ../../cmd/errgen -types ErrState
 type ErrState string
 
 const (
@@ -47,8 +46,6 @@ const (
 	ErrWrite      ErrState = "state write"
 )
 
-func (e ErrState) Error() string { return string(e) }
-
 func Load() (Registry, error) {
 	sourcesPath := testhooks.SourcesFile()
 	contents, err := os.ReadFile(sourcesPath)
@@ -56,7 +53,7 @@ func Load() (Registry, error) {
 		if os.IsNotExist(err) {
 			return Registry{}, nil
 		}
-		return Registry{}, apperr.Wrapf(ErrInvalid, err, "could not read state file %q", sourcesPath)
+		return Registry{}, AppErrWrapf(ErrInvalid, err, "could not read state file %q", sourcesPath)
 	}
 
 	file := struct {
@@ -69,7 +66,7 @@ func Load() (Registry, error) {
 	}{}
 
 	if err := toml.Unmarshal(contents, &file); err != nil {
-		return Registry{}, apperr.Wrapf(ErrInvalid, err, "could not parse state file %q", sourcesPath)
+		return Registry{}, AppErrWrapf(ErrInvalid, err, "could not parse state file %q", sourcesPath)
 	}
 
 	sources := make([]Source, len(file.Sources))
@@ -101,12 +98,12 @@ func Save(registry Registry) error {
 	sourcesPath := testhooks.SourcesFile()
 	stateDir := filepath.Dir(sourcesPath)
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
-		return apperr.Wrapf(ErrWrite, err, "could not create state directory %q", stateDir)
+		return AppErrWrapf(ErrWrite, err, "could not create state directory %q", stateDir)
 	}
 
 	tempFile, err := os.CreateTemp(stateDir, ".sources.toml.*")
 	if err != nil {
-		return apperr.Wrapf(ErrWrite, err, "could not create temporary state file in %q", stateDir)
+		return AppErrWrapf(ErrWrite, err, "could not create temporary state file in %q", stateDir)
 	}
 	tempPath := tempFile.Name()
 	removeTemp := true
@@ -118,13 +115,13 @@ func Save(registry Registry) error {
 
 	if _, err := tempFile.Write(contents); err != nil {
 		_ = tempFile.Close()
-		return apperr.Wrapf(ErrWrite, err, "could not write temporary state file %q", tempPath)
+		return AppErrWrapf(ErrWrite, err, "could not write temporary state file %q", tempPath)
 	}
 	if err := tempFile.Close(); err != nil {
-		return apperr.Wrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
+		return AppErrWrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
 	}
 	if err := os.Rename(tempPath, sourcesPath); err != nil {
-		return apperr.Wrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
+		return AppErrWrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
 	}
 	removeTemp = false
 	return nil
@@ -133,7 +130,7 @@ func Save(registry Registry) error {
 func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 	rootPath, err := canonicalRoot(path)
 	if err != nil {
-		return Registry{}, Source{}, apperr.Wrapf(ErrSourceRoot, err, "invalid source root %q", path)
+		return Registry{}, Source{}, AppErrWrapf(ErrSourceRoot, err, "invalid source root %q", path)
 	}
 	sourceManifest, err := manifest.Load(rootPath)
 	if err != nil {
@@ -159,10 +156,10 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 		}
 		existingPath, err := canonicalRoot(existing.Path)
 		if err != nil {
-			return Registry{}, Source{}, apperr.Wrapf(ErrInvalid, err, "existing source %q has invalid path %q", existing.ID, existing.Path)
+			return Registry{}, Source{}, AppErrWrapf(ErrInvalid, err, "existing source %q has invalid path %q", existing.ID, existing.Path)
 		}
 		if existingPath != rootPath {
-			return Registry{}, Source{}, apperr.Wrapf(ErrInvalid, nil, "source id %q already exists at %q", existing.ID, existingPath)
+			return Registry{}, Source{}, AppErrMsgf(ErrInvalid, "source id %q already exists at %q", existing.ID, existingPath)
 		}
 		registry.Sources[i] = added
 		found = true
@@ -200,27 +197,27 @@ func normalizeRegistry(registry Registry) (Registry, error) {
 		}
 
 		if !validID(source.ID) {
-			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "invalid enabled source id %q: must be non-empty and cannot contain '/' or ':'", source.ID)
+			return Registry{}, AppErrMsgf(ErrInvalid, "invalid enabled source id %q: must be non-empty and cannot contain '/' or ':'", source.ID)
 		}
 		if _, ok := enabledIDs[source.ID]; ok {
-			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "duplicate enabled source id %q", source.ID)
+			return Registry{}, AppErrMsgf(ErrInvalid, "duplicate enabled source id %q", source.ID)
 		}
 		enabledIDs[source.ID] = struct{}{}
 
 		rootPath, err := canonicalRoot(source.Path)
 		if err != nil {
-			return Registry{}, apperr.Wrapf(ErrInvalid, err, "invalid path for source %q", source.ID)
+			return Registry{}, AppErrWrapf(ErrInvalid, err, "invalid path for source %q", source.ID)
 		}
 		if slices.ContainsFunc(enabledPaths, func(existing string) bool {
 			return rootsOverlap(existing, rootPath)
 		}) {
-			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "enabled source root %q overlaps another enabled source root", rootPath)
+			return Registry{}, AppErrMsgf(ErrInvalid, "enabled source root %q overlaps another enabled source root", rootPath)
 		}
 		enabledPaths = append(enabledPaths, rootPath)
 
 		sourceManifest, err := manifest.Load(rootPath)
 		if err != nil {
-			return Registry{}, apperr.Wrapf(ErrInvalid, err, "invalid manifest for source %q", source.ID)
+			return Registry{}, AppErrWrapf(ErrInvalid, err, "invalid manifest for source %q", source.ID)
 		}
 
 		normalized.Sources[i].Path = rootPath
@@ -229,7 +226,7 @@ func normalizeRegistry(registry Registry) (Registry, error) {
 
 	if normalized.Default != "" {
 		if _, ok := enabledIDs[normalized.Default]; !ok {
-			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "default source %q does not name an enabled source", normalized.Default)
+			return Registry{}, AppErrMsgf(ErrInvalid, "default source %q does not name an enabled source", normalized.Default)
 		}
 	}
 

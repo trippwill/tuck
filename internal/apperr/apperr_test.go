@@ -16,17 +16,17 @@ func (e testErr) Error() string {
 	return string(e)
 }
 
-func TestWrapReturnsSentinelWithoutContext(t *testing.T) {
-	err := Wrap(errInvalid, nil, "")
+func TestAppErrMsgReturnsSentinelWithoutContext(t *testing.T) {
+	err := AppErrMsg(errInvalid, "")
 
 	if err != errInvalid {
-		t.Fatalf("Wrap() = %#v, want sentinel", err)
+		t.Fatalf("AppErrMsg() = %#v, want sentinel", err)
 	}
 }
 
-func TestWrapSupportsErrorsIsForSentinelAndCause(t *testing.T) {
+func TestAppErrWrapfSupportsErrorsIsForSentinelAndCause(t *testing.T) {
 	cause := errors.New("cause")
-	err := Wrap(errInvalid, cause, "with context")
+	err := AppErrWrapf(errInvalid, cause, "with %s", "context")
 
 	if !errors.Is(err, errInvalid) {
 		t.Fatalf("errors.Is(err, errInvalid) = false, want true")
@@ -39,8 +39,8 @@ func TestWrapSupportsErrorsIsForSentinelAndCause(t *testing.T) {
 	}
 }
 
-func TestWrapSupportsErrorsAsAndSentinel(t *testing.T) {
-	err := Wrapf(errInvalid, nil, "bad %s", "input")
+func TestAppErrMsgfSupportsErrorsAsAndSentinel(t *testing.T) {
+	err := AppErrMsgf(errInvalid, "bad %s", "input")
 
 	var appErr *Error[testErr]
 	if !errors.As(err, &appErr) {
@@ -51,8 +51,8 @@ func TestWrapSupportsErrorsAsAndSentinel(t *testing.T) {
 	}
 }
 
-func TestWrapSupportsErrorsAsTypeAndSentinel(t *testing.T) {
-	err := Wrapf(errInvalid, nil, "bad %s", "input")
+func TestAppErrMsgfSupportsErrorsAsTypeAndSentinel(t *testing.T) {
+	err := AppErrMsgf(errInvalid, "bad %s", "input")
 
 	appErr, ok := errors.AsType[*Error[testErr]](err)
 	if !ok {
@@ -63,9 +63,9 @@ func TestWrapSupportsErrorsAsTypeAndSentinel(t *testing.T) {
 	}
 }
 
-func TestWrapErrUsesCauseWithoutMessage(t *testing.T) {
+func TestAppErrWrapUsesCauseWithoutMessage(t *testing.T) {
 	cause := errors.New("disk failed")
-	err := WrapErr(errMissing, cause)
+	err := AppErrWrap(errMissing, cause)
 
 	if got, want := err.Error(), "missing: disk failed"; got != want {
 		t.Fatalf("Error() = %q, want %q", got, want)
@@ -73,7 +73,7 @@ func TestWrapErrUsesCauseWithoutMessage(t *testing.T) {
 }
 
 func TestErrorStringIncludesSentinelMessageAndCause(t *testing.T) {
-	err := Wrap(errInvalid, errors.New("toml failed"), "could not parse")
+	err := AppErrWrapf(errInvalid, errors.New("toml failed"), "could not %s", "parse")
 
 	if got, want := err.Error(), "invalid: could not parse: toml failed"; got != want {
 		t.Fatalf("Error() = %q, want %q", got, want)

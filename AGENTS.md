@@ -3,13 +3,17 @@
 ## Commands
 
 - Build production packages without test hooks: `go build ./...`
+- Generate checked-in generated files: `mise run generate`
+- Build production packages through mise, after generation and vet: `mise run build`
 - Run all tests via mise: `mise run test`
 - Run unit tests only: `mise run test:unit` or `go test ./internal/...`
+- Run command-package tests only: `mise run test:cmd` or `go test ./cmd/...`
 - Run acceptance tests only: `mise run test:accept` or `go test -tags tuck_testhooks ./acceptance/...`
 - Run the current acceptance suite: `mise run test:accept:foundation`
 - Run a single unit test: `go test -run TestRun ./internal/cli`
 - Run one acceptance suite directly: `go test -tags tuck_testhooks -run TestFoundation ./acceptance/...`
-- Vet/format gates described in docs: `go vet ./...` and `test -z "$(gofmt -l ./cmd ./internal ./acceptance)"`
+- Run the full local gate: `mise run check`
+- Vet/format gates individually: `mise run vet` and `mise run fmt`
 
 ## Commit messages
 
@@ -37,7 +41,7 @@
 - Repo `tuck.toml` owns portable package/file policy. Use keyed package metadata (`[package.<name>]` with `[[package.<name>.file]]`) for per-file deploy strategy and explicit modes; do not prefer package-local metadata files.
 - Mutating verbs (`adopt`, `eject`, `package use`, `package drop`, `package refresh`) are dry-run/plan-by-default and mutate only with `--apply`. Build the complete plan and accumulate all conflicts before any mutation.
 - Output contract matters for domain commands: primary results and JSON envelopes go to stdout; diagnostics and hints go to stderr. Framework-rendered help/usage follows urfave/cli defaults. With `--json`, emit exactly one envelope on stdout and keep stderr empty.
-- Prefer `internal/apperr` for stable package-level error kinds. Define a small string sentinel type that implements `Error()`, expose const values, alias the package error (`type Error = apperr.Error[ErrKind]`), and wrap causes with `apperr.Wrap`, `Wrapf`, or `WrapErr` so `errors.Is` and `errors.As` work.
+- Prefer generated `internal/apperr` helpers for stable package-level error kinds. Define small string sentinel types with const values and add `//go:generate go run ../../cmd/errgen -types ErrKind`; the generated `apperr_gen.go` file supplies `Error()` methods, a package-specific constraint such as `StateErr`, `type Error[S StateErr] = apperr.Error[S]`, and generic package-local `AppErrMsg`, `AppErrMsgf`, `AppErrWrap`, and `AppErrWrapf` helpers. Use `Msg` for context-only errors and `Wrap` when preserving a cause so `errors.Is` and `errors.As` work.
 - Path handling must be path-segment aware. Ownership is inferred from symlink payloads within the active source only; there is no deployed-link manifest.
 - `package use` links only leaf entries. Directory entries become real target directories, and symlink payloads should use the spec's relative form.
 - Copied-file deployment (`deploy = "copy"`) is state-backed because ownership cannot be inferred from symlink payloads. Track copied entries and checksums in machine-local state; report drift rather than overwriting/removing changed files silently.

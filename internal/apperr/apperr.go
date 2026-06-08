@@ -59,22 +59,30 @@ func (e *Error[S]) Sentinel() S {
 	return e.sentinel
 }
 
-func Wrap[S sentinel](sentinel S, err error, msg string) error {
-	if err == nil && msg == "" {
+func AppErrMsg[S sentinel](sentinel S, msg string) error {
+	return appErr(sentinel, nil, msg)
+}
+
+func AppErrMsgf[S sentinel](sentinel S, format string, args ...any) error {
+	return AppErrMsg(sentinel, fmt.Sprintf(format, args...))
+}
+
+func AppErrWrap[S sentinel](sentinel S, err error) error {
+	return appErr(sentinel, err, "")
+}
+
+func AppErrWrapf[S sentinel](sentinel S, err error, format string, args ...any) error {
+	return appErr(sentinel, err, fmt.Sprintf(format, args...))
+}
+
+func appErr[S sentinel](sentinel S, cause error, msg string) error {
+	if cause == nil && msg == "" {
 		return sentinel
 	}
 
 	return &Error[S]{
 		sentinel: sentinel,
 		msg:      msg,
-		err:      err,
+		err:      cause,
 	}
-}
-
-func Wrapf[S sentinel](sentinel S, err error, format string, args ...any) error {
-	return Wrap(sentinel, err, fmt.Sprintf(format, args...))
-}
-
-func WrapErr[S sentinel](sentinel S, err error) error {
-	return Wrap(sentinel, err, "")
 }

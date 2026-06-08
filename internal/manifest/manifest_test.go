@@ -103,16 +103,16 @@ func TestLoadErrors(t *testing.T) {
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("Load() error = %v, want errors.Is(..., %v)", err, tt.wantErr)
 			}
-			var manifestErr *Error
+			var manifestErr *Error[ErrManifest]
 			if !errors.As(err, &manifestErr) {
-				t.Fatalf("Load() error = %T, want errors.As(..., *manifest.Error)", err)
+				t.Fatalf("Load() error = %T, want errors.As(..., *manifest.Error[manifest.ErrManifest])", err)
 			}
 			if got := manifestErr.Sentinel(); got != tt.wantErr {
 				t.Fatalf("Load() error sentinel = %v, want %v", got, tt.wantErr)
 			}
-			asTypeErr, ok := errors.AsType[*Error](err)
+			asTypeErr, ok := errors.AsType[*Error[ErrManifest]](err)
 			if !ok {
-				t.Fatalf("Load() error = %T, want errors.AsType[*manifest.Error](...) ok", err)
+				t.Fatalf("Load() error = %T, want errors.AsType[*manifest.Error[manifest.ErrManifest]](...) ok", err)
 			}
 			if got := asTypeErr.Sentinel(); got != tt.wantErr {
 				t.Fatalf("Load() AsType error sentinel = %v, want %v", got, tt.wantErr)

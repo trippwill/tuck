@@ -67,10 +67,14 @@ working:
   `error`/`sources`/… envelopes, cross-cutting).
 
 [`mise`](https://mise.jdx.dev) tasks expose the common groupings: `mise run test`
-(everything), `mise run test:unit`, `mise run test:accept` (all acceptance, with
-the tag), and `mise run test:accept:<suite>` (one suite). CI runs `mise run test`
-plus a tagless `go build ./...` smoke (see §9). `mise` also pins the Go toolchain
-version for reproducible local and CI builds.
+(unit + command-package + acceptance), `mise run test:unit`, `mise run test:cmd`,
+`mise run test:accept` (all acceptance, with the tag), and
+`mise run test:accept:<suite>` (one suite). Generation/build gates are also
+taskized: `mise run generate`, `mise run build`, `mise run vet`, and `mise run
+fmt`. `mise run build` depends on generation and vet, so build-time checks
+analyze regenerated source before compiling. `mise run check` is the full
+local/CI gate and depends on test, build, and fmt. `mise` also pins the Go
+toolchain version for reproducible local and CI builds.
 
 ## 3. Acceptance harness (`testscript`)
 
@@ -299,6 +303,24 @@ add unit tests that compile and fail because the behavior is missing. Acceptance
 tests should also be added early for command slices because they prove the
 user-observable CLI compiles and fails before command wiring is implemented.
 
+Generated code follows the same compile-first rule. For typed application error
+sentinels, add a small string type and constants, then generate the boilerplate
+with:
+
+```go
+//go:generate go run ../../cmd/errgen -types ErrKind
+```
+
+`errgen` supplies sentinel `Error()` methods, a package-specific constraint such
+as `StateErr`, `type Error[S StateErr] = apperr.Error[S]`, and generic
+package-local helpers named for their two axes: `AppErrMsg` / `AppErrMsgf` for
+context-only errors and `AppErrWrap` / `AppErrWrapf` for errors that preserve a
+cause. Keep tests red for generated behavior, not for missing generated symbols:
+add the production compile seam or run the generator before asserting behavior
+that depends on generated helpers.
+Run `mise run generate` when adding or changing generated helpers, and use
+`mise run check` for the full gate.
+
 This pairs naturally with **plan-by-default**: a single script first runs the
 command **without `--apply`** and asserts the filetree is **unchanged** (the
 plan is printed, nothing mutates), then runs **with `--apply`** and asserts the
@@ -374,12 +396,14 @@ spec's relative-payload rule
 
 ## 9. CI
 
-- Run `mise run test`: unit suites, then acceptance suites (with
-  `-tags tuck_testhooks`).
-- Add a **tagless** `go build ./...` (and `go vet ./...`) so an accidental
-  production dependency on `tuck_testhooks`-only code fails the build — the test
-  hooks must never be reachable without the tag.
-- Gate `vet` and `gofmt`/lint.
+- Run `mise run check`: unit suites, command-package tests, acceptance suites
+  (with `-tags tuck_testhooks`), tagless build, vet, generation, and gofmt gate.
+- The **tagless** `mise run build` step depends on generation and vet, then
+  ensures an accidental production dependency on `tuck_testhooks`-only code fails
+  the build — the test hooks must never be reachable without the tag.
+- `mise run generate` keeps checked-in generated error helpers current. A stricter
+  generated-drift gate can run `mise run generate` followed by `git diff
+  --exit-code` if CI should fail on stale generated files.
 - Acceptance suites run non-parallel (a fixed process `umask` is set once in the
   acceptance package's `TestMain`; per-script `umask` changes would otherwise
   race).

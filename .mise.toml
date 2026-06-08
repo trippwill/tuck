@@ -2,13 +2,33 @@
 go = "1.26"
 
 [tasks.test]
-run = "mise run test:unit && mise run test:accept"
+depends = ["test:unit", "test:cmd", "test:accept"]
 
 [tasks."test:unit"]
 run = "go test ./internal/..."
+
+[tasks."test:cmd"]
+run = "go test ./cmd/..."
 
 [tasks."test:accept"]
 run = "go test -tags tuck_testhooks ./acceptance/..."
 
 [tasks."test:accept:foundation"]
 run = "go test -tags tuck_testhooks -run TestFoundation ./acceptance/..."
+
+[tasks.generate]
+run = "go generate ./..."
+
+[tasks.build]
+depends = ["generate", "vet"]
+run = "go build ./..."
+
+[tasks.vet]
+depends = ["generate"]
+run = "go vet ./..."
+
+[tasks.fmt]
+run = 'test -z "$(gofmt -l ./cmd ./internal ./acceptance)"'
+
+[tasks.check]
+depends = ["test", "build", "fmt"]
