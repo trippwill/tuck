@@ -1,0 +1,10 @@
+# Absent state is a successful empty source list.
+exec tuck source list --no-color
+stdout 'no sources enabled'
+! stderr .
+
+exec tuck --json source list
+stdout '"kind":"sources"'
+stdout '"sources":\[\]'
+stdout '"exitCode":0'
+! stderr .

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/trippwill/tuck/internal/state"
 	"github.com/urfave/cli/v3"
 )
 
@@ -22,13 +23,21 @@ func mutatingDomainFlags() []cli.Flag {
 	}...)
 }
 
-var commandNotFound = func(_ context.Context, cmd *cli.Command, name string) {
+func commandNotFound(_ context.Context, cmd *cli.Command, name string) {
 	fmt.Fprintf(cmd.Root().ErrWriter, "Incorrect Usage: unknown command %q\n\n", name)
 	if cmd == cmd.Root() {
 		cli.ShowRootCommandHelpAndExit(cmd, ExitFail)
 		return
 	}
 	cli.ShowSubcommandHelpAndExit(cmd, ExitFail)
+}
+
+func commandUsageError(_ context.Context, cmd *cli.Command, err error, _ bool) error {
+	fmt.Fprintf(cmd.Root().ErrWriter, "Incorrect Usage: %s\n\n", err.Error())
+	if !cmd.HideHelp {
+		_ = cli.ShowSubcommandHelp(cmd)
+	}
+	return cli.Exit("", ExitFail)
 }
 
 func rootCommand() *cli.Command {
@@ -165,10 +174,19 @@ func sourceCommand() *cli.Command {
 				Name:      "add",
 				Usage:     "register a dotfiles repo on this machine",
 				ArgsUsage: "<path>",
+				Arguments: []cli.Argument{
+					&cli.StringArgs{
+						Name:      "path",
+						UsageText: "<path>",
+						Min:       1,
+						Max:       1,
+					},
+				},
+				OnUsageError: commandUsageError,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{Name: "default", Usage: "make this the default source"},
 				},
-				Action: notImplemented("source add"),
+				Action: sourceAddAction,
 			},
 			{
 				Name:      "rm",
@@ -180,7 +198,7 @@ func sourceCommand() *cli.Command {
 				Name:    "list",
 				Aliases: []string{"ls"},
 				Usage:   "list enabled sources",
-				Action:  notImplemented("source list"),
+				Action:  sourceListAction,
 			},
 			{
 				Name:      "default",
@@ -190,6 +208,61 @@ func sourceCommand() *cli.Command {
 			},
 		},
 	}
+}
+
+func sourceAddAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Args().Present() {
+		return cli.Exit("error: source add accepts exactly one <path>", ExitFail)
+	}
+	path := cmd.StringArgs("path")[0]
+
+	registry, source, err := state.AddSource(path, cmd.Bool("default"))
+	if err != nil {
+		return renderError(cmd, "source add", err)
+	}
+
+	if cmd.Bool("json") {
+		return renderSourcesJSON(cmd, "source add", registry)
+	}
+
+	defaultValue := "no"
+	if registry.Default == source.ID {
+		defaultValue = "yes"
+	}
+	fmt.Fprintf(cmd.Root().Writer, "added source %s\n", source.ID)
+	fmt.Fprintf(cmd.Root().Writer, "path: %s\n", source.Path)
+	fmt.Fprintf(cmd.Root().Writer, "default: %s\n", defaultValue)
+	return nil
+}
+
+func sourceListAction(_ context.Context, cmd *cli.Command) error {
+	registry, err := state.Load()
+	if err != nil {
+		return renderError(cmd, "source list", err)
+	}
+
+	if cmd.Bool("json") {
+		return renderSourcesJSON(cmd, "source list", registry)
+	}
+
+	if len(registry.Sources) == 0 {
+		fmt.Fprintln(cmd.Root().Writer, "no sources enabled")
+		return nil
+	}
+
+	fmt.Fprintf(cmd.Root().Writer, "%-8s %-8s %-8s %s\n", "ID", "DEFAULT", "ENABLED", "PATH")
+	for _, source := range registry.Sources {
+		defaultValue := "no"
+		if registry.Default == source.ID {
+			defaultValue = "yes"
+		}
+		enabledValue := "no"
+		if source.Enabled {
+			enabledValue = "yes"
+		}
+		fmt.Fprintf(cmd.Root().Writer, "%-8s %-8s %-8s %s\n", source.ID, defaultValue, enabledValue, source.Path)
+	}
+	return nil
 }
 
 func notImplemented(name string) cli.ActionFunc {

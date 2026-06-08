@@ -85,12 +85,21 @@ func cmdWantHome(ts *testscript.TestScript, neg bool, args []string) {
 		ts.Fatalf("mkdir state dir: %v", err)
 	}
 
-	sources := fmt.Sprintf(`[[source]]
+	sourcePath := filepath.Join(ts.Getenv("WORK"), "src")
+	if err := os.MkdirAll(sourcePath, 0o755); err != nil {
+		ts.Fatalf("mkdir source repo: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourcePath, "tuck.toml"), []byte("name = \"public\"\n"), 0o644); err != nil {
+		ts.Fatalf("write source manifest: %v", err)
+	}
+
+	sources := fmt.Sprintf(`default = "public"
+
+[[source]]
 id = "public"
 path = %q
 enabled = true
-default = true
-`, filepath.Join(ts.Getenv("WORK"), "src"))
+`, sourcePath)
 	if err := os.WriteFile(filepath.Join(stateDir, "sources.toml"), []byte(sources), 0o644); err != nil {
 		ts.Fatalf("write sources.toml: %v", err)
 	}

@@ -1,0 +1,14 @@
+! exec tuck source list --no-color
+! stdout .
+stderr 'error:'
+stderr 'state'
+stderr 'hint:'
+
+! exec tuck --json source list
+stdout '"kind":"error"'
+stdout '"code":"state_invalid"'
+stdout '"exitCode":1'
+! stderr .
+
+-- state/tuck/sources.toml --
+[[source]

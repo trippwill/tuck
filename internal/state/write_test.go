@@ -1,0 +1,177 @@
+package state
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"testing"
+)
+
+func TestSaveWritesNormalizedState(t *testing.T) {
+	stateRoot := withStateHome(t)
+	publicRepo := writeSourceRepo(t, "public", "public dotfiles")
+	disabledRepo := filepath.Join(t.TempDir(), "disabled")
+
+	err := Save(Registry{
+		Default: "public",
+		Sources: []Source{
+			{ID: "public", Path: publicRepo, Enabled: true},
+			{ID: "disabled", Path: disabledRepo, Enabled: false},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Save() error = %v, want nil", err)
+	}
+
+	got := readSourcesFile(t, stateRoot)
+	want := `default = "public"
+
+[[source]]
+id = "public"
+path = ` + quote(canonical(t, publicRepo)) + `
+enabled = true
+
+[[source]]
+id = "disabled"
+path = ` + quote(disabledRepo) + `
+enabled = false
+`
+	if got != want {
+		t.Fatalf("sources.toml =\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestSaveDoesNotReplaceExistingStateOnValidationFailure(t *testing.T) {
+	stateRoot := withStateHome(t)
+	originalRepo := writeSourceRepo(t, "public", "")
+	writeSources(t, stateRoot, stateFile("public", sourceBlock("public", originalRepo, nil)))
+	before := readSourcesFile(t, stateRoot)
+
+	err := Save(Registry{
+		Sources: []Source{
+			{ID: "bad/id", Path: originalRepo, Enabled: true},
+		},
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("Save() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
+	}
+	after := readSourcesFile(t, stateRoot)
+	if after != before {
+		t.Fatalf("sources.toml changed after failed Save():\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+}
+
+func TestAddSourceAddsDefaultSource(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "public dotfiles")
+
+	registry, source, err := AddSource(repo, true)
+	if err != nil {
+		t.Fatalf("AddSource() error = %v, want nil", err)
+	}
+	if source.ID != "public" || source.Path != canonical(t, repo) || !source.Enabled {
+		t.Fatalf("AddSource() source = %#v, want enabled public at canonical path", source)
+	}
+	if registry.Default != "public" {
+		t.Fatalf("AddSource() default = %q, want public", registry.Default)
+	}
+
+	got := readSourcesFile(t, stateRoot)
+	if !strings.Contains(got, "default = \"public\"\n") {
+		t.Fatalf("sources.toml = %q, want top-level default", got)
+	}
+	if !strings.Contains(got, "path = "+quote(canonical(t, repo))+"\n") {
+		t.Fatalf("sources.toml = %q, want canonical path", got)
+	}
+}
+
+func TestAddSourceIsIdempotentForSameIDAndPath(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "")
+	if _, _, err := AddSource(repo, true); err != nil {
+		t.Fatalf("first AddSource() error = %v, want nil", err)
+	}
+	before := readSourcesFile(t, stateRoot)
+
+	registry, _, err := AddSource(repo, true)
+	if err != nil {
+		t.Fatalf("second AddSource() error = %v, want nil", err)
+	}
+	if len(registry.Sources) != 1 {
+		t.Fatalf("AddSource() sources = %#v, want one source", registry.Sources)
+	}
+	after := readSourcesFile(t, stateRoot)
+	if after != before {
+		t.Fatalf("idempotent AddSource() changed state:\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+}
+
+func TestAddSourceReenablesDisabledEntryWithSameIDAndPath(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "")
+	writeSources(t, stateRoot, sourceBlock("public", repo, new(false)))
+
+	registry, source, err := AddSource(repo, false)
+	if err != nil {
+		t.Fatalf("AddSource() error = %v, want nil", err)
+	}
+	if !source.Enabled {
+		t.Fatalf("AddSource() source enabled = false, want true")
+	}
+	got := requireSource(t, registry, "public")
+	if !got.Enabled {
+		t.Fatalf("registry source enabled = false, want true")
+	}
+	if !strings.Contains(readSourcesFile(t, stateRoot), "enabled = true\n") {
+		t.Fatalf("sources.toml did not re-enable source:\n%s", readSourcesFile(t, stateRoot))
+	}
+}
+
+func TestAddSourceRejectsSameIDWithDifferentPathWithoutChangingState(t *testing.T) {
+	stateRoot := withStateHome(t)
+	first := writeSourceRepo(t, "public", "")
+	second := writeSourceRepo(t, "public", "other checkout")
+	if _, _, err := AddSource(first, true); err != nil {
+		t.Fatalf("first AddSource() error = %v, want nil", err)
+	}
+	before := readSourcesFile(t, stateRoot)
+
+	_, _, err := AddSource(second, true)
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("AddSource() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
+	}
+	after := readSourcesFile(t, stateRoot)
+	if after != before {
+		t.Fatalf("sources.toml changed after id collision:\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+}
+
+func TestAddSourceClassifiesSourceRootAndManifestErrors(t *testing.T) {
+	withStateHome(t)
+
+	_, _, err := AddSource(filepath.Join(t.TempDir(), "missing"), false)
+	if !errors.Is(err, ErrSourceRoot) {
+		t.Fatalf("AddSource() missing root error = %v, want errors.Is(..., %v)", err, ErrSourceRoot)
+	}
+
+	_, _, err = AddSource(t.TempDir(), false)
+	if err == nil {
+		t.Fatalf("AddSource() missing manifest error = nil, want error")
+	}
+}
+
+func readSourcesFile(t *testing.T, stateRoot string) string {
+	t.Helper()
+
+	contents, err := os.ReadFile(filepath.Join(stateRoot, "tuck", "sources.toml"))
+	if err != nil {
+		t.Fatalf("read sources.toml: %v", err)
+	}
+	return string(contents)
+}
+
+func quote(s string) string {
+	return strconv.Quote(s)
+}

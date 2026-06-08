@@ -1,11 +1,13 @@
 package state
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
@@ -39,7 +41,11 @@ func (r Registry) EnabledSources() []Source {
 type Error = apperr.Error[ErrState]
 type ErrState string
 
-const ErrInvalid ErrState = "invalid state"
+const (
+	ErrInvalid    ErrState = "invalid state"
+	ErrSourceRoot ErrState = "source root"
+	ErrWrite      ErrState = "state write"
+)
 
 func (e ErrState) Error() string { return string(e) }
 
@@ -67,8 +73,6 @@ func Load() (Registry, error) {
 	}
 
 	sources := make([]Source, len(file.Sources))
-	enabledIDs := make(map[string]struct{})
-	enabledPaths := make([]string, 0, len(file.Sources))
 	for i, entry := range file.Sources {
 		enabled := true
 		if entry.Enabled != nil {
@@ -80,22 +84,132 @@ func Load() (Registry, error) {
 			Path:    entry.Path,
 			Enabled: enabled,
 		}
+	}
 
-		if !enabled {
+	return normalizeRegistry(Registry{
+		Default: file.Default,
+		Sources: sources,
+	})
+}
+
+func Save(registry Registry) error {
+	normalized, err := normalizeRegistry(registry)
+	if err != nil {
+		return err
+	}
+	contents := marshalRegistry(normalized)
+	sourcesPath := testhooks.SourcesFile()
+	stateDir := filepath.Dir(sourcesPath)
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		return apperr.Wrapf(ErrWrite, err, "could not create state directory %q", stateDir)
+	}
+
+	tempFile, err := os.CreateTemp(stateDir, ".sources.toml.*")
+	if err != nil {
+		return apperr.Wrapf(ErrWrite, err, "could not create temporary state file in %q", stateDir)
+	}
+	tempPath := tempFile.Name()
+	removeTemp := true
+	defer func() {
+		if removeTemp {
+			_ = os.Remove(tempPath)
+		}
+	}()
+
+	if _, err := tempFile.Write(contents); err != nil {
+		_ = tempFile.Close()
+		return apperr.Wrapf(ErrWrite, err, "could not write temporary state file %q", tempPath)
+	}
+	if err := tempFile.Close(); err != nil {
+		return apperr.Wrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
+	}
+	if err := os.Rename(tempPath, sourcesPath); err != nil {
+		return apperr.Wrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
+	}
+	removeTemp = false
+	return nil
+}
+
+func AddSource(path string, makeDefault bool) (Registry, Source, error) {
+	rootPath, err := canonicalRoot(path)
+	if err != nil {
+		return Registry{}, Source{}, apperr.Wrapf(ErrSourceRoot, err, "invalid source root %q", path)
+	}
+	sourceManifest, err := manifest.Load(rootPath)
+	if err != nil {
+		return Registry{}, Source{}, err
+	}
+
+	registry, err := Load()
+	if err != nil {
+		return Registry{}, Source{}, err
+	}
+
+	added := Source{
+		ID:       sourceManifest.Name,
+		Path:     rootPath,
+		Enabled:  true,
+		Manifest: sourceManifest,
+	}
+
+	found := false
+	for i, existing := range registry.Sources {
+		if existing.ID != sourceManifest.Name {
+			continue
+		}
+		existingPath, err := canonicalRoot(existing.Path)
+		if err != nil {
+			return Registry{}, Source{}, apperr.Wrapf(ErrInvalid, err, "existing source %q has invalid path %q", existing.ID, existing.Path)
+		}
+		if existingPath != rootPath {
+			return Registry{}, Source{}, apperr.Wrapf(ErrInvalid, nil, "source id %q already exists at %q", existing.ID, existingPath)
+		}
+		registry.Sources[i] = added
+		found = true
+		break
+	}
+	if !found {
+		registry.Sources = append(registry.Sources, added)
+	}
+	if makeDefault {
+		registry.Default = added.ID
+	}
+
+	if err := Save(registry); err != nil {
+		return Registry{}, Source{}, err
+	}
+	normalized, err := Load()
+	if err != nil {
+		return Registry{}, Source{}, err
+	}
+	return normalized, findSource(normalized, added.ID), nil
+}
+
+func normalizeRegistry(registry Registry) (Registry, error) {
+	normalized := Registry{
+		Default: registry.Default,
+		Sources: make([]Source, len(registry.Sources)),
+	}
+	copy(normalized.Sources, registry.Sources)
+
+	enabledIDs := make(map[string]struct{})
+	enabledPaths := make([]string, 0, len(normalized.Sources))
+	for i, source := range normalized.Sources {
+		if !source.Enabled {
 			continue
 		}
 
-		if !validID(entry.ID) {
-			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "invalid enabled source id %q: must be non-empty and cannot contain '/' or ':'", entry.ID)
+		if !validID(source.ID) {
+			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "invalid enabled source id %q: must be non-empty and cannot contain '/' or ':'", source.ID)
 		}
-		if _, ok := enabledIDs[entry.ID]; ok {
-			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "duplicate enabled source id %q", entry.ID)
+		if _, ok := enabledIDs[source.ID]; ok {
+			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "duplicate enabled source id %q", source.ID)
 		}
-		enabledIDs[entry.ID] = struct{}{}
+		enabledIDs[source.ID] = struct{}{}
 
-		rootPath, err := canonicalRoot(entry.Path)
+		rootPath, err := canonicalRoot(source.Path)
 		if err != nil {
-			return Registry{}, apperr.Wrapf(ErrInvalid, err, "invalid path for source %q", entry.ID)
+			return Registry{}, apperr.Wrapf(ErrInvalid, err, "invalid path for source %q", source.ID)
 		}
 		if slices.ContainsFunc(enabledPaths, func(existing string) bool {
 			return rootsOverlap(existing, rootPath)
@@ -106,23 +220,57 @@ func Load() (Registry, error) {
 
 		sourceManifest, err := manifest.Load(rootPath)
 		if err != nil {
-			return Registry{}, apperr.Wrapf(ErrInvalid, err, "invalid manifest for source %q", entry.ID)
+			return Registry{}, apperr.Wrapf(ErrInvalid, err, "invalid manifest for source %q", source.ID)
 		}
 
-		sources[i].Path = rootPath
-		sources[i].Manifest = sourceManifest
+		normalized.Sources[i].Path = rootPath
+		normalized.Sources[i].Manifest = sourceManifest
 	}
 
-	if file.Default != "" {
-		if _, ok := enabledIDs[file.Default]; !ok {
-			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "default source %q does not name an enabled source", file.Default)
+	if normalized.Default != "" {
+		if _, ok := enabledIDs[normalized.Default]; !ok {
+			return Registry{}, apperr.Wrapf(ErrInvalid, nil, "default source %q does not name an enabled source", normalized.Default)
 		}
 	}
 
-	return Registry{
-		Default: file.Default,
-		Sources: sources,
-	}, nil
+	return normalized, nil
+}
+
+func marshalRegistry(registry Registry) []byte {
+	var b bytes.Buffer
+	if registry.Default != "" {
+		b.WriteString("default = ")
+		b.WriteString(strconv.Quote(registry.Default))
+		b.WriteString("\n")
+		if len(registry.Sources) > 0 {
+			b.WriteString("\n")
+		}
+	}
+
+	for i, source := range registry.Sources {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("[[source]]\n")
+		b.WriteString("id = ")
+		b.WriteString(strconv.Quote(source.ID))
+		b.WriteString("\n")
+		b.WriteString("path = ")
+		b.WriteString(strconv.Quote(source.Path))
+		b.WriteString("\n")
+		fmt.Fprintf(&b, "enabled = %t\n", source.Enabled)
+	}
+
+	return b.Bytes()
+}
+
+func findSource(registry Registry, id string) Source {
+	for _, source := range registry.Sources {
+		if source.ID == id {
+			return source
+		}
+	}
+	return Source{}
 }
 
 func validID(id string) bool {

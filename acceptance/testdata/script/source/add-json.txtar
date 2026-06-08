@@ -1,0 +1,12 @@
+exec tuck --json source add $WORK/src --default
+stdout '"command":"source add"'
+stdout '"kind":"sources"'
+stdout '"id":"public"'
+stdout '"default":true'
+stdout '"description":"public dotfiles"'
+stdout '"exitCode":0'
+! stderr .
+
+-- src/tuck.toml --
+name = "public"
+description = "public dotfiles"

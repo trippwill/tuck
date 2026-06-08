@@ -1,0 +1,21 @@
+exec tuck source add $WORK/src-a --default --no-color
+! stderr .
+
+exec cat state/tuck/sources.toml
+stdout 'path = ".*src-a"'
+
+! exec tuck source add $WORK/src-b --default --no-color
+! stdout .
+stderr 'error:'
+stderr 'hint:'
+
+exec cat state/tuck/sources.toml
+stdout 'path = ".*src-a"'
+! stdout 'src-b'
+
+-- src-a/tuck.toml --
+name = "public"
+
+-- src-b/tuck.toml --
+name = "public"
+description = "other checkout"

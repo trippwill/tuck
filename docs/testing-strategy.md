@@ -35,6 +35,15 @@ CLI shell behavior — command parsing, help/version output, diagnostics, stdout
 stderr, and process exit status — is user-observable contract and belongs in
 testscript, not in unit tests for the CLI composition package.
 
+When a command requires positional arguments, prefer urfave/cli's `Arguments`
+configuration over ad hoc action-level missing-argument checks. For example, use
+a narrow `StringArgs` argument with `Min: 1` and `Max: 1` for a required single
+path, then read it with `cmd.StringArgs("<name>")` in the action. If urfave's
+argument parsing needs a usage hook to match the project's stream contract, add a
+small `OnUsageError` handler that prints `Incorrect Usage` and command help,
+then returns an exit-code-only error. Keep truly semantic validation in the
+action or engine layer.
+
 ### 2.1 Test suites
 
 Tests are grouped into **named suites** that each run independently, so you can

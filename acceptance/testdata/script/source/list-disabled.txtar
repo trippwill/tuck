@@ -1,0 +1,29 @@
+exec tuck source list --no-color
+stdout 'ID +DEFAULT +ENABLED +PATH'
+stdout 'public +yes +yes +.*src'
+stdout 'disabled +no +no +.*missing-disabled'
+! stderr .
+
+exec tuck --json source ls
+stdout '"command":"source list"'
+stdout '"id":"disabled"'
+stdout '"enabled":false'
+stdout '"description":""'
+! stderr .
+
+-- src/tuck.toml --
+name = "public"
+description = "public dotfiles"
+
+-- state/tuck/sources.toml --
+default = "public"
+
+[[source]]
+id = "public"
+path = "src"
+enabled = true
+
+[[source]]
+id = "disabled"
+path = "missing-disabled"
+enabled = false

@@ -1,0 +1,22 @@
+mkdir $WORK/home
+
+exec tuck source add $WORK/src --default --no-color
+stdout 'added source public'
+stdout 'default: yes'
+! stderr .
+
+exists state/tuck/sources.toml
+exec cat state/tuck/sources.toml
+stdout 'default = "public"'
+stdout '\[\[source\]\]'
+stdout 'id = "public"'
+stdout 'enabled = true'
+
+exec tuck source list --no-color
+stdout 'ID +DEFAULT +ENABLED +PATH'
+stdout 'public +yes +yes +.*src'
+! stderr .
+
+-- src/tuck.toml --
+name = "public"
+description = "public dotfiles"
