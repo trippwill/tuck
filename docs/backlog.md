@@ -52,16 +52,16 @@ building every engine primitive before the first command runs._
 
 **Vertical B — Package Use (home)**
 
-11. [ ] **M11** Parse and validate a plain package reference `[engine]`
-12. [ ] **M12** Convert package paths to target paths (and back), path-segment-aware `[engine]`
-13. [ ] **M13** Enumerate a package's leaf and directory entries (skip the reserved `.root` dir and `tuck.toml`) `[engine]`
-14. [ ] **M14** Resolve an existing package in the active source and context `[engine]`
-15. [ ] **M15** Classify a target path (absent / real file / dir / symlink / managed) `[engine]`
-16. [ ] **M16** Detect package-use and directory conflicts `[engine]`
-17. [ ] **M17** Build a complete action plan before any mutation `[engine]`
-18. [ ] **M18** Render a human-readable plan (plan / conflicts / summary) `[output]`
-19. [ ] **M19** Apply a conflict-free plan only when `--apply` is given (dry-run by default) `[engine]`
-20. [ ] **M20** `package use` a package's entries into the target tree (plan + `--apply`) `[cmd]`
+11. [x] **M11** Parse and validate a plain package reference `[engine]`
+12. [x] **M12** Convert package paths to target paths (and back), path-segment-aware `[engine]`
+13. [x] **M13** Enumerate a package's leaf and directory entries (skip the reserved `.root` dir and `tuck.toml`) `[engine]`
+14. [x] **M14** Resolve an existing package in the active source and context `[engine]`
+15. [x] **M15** Classify a target path (absent / real file / dir / symlink / managed) `[engine]`
+16. [x] **M16** Detect package-use and directory conflicts `[engine]`
+17. [x] **M17** Build a complete action plan before any mutation `[engine]`
+18. [x] **M18** Render a human-readable plan (plan / conflicts / summary) `[output]`
+19. [x] **M19** Apply a conflict-free plan only when `--apply` is given (dry-run by default) `[engine]`
+20. [x] **M20** `package use` a package's entries into the target tree (plan + `--apply`) `[cmd]`
 
 **Vertical C — Status**
 

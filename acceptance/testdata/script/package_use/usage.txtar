@@ -1,0 +1,10 @@
+wanthome
+! exec tuck pkg use --no-color
+stderr 'error: package use requires one or more package refs or --all'
+! stdout .
+! exec tuck pkg use zsh --all --no-color
+stderr 'error: package use accepts package refs or --all, not both'
+! stdout .
+
+-- src/zsh/.zshrc --
+# zshrc

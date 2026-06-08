@@ -1,0 +1,13 @@
+wanthome
+exec tuck pkg use zsh --no-color
+stdout 'context: home, dry-run'
+stdout 'plan:'
+stdout '\+ mkdir'
+stdout '\+ link'
+stdout '2 actions, 0 conflicts'
+stdout 're-run with --apply to execute'
+! exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc

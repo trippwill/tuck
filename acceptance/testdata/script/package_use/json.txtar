@@ -1,0 +1,18 @@
+wanthome
+exec tuck --json pkg use zsh
+stdout '"schemaVersion":1'
+stdout '"command":"package use"'
+stdout '"context":"home"'
+stdout '"kind":"plan"'
+stdout '"dryRun":true'
+stdout '"applied":false'
+stdout 'public:home:zsh'
+stdout '"type":"mkdir"'
+stdout '"type":"symlink"'
+stdout '"conflicts":\[\]'
+stdout '"exitCode":0'
+! exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc

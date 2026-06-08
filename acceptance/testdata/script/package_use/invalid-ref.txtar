@@ -1,0 +1,5 @@
+wanthome
+! exec tuck pkg use ../zsh --no-color
+stderr 'error: package reference is invalid'
+stderr 'hint: pass a plain package name'
+! stdout .

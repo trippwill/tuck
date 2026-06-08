@@ -1,0 +1,11 @@
+wanthome
+! exec tuck pkg use zsh zsh-alt --no-color
+stdout 'multiple_providers'
+stdout '0 actions, 1 conflicts'
+! exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc
+-- src/zsh-alt/.config/zsh/.zshrc --
+# alternate

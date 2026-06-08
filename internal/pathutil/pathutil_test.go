@@ -2,14 +2,31 @@ package pathutil
 
 import "testing"
 
-func TestScaffold(t *testing.T) {
-	tests := []struct {
-		name string
-	}{
-		{name: "unit test package is wired"},
+func TestInsideIsPathSegmentAware(t *testing.T) {
+	if !Inside("/home/me/.dotfiles/zsh", "/home/me/.dotfiles") {
+		t.Fatalf("Inside() = false, want true")
 	}
+	if Inside("/home/me/.dotfiles-private", "/home/me/.dotfiles") {
+		t.Fatalf("Inside() = true for sibling prefix, want false")
+	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {})
+func TestPackageToTarget(t *testing.T) {
+	got, rel, err := PackageToTarget("/src/zsh", "/src/zsh/.config/zsh/.zshrc", "/home/me")
+	if err != nil {
+		t.Fatalf("PackageToTarget() error = %v", err)
+	}
+	if got != "/home/me/.config/zsh/.zshrc" || rel != ".config/zsh/.zshrc" {
+		t.Fatalf("PackageToTarget() = %q, %q", got, rel)
+	}
+}
+
+func TestSymlinkPayload(t *testing.T) {
+	got, err := SymlinkPayload("/home/me/.config/zsh/.zshrc", "/src/zsh/.config/zsh/.zshrc")
+	if err != nil {
+		t.Fatalf("SymlinkPayload() error = %v", err)
+	}
+	if got != "../../../../src/zsh/.config/zsh/.zshrc" {
+		t.Fatalf("SymlinkPayload() = %q", got)
 	}
 }

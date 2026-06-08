@@ -1,0 +1,11 @@
+wanthome
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+exec ln -s ../../../src/zsh/.config/zsh/.zshrc $WORK/home/.config/zsh/.zshrc
+exec tuck pkg use zsh --apply --no-color
+stdout '0 actions, 0 conflicts'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc

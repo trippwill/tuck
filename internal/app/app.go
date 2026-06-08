@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/trippwill/tuck/internal/plan"
 	"github.com/trippwill/tuck/internal/state"
 	"github.com/urfave/cli/v3"
 )
@@ -117,7 +118,7 @@ func packageCommand() *cli.Command {
 					mutatingDomainFlags(),
 					&cli.BoolFlag{Name: "all", Usage: "activate all packages in the active source"},
 				),
-				Action: notImplemented("package use"),
+				Action: packageUseAction,
 			},
 			{
 				Name:      "drop",
@@ -157,6 +158,29 @@ func packageCommand() *cli.Command {
 			},
 		},
 	}
+}
+
+func packageUseAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Bool("root") {
+		return cli.Exit("error: --root is not implemented for package use yet", ExitFail)
+	}
+	refs := cmd.Args().Slice()
+	if len(refs) == 0 && !cmd.Bool("all") {
+		return cli.Exit("error: package use requires one or more package refs or --all", ExitFail)
+	}
+	if len(refs) > 0 && cmd.Bool("all") {
+		return cli.Exit("error: package use accepts package refs or --all, not both", ExitFail)
+	}
+	usePlan, err := plan.BuildUse(plan.UseOptions{
+		Refs:     refs,
+		All:      cmd.Bool("all"),
+		SourceID: cmd.String("source"),
+		Apply:    cmd.Bool("apply"),
+	})
+	if err != nil {
+		return renderError(cmd, "package use", err)
+	}
+	return renderUsePlan(cmd, usePlan)
 }
 
 // Source operations (grouped).

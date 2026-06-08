@@ -1,0 +1,20 @@
+wanthome
+mkdir $WORK/src/.root
+cp ignore $WORK/src/tuck.toml.bak
+exec tuck pkg use --all --apply --no-color
+stdout 'public:home:git'
+stdout 'public:home:zsh'
+exists $WORK/home/.gitconfig
+exists $WORK/home/.config/zsh/.zshrc
+! exists $WORK/home/root-only
+! stderr .
+
+-- ignore --
+ignore
+-- src/git/.gitconfig --
+[user]
+	name = Test
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc
+-- src/.root/root-only --
+root

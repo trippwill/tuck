@@ -1,0 +1,11 @@
+wanthome
+exec tuck pkg use zsh --apply --no-color
+stdout 'context: home, apply'
+stdout '2 actions, 0 conflicts'
+exists $WORK/home/.config/zsh
+exists $WORK/home/.config/zsh/.zshrc
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc
