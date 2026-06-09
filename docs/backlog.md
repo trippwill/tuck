@@ -65,8 +65,8 @@ building every engine primitive before the first command runs._
 
 **Vertical C — Status**
 
-21. [ ] **M21** Infer the owning package of a managed symlink **in the active source only** `[engine]`
-22. [ ] **M22** `package status` of a package's entries; `status` of a single target path (active-source ownership) `[cmd]`
+21. [x] **M21** Infer the owning package of a managed symlink **in the active source only** `[engine]`
+22. [x] **M22** `package status` of a package's entries; `status` of a single target path (active-source ownership) `[cmd]`
 
 **Vertical D — Package Drop**
 
@@ -93,7 +93,7 @@ _Goal: a shippable v1 others can install and trust — machine output (JSON),
 distributed builds, and docs._
 
 1. [ ] **R1** `package refresh` a package (refresh + normalize link payloads) `[cmd]`
-2. [ ] **R2** List packages in the active source (`package list`) `[cmd]`
+2. [x] **R2** List packages in the active source (`package list`) `[cmd]`
 3. [ ] **R3** Show a package's file tree, and all packages in the active source (`package show`) `[cmd]`
 4. [ ] **R4** `source rm <id>` — remove a source from machine state `[cmd]`
 5. [ ] **R5** `source init <path> [--name <id>] [--description <text>]` — scaffold a repo `tuck.toml` manifest without registering it `[cmd]`

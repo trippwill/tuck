@@ -1,0 +1,10 @@
+! exec tuck pkg list --no-color
+stderr 'no active source'
+wanthome
+! exec tuck pkg list --source missing --no-color
+stderr 'source is not enabled'
+! exec tuck pkg list --root --no-color
+stderr 'root'
+
+-- src/zsh/.zshrc --
+# zshrc

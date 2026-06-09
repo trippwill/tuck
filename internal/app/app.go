@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/plan"
 	"github.com/trippwill/tuck/internal/state"
+	statuspkg "github.com/trippwill/tuck/internal/status"
 	"github.com/urfave/cli/v3"
 )
 
@@ -94,7 +96,7 @@ func statusCommand() *cli.Command {
 		Category:  "files",
 		ArgsUsage: "<file>",
 		Flags:     domainFlags(),
-		Action:    notImplemented("status"),
+		Action:    statusAction,
 	}
 }
 
@@ -139,7 +141,7 @@ func packageCommand() *cli.Command {
 				Aliases: []string{"ls"},
 				Usage:   "list packages in the active source",
 				Flags:   domainFlags(),
-				Action:  notImplemented("package list"),
+				Action:  packageListAction,
 			},
 			{
 				Name:      "show",
@@ -154,7 +156,7 @@ func packageCommand() *cli.Command {
 				Usage:     "show managed/conflict state for packages",
 				ArgsUsage: "[package]",
 				Flags:     domainFlags(),
-				Action:    notImplemented("package status"),
+				Action:    packageStatusAction,
 			},
 		},
 	}
@@ -181,6 +183,55 @@ func packageUseAction(_ context.Context, cmd *cli.Command) error {
 		return renderError(cmd, "package use", err)
 	}
 	return renderUsePlan(cmd, usePlan)
+}
+
+func packageListAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Bool("root") {
+		return cli.Exit("error: --root is not implemented for package list yet", ExitFail)
+	}
+	if cmd.Args().Len() != 0 {
+		return cli.Exit("error: package list accepts no arguments", ExitFail)
+	}
+	listing, err := packages.List(packages.ListOptions{
+		SourceID: cmd.String("source"),
+		Context:  packages.ContextHome,
+	})
+	if err != nil {
+		return renderError(cmd, "package list", err)
+	}
+	return renderPackageList(cmd, listing)
+}
+
+func statusAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Bool("root") {
+		return cli.Exit("error: --root is not implemented for status yet", ExitFail)
+	}
+	if cmd.Args().Len() != 1 {
+		return cli.Exit("error: status requires exactly one path", ExitFail)
+	}
+	result, err := statuspkg.File(cmd.Args().First(), statuspkg.Options{
+		SourceID: cmd.String("source"),
+	})
+	if err != nil {
+		return renderError(cmd, "status", err)
+	}
+	return renderStatus(cmd, result)
+}
+
+func packageStatusAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Bool("root") {
+		return cli.Exit("error: --root is not implemented for package status yet", ExitFail)
+	}
+	if cmd.Args().Len() > 1 {
+		return cli.Exit("error: package status accepts at most one package ref", ExitFail)
+	}
+	result, err := statuspkg.Package(cmd.Args().First(), statuspkg.Options{
+		SourceID: cmd.String("source"),
+	})
+	if err != nil {
+		return renderError(cmd, "package status", err)
+	}
+	return renderStatus(cmd, result)
 }
 
 // Source operations (grouped).

@@ -1,0 +1,17 @@
+wanthome
+exec tuck status $WORK/home/.config/zsh/missing --no-color
+stdout 'absent'
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/other
+exec ln -s ../outside $WORK/home/.config/other/link
+exec tuck status $WORK/home/.config/other/link --no-color
+stdout 'unmanaged'
+mkdir $WORK/home/wrong
+exec ln -s ../../src/zsh/.config/zsh/.zshrc $WORK/home/wrong/.zshrc
+exec tuck status $WORK/home/wrong/.zshrc --no-color
+stdout 'mismatch'
+stdout 'public:home:zsh'
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc

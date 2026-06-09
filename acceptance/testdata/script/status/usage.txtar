@@ -1,0 +1,10 @@
+wanthome
+! exec tuck status --no-color
+stderr 'requires exactly one'
+! exec tuck status one two --no-color
+stderr 'requires exactly one'
+! exec tuck pkg status one two --no-color
+stderr 'accepts at most one'
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc

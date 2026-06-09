@@ -1,0 +1,17 @@
+wanthome
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+exec ln -s ../../../src/zsh/.config/zsh/.zshrc $WORK/home/.config/zsh/.zshrc
+exec tuck --json pkg status zsh
+stdout '"schemaVersion":1'
+stdout '"command":"package status"'
+stdout '"context":"home"'
+stdout '"kind":"status"'
+stdout '"entries":\['
+stdout '"state":"deployed"'
+stdout 'public:home:zsh'
+stdout '"exitCode":0'
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc

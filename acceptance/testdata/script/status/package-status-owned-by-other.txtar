@@ -1,0 +1,14 @@
+wanthome
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+exec ln -s ../../../src/zsh/.config/zsh/.zshrc $WORK/home/.config/zsh/.zshrc
+exec tuck pkg status zsh-alt --no-color
+stdout 'owned_by_other'
+stdout 'public:home:zsh'
+stdout 'public:home:zsh-alt'
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc
+-- src/zsh-alt/.config/zsh/.zshrc --
+# alternate

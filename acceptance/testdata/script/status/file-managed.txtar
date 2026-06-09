@@ -1,0 +1,11 @@
+wanthome
+exec tuck pkg use zsh --apply --no-color
+exec tuck status $WORK/home/.config/zsh/.zshrc --no-color
+stdout 'tuck status'
+stdout 'deployed'
+stdout 'public:home:zsh'
+stdout '.config/zsh/.zshrc'
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc

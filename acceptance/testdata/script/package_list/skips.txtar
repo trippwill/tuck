@@ -1,0 +1,17 @@
+wanthome
+mkdir $WORK/src/.root
+cp note $WORK/src/README
+cp note $WORK/src/tuck.toml.bak
+exec tuck pkg list --no-color
+stdout 'git'
+! stdout 'zsh'
+! stdout '.root'
+! stdout 'README'
+! stdout 'tuck.toml.bak'
+stdout '1 package'
+! stderr .
+
+-- note --
+note
+-- src/git/.gitconfig --
+[user]

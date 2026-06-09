@@ -6,10 +6,12 @@ import (
 	"strings"
 
 	"github.com/trippwill/tuck/internal/manifest"
+	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pkgref"
 	"github.com/trippwill/tuck/internal/plan"
 	"github.com/trippwill/tuck/internal/resolve"
 	"github.com/trippwill/tuck/internal/state"
+	statuspkg "github.com/trippwill/tuck/internal/status"
 	"github.com/urfave/cli/v3"
 )
 
@@ -24,6 +26,11 @@ type envelope struct {
 
 type sourcesData struct {
 	Sources []sourceRecord `json:"sources"`
+}
+
+type packageListData struct {
+	Source   string   `json:"source"`
+	Packages []string `json:"packages"`
 }
 
 type sourceRecord struct {
@@ -52,6 +59,37 @@ func renderSourcesJSON(cmd *cli.Command, command string, registry state.Registry
 		Data:          buildSourcesData(registry),
 		ExitCode:      ExitOK,
 	})
+}
+
+func renderPackageList(cmd *cli.Command, listing packages.Listing) error {
+	data := packageListData{Source: listing.Source, Packages: listing.Packages}
+	if cmd.Bool("json") {
+		return writeJSON(cmd.Root().Writer, envelope{
+			SchemaVersion: 1,
+			Command:       "package list",
+			Context:       listing.Context,
+			Kind:          "packages",
+			Data:          data,
+			ExitCode:      ExitOK,
+		})
+	}
+
+	fmt.Fprintf(cmd.Root().Writer, "tuck package list   (context: %s, source: %s)\n\n", listing.Context, listing.Source)
+	for _, name := range listing.Packages {
+		fmt.Fprintln(cmd.Root().Writer, name)
+	}
+	if len(listing.Packages) > 0 {
+		fmt.Fprintln(cmd.Root().Writer)
+	}
+	fmt.Fprintf(cmd.Root().Writer, "%d %s\n", len(listing.Packages), packageNoun(len(listing.Packages)))
+	return nil
+}
+
+func packageNoun(count int) string {
+	if count == 1 {
+		return "package"
+	}
+	return "packages"
 }
 
 func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
@@ -109,6 +147,49 @@ func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 		return cli.Exit("", ExitFail)
 	}
 	return nil
+}
+
+func renderStatus(cmd *cli.Command, result statuspkg.Result) error {
+	if cmd.Bool("json") {
+		return writeJSON(cmd.Root().Writer, envelope{
+			SchemaVersion: 1,
+			Command:       result.Command,
+			Context:       result.Context,
+			Kind:          "status",
+			Data:          result,
+			ExitCode:      ExitOK,
+		})
+	}
+
+	fmt.Fprintf(cmd.Root().Writer, "tuck %s   (context: %s, source: %s)\n\n", result.Command, result.Context, result.Source)
+	for _, entry := range result.Entries {
+		fmt.Fprintf(cmd.Root().Writer, "%-14s %s", entry.State, entry.TargetPath)
+		if entry.Package != "" {
+			fmt.Fprintf(cmd.Root().Writer, " package=%s", entry.Package)
+		}
+		if entry.Entry != "" {
+			fmt.Fprintf(cmd.Root().Writer, " entry=%s", entry.Entry)
+		}
+		if entry.Owner != "" && entry.Owner != entry.Package {
+			fmt.Fprintf(cmd.Root().Writer, " owner=%s", entry.Owner)
+		}
+		if entry.Code != "" {
+			fmt.Fprintf(cmd.Root().Writer, " code=%s", entry.Code)
+		}
+		if entry.Message != "" {
+			fmt.Fprintf(cmd.Root().Writer, " (%s)", entry.Message)
+		}
+		fmt.Fprintln(cmd.Root().Writer)
+	}
+	fmt.Fprintf(cmd.Root().Writer, "\n%d %s\n", len(result.Entries), entryNoun(len(result.Entries)))
+	return nil
+}
+
+func entryNoun(count int) string {
+	if count == 1 {
+		return "entry"
+	}
+	return "entries"
 }
 
 func packageNames(identities []string) string {
@@ -194,10 +275,10 @@ func classifyError(err error) errorRecord {
 			Message: "package reference is invalid",
 			Hint:    "pass a plain package name without '/', '..', ':', or a source prefix",
 		}
-	case errors.Is(err, plan.ErrPackageNotFound):
+	case errors.Is(err, packages.ErrPackageNotFound):
 		return errorRecord{
 			Code:    "package_not_found",
-			Message: trimSentinel(err, plan.ErrPackageNotFound.Error()),
+			Message: trimSentinel(err, packages.ErrPackageNotFound.Error()),
 			Hint:    "run tuck pkg list to see packages in the active source",
 		}
 	case errors.Is(err, plan.ErrApply):

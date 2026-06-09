@@ -1,0 +1,16 @@
+wanthome
+exec tuck package ls --no-color
+stdout 'git'
+stdout 'zsh'
+exec tuck pkg list --no-color
+stdout 'git'
+stdout 'zsh'
+exec tuck pkg ls --no-color
+stdout 'git'
+stdout 'zsh'
+! stderr .
+
+-- src/zsh/.zshrc --
+# zshrc
+-- src/git/.gitconfig --
+[user]

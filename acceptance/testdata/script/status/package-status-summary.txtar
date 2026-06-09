@@ -1,0 +1,14 @@
+wanthome
+exec tuck pkg status --no-color
+stdout 'tuck package status'
+stdout 'public:home:git'
+stdout 'public:home:zsh'
+stdout '.gitconfig'
+stdout '.config/zsh/.zshrc'
+stdout '2 entries'
+! stderr .
+
+-- src/zsh/.config/zsh/.zshrc --
+# zshrc
+-- src/git/.gitconfig --
+[user]
