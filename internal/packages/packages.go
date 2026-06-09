@@ -145,7 +145,7 @@ func Discover(base string) ([]string, error) {
 	}
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		if !entry.IsDir() || entry.Name() == ".root" {
+		if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
 		names = append(names, entry.Name())

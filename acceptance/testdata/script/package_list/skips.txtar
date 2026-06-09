@@ -1,11 +1,13 @@
 wanthome
 mkdir $WORK/src/.root
+mkdir $WORK/src/.hidden
 cp note $WORK/src/README
 cp note $WORK/src/tuck.toml.bak
 exec tuck pkg list --no-color
 stdout 'git'
 ! stdout 'zsh'
 ! stdout '.root'
+! stdout '\.hidden'
 ! stdout 'README'
 ! stdout 'tuck.toml.bak'
 stdout '1 package'
@@ -15,3 +17,5 @@ stdout '1 package'
 note
 -- src/git/.gitconfig --
 [user]
+-- src/.hidden/secret --
+hidden

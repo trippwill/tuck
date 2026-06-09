@@ -13,7 +13,11 @@ func TestParse(t *testing.T) {
 	}{
 		{input: "zsh", want: "zsh", ok: true},
 		{input: " git ", want: "git", ok: true},
+		{input: "foo.bar", want: "foo.bar", ok: true},
 		{input: "", ok: false},
+		{input: ".hidden", ok: false},
+		{input: ".config", ok: false},
+		{input: ".ssh", ok: false},
 		{input: "a:b", ok: false},
 		{input: "/zsh", ok: false},
 		{input: "a/b", ok: false},

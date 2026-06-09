@@ -3,3 +3,7 @@ wanthome
 stderr 'error: package reference is invalid'
 stderr 'hint: pass a plain package name'
 ! stdout .
+! exec tuck pkg use .hidden --no-color
+stderr 'error: package reference is invalid'
+stderr 'hint: pass a plain package name'
+! stdout .

@@ -273,7 +273,7 @@ func classifyError(err error) errorRecord {
 		return errorRecord{
 			Code:    "invalid_ref",
 			Message: "package reference is invalid",
-			Hint:    "pass a plain package name without '/', '..', ':', or a source prefix",
+			Hint:    "pass a plain package name that does not start with '.' and does not contain '/', '..', ':', or a source prefix",
 		}
 	case errors.Is(err, packages.ErrPackageNotFound):
 		return errorRecord{

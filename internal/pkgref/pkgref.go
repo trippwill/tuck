@@ -17,7 +17,7 @@ type Ref struct {
 
 func Parse(raw string) (Ref, error) {
 	name := strings.TrimSpace(raw)
-	if name == "" || name == "." || name == ".." || strings.Contains(name, ":") || filepath.IsAbs(name) {
+	if name == "" || strings.HasPrefix(name, ".") || strings.Contains(name, ":") || filepath.IsAbs(name) {
 		return Ref{}, AppErrMsgf(ErrInvalidRef, "invalid package ref %q", raw)
 	}
 	if strings.ContainsAny(name, `/\`) {

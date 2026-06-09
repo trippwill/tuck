@@ -368,6 +368,7 @@ Rejected before package resolution:
 
 - a ref containing `:`;
 - an empty package name;
+- a package name starting with `.`;
 - an absolute package name;
 - a name containing `..` path segments;
 - a name containing a path separator.
@@ -471,7 +472,8 @@ tuck [--json] package list [--source <id>] [--root]
 ```
 
 - **Behavior:** list direct child package directories of the active source's
-  package base. Skip `.root` and `tuck.toml`.
+  package base. Skip dot-prefixed directories (including `.root`) and
+  non-directories such as `tuck.toml`.
 - **Aliases:** `package ls`, `pkg list`, `pkg ls`.
 
 ### 7.8 `package show`
@@ -949,8 +951,8 @@ within it.
 
 #### Parse package reference
 
-Reject before resolution: any `:`, an empty name, an absolute name, a name with
-`..` segments, or a name containing a path separator.
+Reject before resolution: any `:`, an empty name, a name starting with `.`, an
+absolute name, a name with `..` segments, or a name containing a path separator.
 
 #### Resolve existing package
 
@@ -1210,7 +1212,7 @@ The now-empty package directory is left in place.
 ```text
 base = packageBase(activeSource, context)
 list direct child directories of base as packages
-    skip reserved `.root`
+    skip names starting with `.`
     skip non-directories
 ```
 
