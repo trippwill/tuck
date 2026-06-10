@@ -9,9 +9,9 @@
 - Run unit tests only: `mise run test:unit` or `go test ./internal/...`
 - Run command-package tests only: `mise run test:cmd` or `go test ./cmd/...`
 - Run acceptance tests only: `mise run test:accept` or `go test -tags tuck_testhooks ./acceptance/...`
-- Run the current acceptance suite: `mise run test:accept:foundation`
-- Run a single unit test: `go test -run TestRun ./internal/cli`
-- Run one acceptance suite directly: `go test -tags tuck_testhooks -run TestFoundation ./acceptance/...`
+- Run one acceptance suite: `mise run test:accept:package` or `go test -tags tuck_testhooks -run TestSuites/package ./acceptance/...`
+- Run a single unit test: `go test -run TestRunMetaJSONUsesSharedEnvelope ./internal/app`
+- Run one acceptance suite directly: `go test -tags tuck_testhooks -run TestSuites/source ./acceptance/...`
 - Run the full local gate: `mise run check`
 - Vet/format gates individually: `mise run vet` and `mise run fmt`
 
@@ -29,7 +29,7 @@
 - `docs/testing-strategy.md` is authoritative for how behavior is tested. The backlog expects red/green, vertical-slice delivery: add the failing unit or acceptance coverage for a behavior before implementing it.
 - Engine code is expected to grow under focused `internal/...` packages. The docs call out units such as manifest/state loading, path primitives, source/package resolution, ownership inference, conflict rules, and planning; keep pure algorithmic logic out of the CLI layer where practical.
 - Acceptance tests live in `acceptance/` and use `github.com/rogpeppe/go-internal/testscript`. `TestMain` registers a `tuck` command backed by the already-compiled test binary, so scripts should invoke `tuck` directly rather than `go run`, `go build`, or an external binary.
-- Test-only seams live behind the `tuck_testhooks` build tag in `internal/testhooks`. Production builds must work tagless and must not depend on `TUCK_TEST_*` behavior.
+- Test-only seams live behind the `tuck_testhooks` build tag in the package that owns the behavior. Production builds must work tagless and must not depend on `TUCK_TEST_*` behavior.
 
 ## Repository-specific conventions
 
@@ -49,4 +49,4 @@
 - Root-context behavior separates logical paths, physical test backing roots, and privilege authorization. `--root` output should stay logical (`/etc/...`), while tests may redirect writes with build-tagged hooks.
 - Acceptance scripts should run in the harness sandbox, use `exec` for success and `! exec` for expected failures, assert symlink payloads via `readlink`, and generate `$WORK`-dependent state at runtime with setup commands such as `wanthome` rather than inline txtar bodies.
 - Keep acceptance output deterministic: scrubbed sandbox env, stable locale, no color, fixed umask from the harness, stdout/stderr assertions, and no dependence on the developer's real home, root, or machine state.
-- `codebook.toml` is the project-local spell-check dictionary; add legitimate project terms there instead of working around spelling checks.
+- `.codebook.toml` is the project-local spell-check dictionary; add legitimate project terms there instead of working around spelling checks.

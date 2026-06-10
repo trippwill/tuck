@@ -1,0 +1,145 @@
+# source add writes default state and source list reads it back
+phase add-default-and-list fixtures/source/public-described
+exec tuck source add $WORK/src --default --no-color
+stdout 'added source public'
+stdout 'default: yes'
+! stderr .
+
+exists $WORK/state/add-default-and-list/tuck/sources.toml
+exec cat $WORK/state/add-default-and-list/tuck/sources.toml
+stdout 'default = "public"'
+stdout '\[\[source\]\]'
+stdout 'id = "public"'
+stdout 'enabled = true'
+
+exec tuck source list --no-color
+stdout 'ID +DEFAULT +ENABLED +PATH'
+stdout 'public +yes +yes +.*src'
+! stderr .
+
+# source add rejects a duplicate id from a different path without replacing state
+phase add-id-collision
+exec tuck source add $WORK/src-a --default --no-color
+! stderr .
+
+exec cat $WORK/state/add-id-collision/tuck/sources.toml
+stdout 'path = ".*src-a"'
+
+! exec tuck source add $WORK/src-b --default --no-color
+! stdout .
+stderr 'error:'
+stderr 'hint:'
+
+exec cat $WORK/state/add-id-collision/tuck/sources.toml
+stdout 'path = ".*src-a"'
+! stdout 'src-b'
+
+# source add reports invalid manifests in human and JSON forms
+phase add-invalid-manifest fixtures/source/add-invalid-manifest
+! exec tuck source add $WORK/src --no-color
+! stdout .
+stderr 'error:'
+stderr 'manifest'
+stderr 'hint:'
+
+! exec tuck --json source add $WORK/src
+stdout '"kind":"error"'
+stdout '"code":"manifest_invalid"'
+stdout '"exitCode":1'
+! stderr .
+
+# source add emits the sources JSON envelope
+phase add-json fixtures/source/public-described
+exec tuck --json source add $WORK/src --default
+stdout '"command":"source add"'
+stdout '"kind":"sources"'
+stdout '"id":"public"'
+stdout '"default":true'
+stdout '"description":"public dotfiles"'
+stdout '"exitCode":0'
+! stderr .
+
+# source add reports a missing manifest in human and JSON forms
+phase add-missing-manifest
+mkdir empty
+
+! exec tuck source add $WORK/empty --no-color
+! stdout .
+stderr 'error:'
+stderr 'manifest'
+stderr 'hint:'
+
+! exec tuck --json source add $WORK/empty
+stdout '"kind":"error"'
+stdout '"code":"manifest_missing"'
+stdout '"exitCode":1'
+! stderr .
+
+# source add usage errors stay framework-owned where possible
+phase add-usage
+! exec tuck source add --no-color
+stderr 'Incorrect Usage'
+stderr 'sufficient count of arg path not provided'
+stdout 'USAGE'
+
+! exec tuck source add one two --no-color
+stderr 'source add accepts exactly one <path>'
+
+# source list includes disabled entries in human and JSON forms
+phase list-disabled fixtures/source/public-described
+wantstate public public $WORK/src true disabled $WORK/missing-disabled false
+
+exec tuck source list --no-color
+stdout 'ID +DEFAULT +ENABLED +PATH'
+stdout 'public +yes +yes +.*src'
+stdout 'disabled +no +no +.*missing-disabled'
+! stderr .
+
+exec tuck --json source ls
+stdout '"command":"source list"'
+stdout '"id":"disabled"'
+stdout '"enabled":false'
+stdout '"description":""'
+! stderr .
+
+# absent state is a successful empty source list
+phase list-empty
+exec tuck source list --no-color
+stdout 'no sources enabled'
+! stderr .
+
+exec tuck --json source list
+stdout '"kind":"sources"'
+stdout '"sources":\[\]'
+stdout '"exitCode":0'
+! stderr .
+
+# malformed state is reported as state_invalid
+phase list-invalid-state
+mkdir $WORK/state/list-invalid-state/tuck
+cp fixtures/source/list-invalid-state/sources.toml $WORK/state/list-invalid-state/tuck/sources.toml
+
+! exec tuck source list --no-color
+! stdout .
+stderr 'error:'
+stderr 'state'
+stderr 'hint:'
+
+! exec tuck --json source list
+stdout '"kind":"error"'
+stdout '"code":"state_invalid"'
+stdout '"exitCode":1'
+! stderr .
+
+-- fixtures/source/public-described/tuck.toml --
+name = "public"
+description = "public dotfiles"
+-- src-a/tuck.toml --
+name = "public"
+-- src-b/tuck.toml --
+name = "public"
+description = "other checkout"
+-- fixtures/source/add-invalid-manifest/tuck.toml --
+description = "missing name"
+-- fixtures/source/list-invalid-state/sources.toml --
+[[source]

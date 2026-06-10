@@ -1,0 +1,63 @@
+# status reports source and root errors
+phase status-errors fixtures/target/status/common
+! exec tuck status $WORK/home/missing --no-color
+stderr 'no active source'
+wantstate public public $WORK/src true
+! exec tuck status --root /etc/hosts --no-color
+stderr 'root'
+
+# file status classifies absent, unmanaged, and mismatched targets
+phase status-file-absent-unmanaged-mismatch fixtures/target/status/common
+wantstate public public $WORK/src true
+exec tuck status $WORK/home/.config/zsh/missing --no-color
+stdout 'absent'
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/other
+symlink $WORK/home/.config/other/link -> ../outside
+exec tuck status $WORK/home/.config/other/link --no-color
+stdout 'unmanaged'
+mkdir $WORK/home/wrong
+symlink $WORK/home/wrong/.zshrc -> ../../src/zsh/.config/zsh/.zshrc
+exec tuck status $WORK/home/wrong/.zshrc --no-color
+stdout 'mismatch'
+stdout 'public:home:zsh'
+! stderr .
+
+# file status emits the status JSON envelope
+phase status-file-json fixtures/target/status/common
+wantstate public public $WORK/src true
+exec tuck pkg use zsh --apply --no-color
+exec tuck --json status $WORK/home/.config/zsh/.zshrc
+stdout '"schemaVersion":1'
+stdout '"command":"status"'
+stdout '"context":"home"'
+stdout '"kind":"status"'
+stdout '"entries":\['
+stdout '"state":"deployed"'
+stdout 'public:home:zsh'
+stdout '"exitCode":0'
+! stderr .
+
+# file status reports a managed deployed symlink in human output
+phase status-file-managed fixtures/target/status/common
+wantstate public public $WORK/src true
+exec tuck pkg use zsh --apply --no-color
+exec tuck status $WORK/home/.config/zsh/.zshrc --no-color
+stdout 'tuck status'
+stdout 'deployed'
+stdout 'public:home:zsh'
+stdout '.config/zsh/.zshrc'
+! stderr .
+
+# top-level status usage validation is target-command-specific
+phase status-usage fixtures/target/status/common
+wantstate public public $WORK/src true
+! exec tuck status --no-color
+stderr 'requires exactly one'
+! exec tuck status one two --no-color
+stderr 'requires exactly one'
+
+-- fixtures/target/status/common/tuck.toml --
+name = "public"
+-- fixtures/target/status/common/zsh/.config/zsh/.zshrc --
+# zshrc

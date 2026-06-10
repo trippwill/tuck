@@ -1,5 +1,9 @@
 # M4-M6 green: state loading, validation, and active-source resolution
 
+Status: historical milestone note. It describes the red/green state at the time
+M4-M6 were implemented and may mention APIs or failing behavior that have since
+been refactored.
+
 ## Context
 
 M4-M6 are the next engine-only pieces in Vertical A after the M3 manifest loader:
@@ -55,7 +59,7 @@ Errors should follow the repository convention from `AGENTS.md`: typed const sen
 
 ## State file discovery
 
-`Load` must read `internal/testhooks.SourcesFile()`, not reconstruct the state path itself. This preserves:
+`Load` must read the package-local `sourcesFile()` helper, not reconstruct the state path inline. This preserves:
 
 - production lookup: `${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml`
 - test override lookup under `-tags tuck_testhooks`: `$TUCK_TEST_STATE_DIR/tuck/sources.toml`
@@ -163,7 +167,7 @@ Keep `ErrNoSource` and `ErrUnknownSource` distinct. The CLI layer maps these to 
 ## Task breakdown
 
 1. Implement `internal/state.Load`
-   - Decode `testhooks.SourcesFile()`.
+   - Decode `sourcesFile()`.
    - Return an empty registry for absent state.
    - Preserve enabled and disabled entries.
    - Normalize omitted `enabled` to true.

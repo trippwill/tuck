@@ -1,18 +1,11 @@
 package state
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
-	"strconv"
-	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/trippwill/tuck/internal/manifest"
-	"github.com/trippwill/tuck/internal/testhooks"
 )
 
 type Source struct {
@@ -47,7 +40,7 @@ const (
 )
 
 func Load() (Registry, error) {
-	sourcesPath := testhooks.SourcesFile()
+	sourcesPath := sourcesFile()
 	contents, err := os.ReadFile(sourcesPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -95,7 +88,7 @@ func Save(registry Registry) error {
 		return err
 	}
 	contents := marshalRegistry(normalized)
-	sourcesPath := testhooks.SourcesFile()
+	sourcesPath := sourcesFile()
 	stateDir := filepath.Dir(sourcesPath)
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		return AppErrWrapf(ErrWrite, err, "could not create state directory %q", stateDir)
@@ -182,85 +175,6 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 	return normalized, findSource(normalized, added.ID), nil
 }
 
-func normalizeRegistry(registry Registry) (Registry, error) {
-	normalized := Registry{
-		Default: registry.Default,
-		Sources: make([]Source, len(registry.Sources)),
-	}
-	copy(normalized.Sources, registry.Sources)
-
-	enabledIDs := make(map[string]struct{})
-	enabledPaths := make([]string, 0, len(normalized.Sources))
-	for i, source := range normalized.Sources {
-		if !source.Enabled {
-			continue
-		}
-
-		if !validID(source.ID) {
-			return Registry{}, AppErrMsgf(ErrInvalid, "invalid enabled source id %q: must be non-empty and cannot contain '/' or ':'", source.ID)
-		}
-		if _, ok := enabledIDs[source.ID]; ok {
-			return Registry{}, AppErrMsgf(ErrInvalid, "duplicate enabled source id %q", source.ID)
-		}
-		enabledIDs[source.ID] = struct{}{}
-
-		rootPath, err := canonicalRoot(source.Path)
-		if err != nil {
-			return Registry{}, AppErrWrapf(ErrInvalid, err, "invalid path for source %q", source.ID)
-		}
-		if slices.ContainsFunc(enabledPaths, func(existing string) bool {
-			return rootsOverlap(existing, rootPath)
-		}) {
-			return Registry{}, AppErrMsgf(ErrInvalid, "enabled source root %q overlaps another enabled source root", rootPath)
-		}
-		enabledPaths = append(enabledPaths, rootPath)
-
-		sourceManifest, err := manifest.Load(rootPath)
-		if err != nil {
-			return Registry{}, AppErrWrapf(ErrInvalid, err, "invalid manifest for source %q", source.ID)
-		}
-
-		normalized.Sources[i].Path = rootPath
-		normalized.Sources[i].Manifest = sourceManifest
-	}
-
-	if normalized.Default != "" {
-		if _, ok := enabledIDs[normalized.Default]; !ok {
-			return Registry{}, AppErrMsgf(ErrInvalid, "default source %q does not name an enabled source", normalized.Default)
-		}
-	}
-
-	return normalized, nil
-}
-
-func marshalRegistry(registry Registry) []byte {
-	var b bytes.Buffer
-	if registry.Default != "" {
-		b.WriteString("default = ")
-		b.WriteString(strconv.Quote(registry.Default))
-		b.WriteString("\n")
-		if len(registry.Sources) > 0 {
-			b.WriteString("\n")
-		}
-	}
-
-	for i, source := range registry.Sources {
-		if i > 0 {
-			b.WriteString("\n")
-		}
-		b.WriteString("[[source]]\n")
-		b.WriteString("id = ")
-		b.WriteString(strconv.Quote(source.ID))
-		b.WriteString("\n")
-		b.WriteString("path = ")
-		b.WriteString(strconv.Quote(source.Path))
-		b.WriteString("\n")
-		fmt.Fprintf(&b, "enabled = %t\n", source.Enabled)
-	}
-
-	return b.Bytes()
-}
-
 func findSource(registry Registry, id string) Source {
 	for _, source := range registry.Sources {
 		if source.ID == id {
@@ -269,57 +183,3 @@ func findSource(registry Registry, id string) Source {
 	}
 	return Source{}
 }
-
-func validID(id string) bool {
-	return id != "" && !strings.ContainsAny(id, "/:")
-}
-
-func canonicalRoot(path string) (string, error) {
-	if strings.TrimSpace(path) == "" {
-		return "", errEmptyPath
-	}
-
-	cleanPath := filepath.Clean(path)
-	if cleanPath == "~" || strings.HasPrefix(cleanPath, "~"+string(os.PathSeparator)) {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		cleanPath = filepath.Join(home, strings.TrimPrefix(cleanPath, "~"))
-	}
-	if !filepath.IsAbs(cleanPath) {
-		absPath, err := filepath.Abs(cleanPath)
-		if err != nil {
-			return "", err
-		}
-		cleanPath = absPath
-	}
-
-	info, err := os.Stat(cleanPath)
-	if err != nil {
-		return "", err
-	}
-	if !info.IsDir() {
-		return "", fmt.Errorf("not a directory: %s", cleanPath)
-	}
-
-	return filepath.EvalSymlinks(cleanPath)
-}
-
-func rootsOverlap(a, b string) bool {
-	if a == b {
-		return true
-	}
-
-	return isWithinRoot(a, b) || isWithinRoot(b, a)
-}
-
-func isWithinRoot(root, child string) bool {
-	rel, err := filepath.Rel(root, child)
-	if err != nil {
-		return false
-	}
-	return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator))
-}
-
-var errEmptyPath = errors.New("source path is empty")

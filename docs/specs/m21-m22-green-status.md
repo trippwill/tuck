@@ -1,5 +1,9 @@
 # M21-M22 green: status
 
+Status: historical milestone note. It describes the red/green state at the time
+M21-M22 were implemented and may mention APIs or failing behavior that have since
+been refactored.
+
 ## Problem and approach
 
 Implement MVP Vertical C from `docs/backlog.md`: active-source ownership
@@ -144,8 +148,8 @@ for handled errors.
 
 ## Acceptance coverage
 
-Add `acceptance/status_test.go` and scripts under
-`acceptance/testdata/script/status/`.
+Add package-status scripts under `acceptance/testdata/script/package/` and
+top-level status scripts under `acceptance/testdata/script/target/`.
 
 Suggested scripts:
 
@@ -213,7 +217,7 @@ Focused checks:
 
 ```sh
 go test ./internal/... ./cmd/...
-go test -tags tuck_testhooks -run TestStatus ./acceptance/...
+go test -tags tuck_testhooks -run 'TestSuites/(package|target)' ./acceptance/...
 ```
 
 Final gate:

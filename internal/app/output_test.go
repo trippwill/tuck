@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -71,6 +72,22 @@ func TestClassifyError(t *testing.T) {
 				t.Fatalf("classifyError(%v).Hint is empty", tt.err)
 			}
 		})
+	}
+}
+
+func TestRunMetaJSONUsesSharedEnvelope(t *testing.T) {
+	var out bytes.Buffer
+	handled, err := runMetaJSON([]string{"tuck", "--version", "--json"}, &out)
+	if err != nil {
+		t.Fatalf("runMetaJSON() error = %v, want nil", err)
+	}
+	if !handled {
+		t.Fatalf("runMetaJSON() handled = false, want true")
+	}
+
+	want := `{"schemaVersion":1,"command":"version","kind":"version","data":{"version":"dev"},"exitCode":0}` + "\n"
+	if got := out.String(); got != want {
+		t.Fatalf("runMetaJSON() output = %q, want %q", got, want)
 	}
 }
 

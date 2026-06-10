@@ -1,14 +1,12 @@
 package plan
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/trippwill/tuck/internal/domain"
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pathutil"
-	"github.com/trippwill/tuck/internal/resolve"
-	"github.com/trippwill/tuck/internal/state"
 	"github.com/trippwill/tuck/internal/target"
 )
 
@@ -58,20 +56,12 @@ type UsePlan struct {
 }
 
 func BuildUse(options UseOptions) (UsePlan, error) {
-	targetRoot := options.TargetRoot
-	if targetRoot == "" {
-		targetRoot = os.Getenv("HOME")
-	}
-	if targetRoot == "" {
-		return UsePlan{}, AppErrMsg(ErrApply, "HOME is not set")
-	}
-	targetRoot = filepath.Clean(targetRoot)
-
-	registry, err := state.Load()
+	targetRoot, err := domain.TargetRoot(options.TargetRoot, true)
 	if err != nil {
-		return UsePlan{}, err
+		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
 	}
-	source, err := resolve.ActiveSource(registry, options.SourceID)
+
+	source, err := domain.ActiveSource(options.SourceID)
 	if err != nil {
 		return UsePlan{}, err
 	}
@@ -168,28 +158,6 @@ func blockedByDirectoryConflict(rel string, blockedPrefixes []string) bool {
 		}
 	}
 	return false
-}
-
-func Apply(usePlan UsePlan) error {
-	if len(usePlan.Conflicts) > 0 {
-		return AppErrMsg(ErrApply, "cannot apply a plan with conflicts")
-	}
-	for _, action := range usePlan.Actions {
-		switch action.Type {
-		case "mkdir":
-			if err := os.MkdirAll(action.Path, 0o755); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not create directory %q", action.Path)
-			}
-		case "symlink":
-			if err := os.MkdirAll(filepath.Dir(action.LinkPath), 0o755); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not create directory %q", filepath.Dir(action.LinkPath))
-			}
-			if err := os.Symlink(action.Payload, action.LinkPath); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not create symlink %q", action.LinkPath)
-			}
-		}
-	}
-	return nil
 }
 
 func conflict(code, path, pkg, message string) Conflict {

@@ -1,6 +1,0 @@
-wanthome
-! exec tuck pkg list extra --no-color
-stderr 'accepts no arguments'
-
--- src/zsh/.zshrc --
-# zshrc

@@ -1,5 +1,9 @@
 # M7-M10 green: source command output, errors, add, and list
 
+Status: historical milestone note. It describes the red/green state at the time
+M7-M10 were implemented and may mention APIs or failing behavior that have since
+been refactored.
+
 ## Context
 
 M7-M10 finish Vertical A's first user-facing slice after the M3-M6 source engine:
@@ -13,11 +17,11 @@ This is the first slice that should turn source management into real CLI behavio
 It should add red acceptance coverage before implementation, then build only the
 engine/output/application wiring needed to make those scripts pass.
 
-The red-test phase must prove two things before implementation starts:
+The original red-test phase had to prove two things before implementation:
 
-1. the new tests **compile** with the current codebase; and
-2. the source-suite tests **fail for the expected behavioral reason** (for
-   example, `source add` / `source list` still returning "not implemented" or
+1. the new tests **compiled** with the then-current codebase; and
+2. the source-suite tests **failed for the expected behavioral reason** (for
+   example, `source add` / `source list` returning "not implemented" or
    producing the wrong output), not because of a malformed script, missing helper,
    broken harness, or compile error.
 
@@ -35,10 +39,10 @@ Do not implement `source rm`, `source default`, package commands, target-tree
 planning, root-context behavior, copy/checksum state, color, or broad JSON
 goldens for every command kind. Later stories own those surfaces.
 
-## Current baseline
+## Historical baseline
 
-- `internal/app` owns the CLI skeleton and command actions. Source subcommands
-  still return `not implemented`.
+- `internal/app` owned the CLI skeleton and command actions. Source subcommands
+  returned `not implemented`.
 - `internal/manifest.Load` reads and validates `<repo>/tuck.toml`.
 - `internal/state.Load` reads the testhook-aware `sources.toml`, preserves
   disabled entries, validates enabled entries, loads manifests, and returns
@@ -237,7 +241,7 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error)
 
 Alternative names are fine, but keep these properties:
 
-- write via `internal/testhooks.SourcesFile()`;
+- write via the state package's sources-file path helper;
 - create the parent `tuck` state directory when needed;
 - emit normalized TOML with top-level `default` and `[[source]]` entries;
 - do not write per-source default flags;
@@ -324,13 +328,13 @@ Recommended red check sequence:
 5. Run:
 
    ```sh
-   go test -tags tuck_testhooks -run TestSource ./acceptance/...
+   go test -tags tuck_testhooks -run TestSuites/source ./acceptance/...
    ```
 
 6. Confirm the package compiles and the result is a test failure caused by the
-   current command behavior. Acceptable first failures include:
-   - `source add` exits with the current "not implemented" diagnostic;
-   - `source list` exits with the current "not implemented" diagnostic;
+   historical command behavior. Acceptable first failures included:
+   - `source add` exits with the "not implemented" diagnostic;
+   - `source list` exits with the "not implemented" diagnostic;
    - JSON/human stdout/stderr assertions mismatch because the renderer is not
      implemented.
 7. If the failure is a compile error, parser error in a txtar script, missing
@@ -425,11 +429,11 @@ the user-observable source commands compile and fail before implementation.
    - Confirm tests compile and fail for behavior, not missing symbols.
 
 3. Add compiling red source acceptance suite
-   - Add `TestSource`.
+   - Add source-suite coverage to `TestSuites`.
    - Add source scripts for empty list, add/list success, JSON success, manifest
      failures, id collision, and invalid state.
    - Fix `wanthome` to use top-level `default`.
-   - Run `go test -tags tuck_testhooks -run TestSource ./acceptance/...`.
+   - Run `go test -tags tuck_testhooks -run TestSuites/source ./acceptance/...`.
    - Confirm the tests compile and fail for expected behavior, not harness or
      syntax errors.
 
@@ -459,7 +463,7 @@ the user-observable source commands compile and fail before implementation.
 
 8. Verify and mark complete
    - Run `go test ./internal/...`.
-   - Run `go test -tags tuck_testhooks -run TestSource ./acceptance/...`.
+   - Run `go test -tags tuck_testhooks -run TestSuites/source ./acceptance/...`.
    - Run `mise run test`.
    - Run `go build ./...`, `go vet ./...`, and the gofmt gate.
    - Mark M7, M8, M9, and M10 complete in `docs/backlog.md` only after green

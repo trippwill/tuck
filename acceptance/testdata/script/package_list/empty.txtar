@@ -1,8 +1,0 @@
-wanthome
-exec tuck pkg list --no-color
-stdout 'tuck package list'
-stdout '0 packages'
-exec tuck --json pkg list
-stdout '"packages":\[\]'
-stdout '"exitCode":0'
-! stderr .

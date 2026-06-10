@@ -1,0 +1,60 @@
+# help bypasses state discovery and exits successfully
+phase help
+exec tuck --help
+stdout 'USAGE'
+
+exec tuck --help --json
+stdout '"kind":"help"'
+
+# no command shows top-level help and exits successfully
+phase no-command
+exec tuck
+stdout 'USAGE'
+
+# command groups with no subcommand show group help and exit successfully
+phase command-group-help
+exec tuck package
+stdout 'USAGE'
+
+exec tuck source
+stdout 'USAGE'
+
+# help is only a flag, not a command
+phase help-is-not-command
+! exec tuck help
+stderr 'Incorrect Usage'
+stderr 'unknown command'
+
+# unknown commands are CLI parse/dispatch errors
+phase unknown-command
+! exec tuck definitely-not-a-command
+stderr 'Incorrect Usage'
+stderr 'unknown command'
+
+# unknown nested commands behave the same way
+phase unknown-nested-command
+! exec tuck source definitely-not-a-source-command
+stderr 'Incorrect Usage'
+stderr 'unknown command'
+
+! exec tuck package definitely-not-a-pkg-command
+stderr 'Incorrect Usage'
+stderr 'unknown command'
+
+# unknown flags use urfave/cli's default parse-error output
+phase unknown-flag
+! exec tuck --bogus
+stderr 'Incorrect Usage'
+stderr 'flag provided'
+
+# urfave/cli provides the version flag and output format
+phase version
+exec tuck --version
+stdout 'tuck version dev'
+
+exec tuck -v
+stdout 'tuck version dev'
+
+exec tuck --version --json
+stdout '"kind":"version"'
+stdout '"version":"dev"'

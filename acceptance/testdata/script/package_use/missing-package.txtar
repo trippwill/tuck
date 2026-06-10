@@ -1,5 +1,0 @@
-wanthome
-! exec tuck pkg use missing --no-color
-stderr 'error: package "missing" not found in source "public"'
-stderr 'hint: run tuck pkg list'
-! stdout .

@@ -3,6 +3,8 @@ package app
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/trippwill/tuck/internal/manifest"
@@ -51,37 +53,62 @@ type errorRecord struct {
 	Hint    string `json:"hint"`
 }
 
-func renderSourcesJSON(cmd *cli.Command, command string, registry state.Registry) error {
-	return writeJSON(cmd.Root().Writer, envelope{
+type renderer struct {
+	out   io.Writer
+	err   io.Writer
+	json  bool
+	color bool
+}
+
+func newRenderer(cmd *cli.Command) renderer {
+	root := cmd.Root()
+	jsonOutput := cmd.Bool("json")
+	return renderer{
+		out:   root.Writer,
+		err:   root.ErrWriter,
+		json:  jsonOutput,
+		color: colorEnabled(cmd, jsonOutput),
+	}
+}
+
+func colorEnabled(cmd *cli.Command, jsonOutput bool) bool {
+	return !jsonOutput && !cmd.Bool("no-color") && os.Getenv("NO_COLOR") == ""
+}
+
+func writeEnvelope(out io.Writer, command string, context string, kind string, data any, exitCode int) error {
+	return writeJSON(out, envelope{
 		SchemaVersion: 1,
 		Command:       command,
-		Kind:          "sources",
-		Data:          buildSourcesData(registry),
-		ExitCode:      ExitOK,
+		Context:       context,
+		Kind:          kind,
+		Data:          data,
+		ExitCode:      exitCode,
 	})
 }
 
+func (r renderer) writeEnvelope(command string, context string, kind string, data any, exitCode int) error {
+	return writeEnvelope(r.out, command, context, kind, data, exitCode)
+}
+
+func (r renderer) renderSourcesJSON(command string, registry state.Registry) error {
+	return r.writeEnvelope(command, "", "sources", buildSourcesData(registry), ExitOK)
+}
+
 func renderPackageList(cmd *cli.Command, listing packages.Listing) error {
+	r := newRenderer(cmd)
 	data := packageListData{Source: listing.Source, Packages: listing.Packages}
-	if cmd.Bool("json") {
-		return writeJSON(cmd.Root().Writer, envelope{
-			SchemaVersion: 1,
-			Command:       "package list",
-			Context:       listing.Context,
-			Kind:          "packages",
-			Data:          data,
-			ExitCode:      ExitOK,
-		})
+	if r.json {
+		return r.writeEnvelope("package list", listing.Context, "packages", data, ExitOK)
 	}
 
-	fmt.Fprintf(cmd.Root().Writer, "tuck package list   (context: %s, source: %s)\n\n", listing.Context, listing.Source)
+	fmt.Fprintf(r.out, "tuck package list   (context: %s, source: %s)\n\n", listing.Context, listing.Source)
 	for _, name := range listing.Packages {
-		fmt.Fprintln(cmd.Root().Writer, name)
+		fmt.Fprintln(r.out, name)
 	}
 	if len(listing.Packages) > 0 {
-		fmt.Fprintln(cmd.Root().Writer)
+		fmt.Fprintln(r.out)
 	}
-	fmt.Fprintf(cmd.Root().Writer, "%d %s\n", len(listing.Packages), packageNoun(len(listing.Packages)))
+	fmt.Fprintf(r.out, "%d %s\n", len(listing.Packages), packageNoun(len(listing.Packages)))
 	return nil
 }
 
@@ -93,19 +120,15 @@ func packageNoun(count int) string {
 }
 
 func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
+	r := newRenderer(cmd)
 	exitCode := ExitOK
 	if len(usePlan.Conflicts) > 0 {
 		exitCode = ExitFail
 	}
-	if cmd.Bool("json") {
-		_ = writeJSON(cmd.Root().Writer, envelope{
-			SchemaVersion: 1,
-			Command:       usePlan.Command,
-			Context:       usePlan.Context,
-			Kind:          "plan",
-			Data:          usePlan,
-			ExitCode:      exitCode,
-		})
+	if r.json {
+		if err := r.writeEnvelope(usePlan.Command, usePlan.Context, "plan", usePlan, exitCode); err != nil {
+			return err
+		}
 		if exitCode != ExitOK {
 			return cli.Exit("", ExitFail)
 		}
@@ -116,32 +139,32 @@ func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 	if usePlan.Applied {
 		mode = "apply"
 	}
-	fmt.Fprintf(cmd.Root().Writer, "tuck package use %s   (context: %s, %s)\n\n", packageNames(usePlan.Packages), usePlan.Context, mode)
+	fmt.Fprintf(r.out, "tuck package use %s   (context: %s, %s)\n\n", packageNames(usePlan.Packages), usePlan.Context, mode)
 	if len(usePlan.Packages) > 0 {
-		fmt.Fprintf(cmd.Root().Writer, "packages: %s\n\n", strings.Join(usePlan.Packages, " "))
+		fmt.Fprintf(r.out, "packages: %s\n\n", strings.Join(usePlan.Packages, " "))
 	}
-	fmt.Fprintln(cmd.Root().Writer, "plan:")
+	fmt.Fprintln(r.out, "plan:")
 	for _, action := range usePlan.Actions {
 		switch action.Type {
 		case "mkdir":
-			fmt.Fprintf(cmd.Root().Writer, "  + mkdir  %s\n", action.Path)
+			fmt.Fprintf(r.out, "  + mkdir  %s\n", action.Path)
 		case "symlink":
-			fmt.Fprintf(cmd.Root().Writer, "  + link   %s -> %s\n", action.LinkPath, action.Target)
+			fmt.Fprintf(r.out, "  + link   %s -> %s\n", action.LinkPath, action.Target)
 		}
 	}
 	if len(usePlan.Conflicts) > 0 {
-		fmt.Fprintln(cmd.Root().Writer, "\nconflicts:")
+		fmt.Fprintln(r.out, "\nconflicts:")
 		for _, conflict := range usePlan.Conflicts {
-			fmt.Fprintf(cmd.Root().Writer, "  ! %s %s", conflict.Code, conflict.Path)
+			fmt.Fprintf(r.out, "  ! %s %s", conflict.Code, conflict.Path)
 			if conflict.Message != "" {
-				fmt.Fprintf(cmd.Root().Writer, " (%s)", conflict.Message)
+				fmt.Fprintf(r.out, " (%s)", conflict.Message)
 			}
-			fmt.Fprintln(cmd.Root().Writer)
+			fmt.Fprintln(r.out)
 		}
 	}
-	fmt.Fprintf(cmd.Root().Writer, "\n%d actions, %d conflicts\n", len(usePlan.Actions), len(usePlan.Conflicts))
+	fmt.Fprintf(r.out, "\n%d actions, %d conflicts\n", len(usePlan.Actions), len(usePlan.Conflicts))
 	if !usePlan.Applied && len(usePlan.Conflicts) == 0 {
-		fmt.Fprintln(cmd.Root().Writer, "re-run with --apply to execute")
+		fmt.Fprintln(r.out, "re-run with --apply to execute")
 	}
 	if exitCode != ExitOK {
 		return cli.Exit("", ExitFail)
@@ -150,38 +173,32 @@ func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 }
 
 func renderStatus(cmd *cli.Command, result statuspkg.Result) error {
-	if cmd.Bool("json") {
-		return writeJSON(cmd.Root().Writer, envelope{
-			SchemaVersion: 1,
-			Command:       result.Command,
-			Context:       result.Context,
-			Kind:          "status",
-			Data:          result,
-			ExitCode:      ExitOK,
-		})
+	r := newRenderer(cmd)
+	if r.json {
+		return r.writeEnvelope(result.Command, result.Context, "status", result, ExitOK)
 	}
 
-	fmt.Fprintf(cmd.Root().Writer, "tuck %s   (context: %s, source: %s)\n\n", result.Command, result.Context, result.Source)
+	fmt.Fprintf(r.out, "tuck %s   (context: %s, source: %s)\n\n", result.Command, result.Context, result.Source)
 	for _, entry := range result.Entries {
-		fmt.Fprintf(cmd.Root().Writer, "%-14s %s", entry.State, entry.TargetPath)
+		fmt.Fprintf(r.out, "%-14s %s", entry.State, entry.TargetPath)
 		if entry.Package != "" {
-			fmt.Fprintf(cmd.Root().Writer, " package=%s", entry.Package)
+			fmt.Fprintf(r.out, " package=%s", entry.Package)
 		}
 		if entry.Entry != "" {
-			fmt.Fprintf(cmd.Root().Writer, " entry=%s", entry.Entry)
+			fmt.Fprintf(r.out, " entry=%s", entry.Entry)
 		}
 		if entry.Owner != "" && entry.Owner != entry.Package {
-			fmt.Fprintf(cmd.Root().Writer, " owner=%s", entry.Owner)
+			fmt.Fprintf(r.out, " owner=%s", entry.Owner)
 		}
 		if entry.Code != "" {
-			fmt.Fprintf(cmd.Root().Writer, " code=%s", entry.Code)
+			fmt.Fprintf(r.out, " code=%s", entry.Code)
 		}
 		if entry.Message != "" {
-			fmt.Fprintf(cmd.Root().Writer, " (%s)", entry.Message)
+			fmt.Fprintf(r.out, " (%s)", entry.Message)
 		}
-		fmt.Fprintln(cmd.Root().Writer)
+		fmt.Fprintln(r.out)
 	}
-	fmt.Fprintf(cmd.Root().Writer, "\n%d %s\n", len(result.Entries), entryNoun(len(result.Entries)))
+	fmt.Fprintf(r.out, "\n%d %s\n", len(result.Entries), entryNoun(len(result.Entries)))
 	return nil
 }
 
@@ -219,21 +236,63 @@ func buildSourcesData(registry state.Registry) sourcesData {
 	return sourcesData{Sources: records}
 }
 
+func renderSourceAdd(cmd *cli.Command, registry state.Registry, source state.Source) error {
+	r := newRenderer(cmd)
+	if r.json {
+		return r.renderSourcesJSON("source add", registry)
+	}
+
+	defaultValue := "no"
+	if registry.Default == source.ID {
+		defaultValue = "yes"
+	}
+	fmt.Fprintf(r.out, "added source %s\n", source.ID)
+	fmt.Fprintf(r.out, "path: %s\n", source.Path)
+	fmt.Fprintf(r.out, "default: %s\n", defaultValue)
+	return nil
+}
+
+func renderSourceList(cmd *cli.Command, registry state.Registry) error {
+	r := newRenderer(cmd)
+	if r.json {
+		return r.renderSourcesJSON("source list", registry)
+	}
+
+	if len(registry.Sources) == 0 {
+		fmt.Fprintln(r.out, "no sources enabled")
+		return nil
+	}
+
+	fmt.Fprintf(r.out, "%-8s %-8s %-8s %s\n", "ID", "DEFAULT", "ENABLED", "PATH")
+	for _, source := range registry.Sources {
+		defaultValue := "no"
+		if registry.Default == source.ID {
+			defaultValue = "yes"
+		}
+		enabledValue := "no"
+		if source.Enabled {
+			enabledValue = "yes"
+		}
+		fmt.Fprintf(r.out, "%-8s %-8s %-8s %s\n", source.ID, defaultValue, enabledValue, source.Path)
+	}
+	return nil
+}
+
 func renderError(cmd *cli.Command, command string, err error) error {
+	return newRenderer(cmd).renderError(command, err)
+}
+
+func (r renderer) renderError(command string, err error) error {
 	appErr := classifyError(err)
-	if cmd.Bool("json") {
-		_ = writeJSON(cmd.Root().Writer, envelope{
-			SchemaVersion: 1,
-			Command:       command,
-			Kind:          "error",
-			Data:          errorData{Error: appErr},
-			ExitCode:      ExitFail,
-		})
+	if r.json {
+		if err := r.writeEnvelope(command, "", "error", errorData{Error: appErr}, ExitFail); err != nil {
+			return err
+		}
 		return cli.Exit("", ExitFail)
 	}
 
-	fmt.Fprintf(cmd.Root().ErrWriter, "error: %s\n", appErr.Message)
-	fmt.Fprintf(cmd.Root().ErrWriter, "hint: %s\n", appErr.Hint)
+	fmt.Fprintf(r.err, "error: %s\n", appErr.Message)
+	fmt.Fprintf(r.err, "hint: %s\n", appErr.Hint)
 	return cli.Exit("", ExitFail)
 }
 

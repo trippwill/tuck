@@ -1,5 +1,9 @@
 # M11-M20 green: package use for home
 
+Status: historical milestone note. It describes the red/green state at the time
+M11-M20 were implemented and may mention APIs or failing behavior that have since
+been refactored.
+
 ## Problem and approach
 
 Implement MVP Vertical B from `docs/backlog.md` M11-M20: make `tuck package use`
@@ -88,8 +92,8 @@ symbols. Add minimal production compile seams before tests that need new APIs.
 
 Acceptance suite first:
 
-- Add `acceptance/package_use_test.go` with `TestPackageUse`.
-- Scripts under `acceptance/testdata/script/package_use/`.
+- Add package-suite coverage under the table-driven `TestSuites` wrapper.
+- Scripts under `acceptance/testdata/script/package/`.
 - Use `wanthome` to create `$HOME`, state, and source manifest.
 - Use inline txtar files under `src/<package>/...` for package contents.
 - Assert dry-run mutates nothing, `--apply` mutates exactly as planned, symlink
@@ -337,7 +341,7 @@ Red checkpoints:
 ```sh
 go test ./internal/pkgref ./internal/pathutil
 go test ./internal/... ./cmd/...
-go test -tags tuck_testhooks -run TestPackageUse ./acceptance/...
+go test -tags tuck_testhooks -run TestSuites/package ./acceptance/...
 ```
 
 Green/final:

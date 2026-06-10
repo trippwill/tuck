@@ -1,0 +1,315 @@
+# package use --all applies only non-hidden home packages
+phase package-use-all fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/hidden-root fixtures/package/use/all
+wantstate public public $WORK/src true
+exec tuck pkg use --all --apply --no-color
+stdout 'public:home:git'
+stdout 'public:home:zsh'
+! stdout 'public:home:\.hidden'
+exists $WORK/home/.gitconfig
+exists $WORK/home/.config/zsh/.zshrc
+! exists $WORK/home/root-only
+! exists $WORK/home/secret
+! stderr .
+
+# package use --apply creates directories and relative symlinks
+phase package-use-apply fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+exec tuck pkg use zsh --apply --no-color
+stdout 'context: home, apply'
+stdout '2 actions, 0 conflicts'
+exists $WORK/home/.config/zsh
+exists $WORK/home/.config/zsh/.zshrc
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package use accumulates directory and real-file conflicts
+phase package-use-conflicts fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/use/conflicts
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+mkdir $WORK/home/.config/zsh/.zshrc
+cp fixtures/package/common/existing-file $WORK/home/.config/zsh/dirfile
+! exec tuck pkg use zsh --no-color
+stdout 'conflicts:'
+stdout 'real_file'
+stdout 'real_directory'
+stdout '0 actions, 2 conflicts'
+exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+# package use dry-run prints a plan and does not mutate
+phase package-use-dry-run fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+exec tuck pkg use zsh --no-color
+stdout 'context: home, dry-run'
+stdout 'plan:'
+stdout '\+ mkdir'
+stdout '\+ link'
+stdout '2 actions, 0 conflicts'
+stdout 're-run with --apply to execute'
+! exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+# package use is idempotent for an already selected managed link
+phase package-use-idempotent fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck pkg use zsh --apply --no-color
+stdout '0 actions, 0 conflicts'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# invalid package refs fail before package resolution
+phase package-use-invalid-ref fixtures/package/common/public-only
+wantstate public public $WORK/src true
+! exec tuck pkg use ../zsh --no-color
+stderr 'error: package reference is invalid'
+stderr 'hint: pass a plain package name'
+! stdout .
+! exec tuck pkg use .hidden --no-color
+stderr 'error: package reference is invalid'
+stderr 'hint: pass a plain package name'
+! stdout .
+
+# package use emits the plan JSON envelope
+phase package-use-json fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+exec tuck --json pkg use zsh
+stdout '"schemaVersion":1'
+stdout '"command":"package use"'
+stdout '"context":"home"'
+stdout '"kind":"plan"'
+stdout '"dryRun":true'
+stdout '"applied":false'
+stdout 'public:home:zsh'
+stdout '"type":"mkdir"'
+stdout '"type":"symlink"'
+stdout '"conflicts":\[\]'
+stdout '"exitCode":0'
+! exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+# missing packages are classified as package_not_found
+phase package-use-missing-package fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+! exec tuck pkg use missing --no-color
+stderr 'error: package "missing" not found in source "public"'
+stderr 'hint: run tuck pkg list'
+! stdout .
+
+# multiple packages cannot provide the same target
+phase package-use-multiple-providers fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/zsh-alt
+wantstate public public $WORK/src true
+! exec tuck pkg use zsh zsh-alt --no-color
+stdout 'multiple_providers'
+stdout '0 actions, 1 conflicts'
+! exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+# package use requires refs or --all, but not both
+phase package-use-usage fixtures/package/common/public-only
+wantstate public public $WORK/src true
+! exec tuck pkg use --no-color
+stderr 'error: package use requires one or more package refs or --all'
+! stdout .
+! exec tuck pkg use zsh --all --no-color
+stderr 'error: package use accepts package refs or --all, not both'
+! stdout .
+
+# package list aliases all show packages from the active source
+phase package-list-aliases fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home
+wantstate public public $WORK/src true
+exec tuck package ls --no-color
+stdout 'git'
+stdout 'zsh'
+exec tuck pkg list --no-color
+stdout 'git'
+stdout 'zsh'
+exec tuck pkg ls --no-color
+stdout 'git'
+stdout 'zsh'
+! stderr .
+
+# package list handles an empty source
+phase package-list-empty fixtures/package/common/public-only
+wantstate public public $WORK/src true
+exec tuck pkg list --no-color
+stdout 'tuck package list'
+stdout '0 packages'
+exec tuck --json pkg list
+stdout '"packages":\[\]'
+stdout '"exitCode":0'
+! stderr .
+
+# package list reports source-selection errors and unimplemented root context
+phase package-list-errors fixtures/package/common/public-only
+! exec tuck pkg list --no-color
+stderr 'no active source'
+wantstate public public $WORK/src true
+! exec tuck pkg list --source missing --no-color
+stderr 'source is not enabled'
+! exec tuck pkg list --root --no-color
+stderr 'root'
+
+# package list human output includes context, source, packages, and summary
+phase package-list-human fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home
+wantstate public public $WORK/src true
+exec tuck pkg list --no-color
+stdout 'tuck package list'
+stdout 'context: home'
+stdout 'source: public'
+stdout 'git'
+stdout 'zsh'
+stdout '2 packages'
+! stderr .
+
+# package list emits the packages JSON envelope
+phase package-list-json fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home
+wantstate public public $WORK/src true
+exec tuck --json pkg list
+stdout '"schemaVersion":1'
+stdout '"command":"package list"'
+stdout '"context":"home"'
+stdout '"kind":"packages"'
+stdout '"source":"public"'
+stdout '"packages":\["git","zsh"\]'
+stdout '"exitCode":0'
+! stderr .
+
+# package list skips dot-prefixed directories and non-directories
+phase package-list-skips fixtures/package/common/public-only fixtures/package/common/git-home fixtures/package/common/hidden-root fixtures/package/list/skips
+wantstate public public $WORK/src true
+exec tuck pkg list --no-color
+stdout 'git'
+! stdout 'zsh'
+! stdout '.root'
+! stdout '\.hidden'
+! stdout 'README'
+! stdout 'tuck.toml.bak'
+stdout '1 package'
+! stderr .
+
+# package list can select a non-default enabled source
+phase package-list-source-selection fixtures/package/common/public-only
+wantstate public public $WORK/src true
+exec tuck source add $WORK/fixtures/package/list/private-source --no-color
+exec tuck pkg list --source private --no-color
+stdout 'source: private'
+stdout 'ssh'
+! stdout 'zsh'
+! stderr .
+
+# package list rejects unexpected arguments
+phase package-list-usage fixtures/package/common/public-only
+wantstate public public $WORK/src true
+! exec tuck pkg list extra --no-color
+stderr 'accepts no arguments'
+
+# package status reports invalid refs and missing packages
+phase package-status-errors fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+! exec tuck pkg status bad/ref --no-color
+stderr 'invalid'
+! exec tuck pkg status missing --no-color
+stderr 'not found'
+
+# package status emits the status JSON envelope
+phase package-status-json fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck --json pkg status zsh
+stdout '"schemaVersion":1'
+stdout '"command":"package status"'
+stdout '"context":"home"'
+stdout '"kind":"status"'
+stdout '"entries":\['
+stdout '"state":"deployed"'
+stdout 'public:home:zsh'
+stdout '"exitCode":0'
+! stderr .
+
+# package status reports deployed, absent, and conflicting entries together
+phase package-status-mixed fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/status/mixed
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+cp fixtures/package/common/existing-file $WORK/home/.config/zsh/.zprofile
+exec tuck pkg status zsh --no-color
+stdout 'tuck package status'
+stdout 'public:home:zsh'
+stdout 'deployed'
+stdout 'absent'
+stdout 'conflict'
+stdout 'real_file'
+! stderr .
+
+# package status reports when a target is owned by another package
+phase package-status-owned-by-other fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/zsh-alt
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck pkg status zsh-alt --no-color
+stdout 'owned_by_other'
+stdout 'public:home:zsh'
+stdout 'public:home:zsh-alt'
+! stderr .
+
+# package status with no ref summarizes all packages
+phase package-status-summary fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home fixtures/package/common/hidden-root
+wantstate public public $WORK/src true
+exec tuck pkg status --no-color
+stdout 'tuck package status'
+stdout 'public:home:git'
+stdout 'public:home:zsh'
+! stdout 'public:home:\.hidden'
+! stdout 'secret'
+stdout '.gitconfig'
+stdout '.config/zsh/.zshrc'
+stdout '2 entries'
+! stderr .
+
+# package status rejects too many refs
+phase package-status-usage fixtures/package/common/public-only
+wantstate public public $WORK/src true
+! exec tuck pkg status one two --no-color
+stderr 'accepts at most one'
+
+-- fixtures/package/common/public-only/tuck.toml --
+name = "public"
+-- fixtures/package/common/zsh-config/zsh/.config/zsh/.zshrc --
+# zshrc
+-- fixtures/package/common/git-home/git/.gitconfig --
+[user]
+-- fixtures/package/common/hidden-root/.hidden/secret --
+hidden
+-- fixtures/package/common/hidden-root/.root/root-only --
+root
+-- fixtures/package/common/zsh-alt/zsh-alt/.config/zsh/.zshrc --
+# alternate
+-- fixtures/package/common/existing-file --
+existing
+-- fixtures/package/use/all/git/.gitconfig --
+[user]
+	name = Test
+-- fixtures/package/use/all/tuck.toml.bak --
+ignore
+-- fixtures/package/use/conflicts/zsh/.config/zsh/dirfile/nested --
+nested
+-- fixtures/package/list/skips/README --
+note
+-- fixtures/package/list/skips/tuck.toml.bak --
+note
+-- fixtures/package/list/private-source/tuck.toml --
+name = "private"
+-- fixtures/package/list/private-source/ssh/config --
+Host *
+-- fixtures/package/status/mixed/zsh/.config/zsh/.zprofile --
+# zprofile
+-- fixtures/package/status/mixed/zsh/.config/zsh/.zlogin --
+# zlogin

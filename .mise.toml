@@ -14,7 +14,16 @@ run = "go test ./cmd/..."
 run = "go test -tags tuck_testhooks ./acceptance/..."
 
 [tasks."test:accept:foundation"]
-run = "go test -tags tuck_testhooks -run TestFoundation ./acceptance/..."
+run = "go test -tags tuck_testhooks -run TestSuites/foundation ./acceptance/..."
+
+[tasks."test:accept:source"]
+run = "go test -tags tuck_testhooks -run TestSuites/source ./acceptance/..."
+
+[tasks."test:accept:package"]
+run = "go test -tags tuck_testhooks -run TestSuites/package ./acceptance/..."
+
+[tasks."test:accept:target"]
+run = "go test -tags tuck_testhooks -run TestSuites/target ./acceptance/..."
 
 [tasks.generate]
 run = "go generate ./..."

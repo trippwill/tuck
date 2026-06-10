@@ -1,8 +1,12 @@
 # M3 green: repository manifest loader
 
+Status: historical milestone note. It describes the red/green state at the time
+M3 was implemented and may mention APIs or failing behavior that have since been
+refactored.
+
 ## Context
 
-M3 implements the first Sources-slice engine story from `docs/backlog.md`: read and validate a repository manifest at `<repo>/tuck.toml`. The red tests are in `internal/manifest/manifest_test.go` and currently fail because the `internal/manifest` package API is not implemented.
+M3 implemented the first Sources-slice engine story from `docs/backlog.md`: read and validate a repository manifest at `<repo>/tuck.toml`. At the time, the red tests were in `internal/manifest/manifest_test.go` and failed because the `internal/manifest` package API was not implemented.
 
 The behavior source of truth is `docs/cli-spec.md` §5.2:
 
@@ -84,7 +88,7 @@ Classify read failures as `ErrMissing`, including absent and unreadable `tuck.to
    - Validate `name`; wrap validation errors with `apperr.Wrapf(ErrInvalid, ...)`.
 
 3. Keep the package engine-only
-   - Do not import `internal/cli`.
+   - Do not import the CLI composition package (`internal/app`).
    - Do not return process exit codes or user-facing CLI messages from `internal/manifest`.
    - Keep future CLI diagnostics able to recover details from the wrapped error string if needed.
 

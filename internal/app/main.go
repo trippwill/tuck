@@ -20,14 +20,6 @@ func Main() {
 	}
 }
 
-type metaEnvelope struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	Command       string `json:"command"`
-	Kind          string `json:"kind"`
-	Data          any    `json:"data"`
-	ExitCode      int    `json:"exitCode"`
-}
-
 type versionData struct {
 	Version string `json:"version"`
 }
@@ -56,38 +48,26 @@ func runMetaJSON(args []string, out io.Writer) (bool, error) {
 		return false, nil
 	}
 	if hasAnyArg(args[1:], "--version", "-v") && !hasNonFlag(args[1:]) {
-		return true, writeJSON(out, metaEnvelope{
-			SchemaVersion: 1,
-			Command:       "version",
-			Kind:          "version",
-			Data:          versionData{Version: version},
-			ExitCode:      ExitOK,
-		})
+		return true, writeEnvelope(out, "version", "", "version", versionData{Version: version}, ExitOK)
 	}
 	if hasAnyArg(args[1:], "--help", "-h") && !hasNonFlag(args[1:]) {
-		return true, writeJSON(out, metaEnvelope{
-			SchemaVersion: 1,
-			Command:       "tuck",
-			Kind:          "help",
-			Data: helpData{
-				Name:  "tuck",
-				Usage: "manage dotfiles by linking package leaves into a target tree",
-				Commands: []commandData{
-					{Name: "adopt", Usage: "move a real file into a package, then link it back"},
-					{Name: "eject", Usage: "remove a managed link, restoring the real file"},
-					{Name: "status", Usage: "classify a target path (managed/conflict/absent)"},
-					{Name: "package", Aliases: []string{"pkg"}, Usage: "manage package symlinks"},
-					{Name: "source", Usage: "manage enabled dotfiles sources"},
-				},
-				Flags: []flagData{
-					{Name: "json", Usage: "machine-readable output"},
-					{Name: "no-color", Usage: "disable colored output (implied by --json)"},
-					{Name: "help", Aliases: []string{"h"}, Usage: "show help"},
-					{Name: "version", Aliases: []string{"v"}, Usage: "print the version"},
-				},
+		return true, writeEnvelope(out, "tuck", "", "help", helpData{
+			Name:  "tuck",
+			Usage: "manage dotfiles by linking package leaves into a target tree",
+			Commands: []commandData{
+				{Name: "adopt", Usage: "move a real file into a package, then link it back"},
+				{Name: "eject", Usage: "remove a managed link, restoring the real file"},
+				{Name: "status", Usage: "classify a target path (managed/conflict/absent)"},
+				{Name: "package", Aliases: []string{"pkg"}, Usage: "manage package symlinks"},
+				{Name: "source", Usage: "manage enabled dotfiles sources"},
 			},
-			ExitCode: ExitOK,
-		})
+			Flags: []flagData{
+				{Name: "json", Usage: "machine-readable output"},
+				{Name: "no-color", Usage: "disable colored output (implied by --json)"},
+				{Name: "help", Aliases: []string{"h"}, Usage: "show help"},
+				{Name: "version", Aliases: []string{"v"}, Usage: "print the version"},
+			},
+		}, ExitOK)
 	}
 	return false, nil
 }

@@ -1,9 +1,0 @@
-# Missing source add path is handled by urfave usage errors, not app rendering.
-! exec tuck source add --no-color
-stderr 'Incorrect Usage'
-stderr 'sufficient count of arg path not provided'
-stdout 'USAGE'
-
-# Extra source add args are rejected by the action after urfave parses path.
-! exec tuck source add one two --no-color
-stderr 'source add accepts exactly one <path>'

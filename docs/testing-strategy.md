@@ -54,17 +54,16 @@ working:
 - **Unit suites** are one Go package per engine concern (e.g.
   `internal/manifest`, `internal/state`, `internal/resolve`, `internal/plan`,
   `internal/pathutil`). Run one with `go test ./internal/plan/...`.
-- **Acceptance suites** are one subdirectory per slice under
-  `testdata/script/<suite>/`, each driven by its own `Test<Suite>` function that
-  points `testscript` at that directory. Run one with
-  `go test -tags tuck_testhooks -run TestDeploy ./acceptance/...`. Current
-  suites track the thin vertical slices ([backlog.md](./backlog.md) MVP):
-  `source` (`add`/`list`, state validation, resolution, `no_source`),
-  `package_use`, `query` (`package list`/`package show`/`status`),
-  `package_drop` (incl. `package refresh`),
-  `adopt_eject`, `root` (root context + privilege; needs the `TUCK_TEST_ROOT_DIR`
-  / `TUCK_TEST_PRIVILEGE` hooks), and `errors` (error-code classification and JSON
-  `error`/`sources`/… envelopes, cross-cutting).
+- **Acceptance suites** are subdirectories under `testdata/script/<suite>/`,
+  organized by command hierarchy and driven by a single table-driven
+  `TestSuites` wrapper. Run one with
+  `go test -tags tuck_testhooks -run TestSuites/package ./acceptance/...`.
+  Implemented suites are currently `foundation`, `source`, `package`
+  (`package list`/`package use`/`package status`), and `target` (top-level
+  target operations, starting with `status`). Planned coverage includes
+  `package drop`/`package refresh`, metadata, copy/copy-drift, state integrity,
+  `adopt`/`eject`, root context + privilege (using `TUCK_TEST_ROOT_DIR` /
+  `TUCK_TEST_PRIVILEGE` hooks), and cross-cutting stable error-code coverage.
 
 [`mise`](https://mise.jdx.dev) tasks expose the common groupings: `mise run test`
 (unit + command-package + acceptance), `mise run test:unit`, `mise run test:cmd`,
@@ -118,8 +117,18 @@ exposed **only** through code compiled under the `tuck_testhooks` build tag:
 ### 3.2 Custom script commands
 
 `testscript` builtins cover most needs (`exec`, `exists`, `! exists`, `cmp`,
-`stdin`, `env`, `mkdir`, `chmod`). We register a few custom commands:
+`stdin`, `env`, `mkdir`, `chmod`, `cp`, `mv`, `rm`, `symlink`). Prefer these
+native operations over `exec`-ing shell utilities so scripts stay portable and
+avoid shell parsing. Use `stdin stdout` to feed one command's output into the
+next instead of a shell pipeline; reserve `exec sh -c ...` for cases with no
+direct testscript equivalent. We register a few custom commands:
 
+- `phase <name> [source-fixture]...` — start a named scenario phase inside a larger
+  txtar script. It resets the fake `$HOME`, assigns a fresh machine-state root
+  under `$WORK/state/<name>`, clears `$WORK/src`, and optionally overlays one or
+  more inline source fixture directories into `$WORK/src`. Use a `#` comment
+  immediately before each `phase` command so testscript reports concise phase
+  output on failure.
 - `readlink <path> <expected-payload>` — assert a symlink exists and its raw
   payload equals `<expected-payload>` exactly (relative vs absolute matters —
   see §6).
@@ -130,10 +139,17 @@ exposed **only** through code compiled under the `tuck_testhooks` build tag:
   be carried as inline txtar bodies — testscript only substitutes `$WORK` in
   command lines, not in archive file contents — so they are written by these
   setup commands. Static files (`tuck.toml`, package contents) stay inline.
+- `wantstate <default-id|-> [<id> <path> <enabled>]...` — lower-level state
+  generation for scripts that need multiple enabled/disabled sources without the
+  full `wanthome` fixture. Paths may use `$WORK` in the command line and are
+  written as absolute sandbox paths.
 
 > JSON tests can alternatively assert the envelope's `exitCode` field
 > ([§9.2](./cli-spec.md#92-json-output)), which mirrors the process code, by
-> comparing against a golden document.
+> comparing against a golden document. For larger stable stdout/stderr bodies,
+> prefer `cp stdout <file>` / `cp stderr <file>` plus `cmp` against an inline
+> txtar golden; keep regex fragments for output where ordering or formatting is
+> intentionally non-contractual.
 
 ## 4. The isolated filetree
 
@@ -329,15 +345,17 @@ mutation. The no-mutation guarantee is itself a first-class assertion.
 ### Coverage map
 
 Coverage is organized by **suite** (§2.1); each suite owns the slice of the
-contract below.
+contract below. The first group is implemented; the remaining suites are planned
+as the corresponding product slices land.
 
 - **`source`** — `source add`/`source list`; state validation (unique enabled
   ids, ≤1 default, no overlapping roots); active-source resolution and
   `no_source`; `sources` JSON kind.
-- **`package_use`** — `package use` in both plan and `--apply` form; the
-  no-mutation guarantee; package-use/dir conflicts.
-- **`query`** — `package list`/`package show`/`status`/`package status`.
-- **`package_drop`** — `package drop` and `package refresh` (payload normalization).
+- **`package`** — `package list`, `package use`, and `package status`; planned
+  to grow with `package show`, `package drop`, and `package refresh`.
+- **`target`** — top-level target-tree operations, starting with `status` and
+  planned to grow with `adopt`, `eject`, root-context behavior, and privilege
+  coverage.
 - **`metadata`** — repo `tuck.toml` package/file metadata parsing:
   `[package.<name>]`, `[[package.<name>.file]]`, `deploy`, and explicit `mode`;
   unknown metadata remains additive/forward-compatible.
@@ -350,10 +368,6 @@ contract below.
 - **`state_integrity`** — text state plus checksum sidecar validation: valid
   state passes, modified/truncated state reports `state_checksum_mismatch`, and
   the error includes repair guidance.
-- **`adopt_eject`** — `adopt` and `eject`; active-source ownership inference.
-- **`root`** — `root` context via the physical-root seam with logical-path
-  goldens; deterministic privilege via the injected predicate, covering
-  `privilege_required` vs `io_error`.
 - **`errors`** (cross-cutting) — scripts for stable error.code values in
   [§10](./cli-spec.md#10-exit-codes-and-error-codes); separate foundation scripts
   cover CLI parse/dispatch errors such as unknown commands and flags. Include one
@@ -369,7 +383,7 @@ accidentally from path shape.
 ## 8. Example (home package use, red→green)
 
 ```
-# package_use_home.txtar
+# package/package.txtar
 wanthome                  # creates $WORK/home and generates $WORK/state/tuck/
                           #   sources.toml with the default source -> $WORK/src
 
