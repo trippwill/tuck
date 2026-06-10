@@ -22,6 +22,17 @@ func Apply(usePlan UsePlan) error {
 			if err := os.Symlink(action.Payload, action.LinkPath); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not create symlink %q", action.LinkPath)
 			}
+		case "remove_symlink":
+			info, err := os.Lstat(action.Path)
+			if err != nil {
+				return AppErrWrapf(ErrApply, err, "could not inspect symlink %q", action.Path)
+			}
+			if info.Mode()&os.ModeSymlink == 0 {
+				return AppErrMsgf(ErrApply, "refusing to remove non-symlink %q", action.Path)
+			}
+			if err := os.Remove(action.Path); err != nil {
+				return AppErrWrapf(ErrApply, err, "could not remove symlink %q", action.Path)
+			}
 		}
 	}
 	return nil

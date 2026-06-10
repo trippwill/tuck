@@ -33,7 +33,7 @@ func packageCommand() *cli.Command {
 				Usage:     "remove managed symlinks for packages",
 				ArgsUsage: "<package>...",
 				Flags:     mutatingDomainFlags(),
-				Action:    notImplemented("package drop"),
+				Action:    packageDropAction,
 			},
 			{
 				Name:      "refresh",
@@ -89,6 +89,25 @@ func packageUseAction(_ context.Context, cmd *cli.Command) error {
 		return renderError(cmd, "package use", err)
 	}
 	return renderUsePlan(cmd, usePlan)
+}
+
+func packageDropAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Bool("root") {
+		return cli.Exit("error: --root is not implemented for package drop yet", ExitFail)
+	}
+	refs := cmd.Args().Slice()
+	if len(refs) == 0 {
+		return cli.Exit("error: package drop requires one or more package refs", ExitFail)
+	}
+	dropPlan, err := plan.BuildDrop(plan.DropOptions{
+		Refs:     refs,
+		SourceID: cmd.String("source"),
+		Apply:    cmd.Bool("apply"),
+	})
+	if err != nil {
+		return renderError(cmd, "package drop", err)
+	}
+	return renderPlan(cmd, dropPlan)
 }
 
 func packageListAction(_ context.Context, cmd *cli.Command) error {

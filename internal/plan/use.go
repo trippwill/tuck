@@ -25,6 +25,13 @@ type UseOptions struct {
 	Apply      bool
 }
 
+type DropOptions struct {
+	Refs       []string
+	SourceID   string
+	TargetRoot string
+	Apply      bool
+}
+
 type Action struct {
 	Type     string `json:"type"`
 	Path     string `json:"path,omitempty"`
@@ -149,6 +156,69 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 		usePlan.DryRun = false
 	}
 	return usePlan, nil
+}
+
+func BuildDrop(options DropOptions) (UsePlan, error) {
+	targetRoot, err := domain.TargetRoot(options.TargetRoot, true)
+	if err != nil {
+		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
+	}
+
+	source, err := domain.ActiveSource(options.SourceID)
+	if err != nil {
+		return UsePlan{}, err
+	}
+
+	resolvedPackages, err := packages.Resolve(source, packages.ContextHome, options.Refs, false)
+	if err != nil {
+		return UsePlan{}, err
+	}
+
+	dropPlan := UsePlan{
+		Command:   "package drop",
+		Context:   packages.ContextHome,
+		DryRun:    !options.Apply,
+		Applied:   false,
+		Privilege: Privilege{Required: false},
+		Actions:   []Action{},
+		Conflicts: []Conflict{},
+	}
+	for _, pkg := range resolvedPackages {
+		dropPlan.Packages = append(dropPlan.Packages, pkg.Identity.String())
+	}
+
+	for _, pkg := range resolvedPackages {
+		for _, entry := range packages.Leaves(pkg.Entries) {
+			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, targetRoot)
+			if err != nil {
+				dropPlan.Conflicts = append(dropPlan.Conflicts, conflict("path_mismatch", targetPath, pkg.Identity.String(), err.Error()))
+				continue
+			}
+
+			class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, &pkg.Identity, entry.Rel)
+			switch class.Kind {
+			case target.Absent:
+			case target.ManagedSelected:
+				dropPlan.Actions = append(dropPlan.Actions, Action{Type: "remove_symlink", Path: targetPath})
+			default:
+				dropPlan.Conflicts = append(dropPlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
+			}
+		}
+	}
+
+	if len(dropPlan.Conflicts) > 0 {
+		dropPlan.Actions = []Action{}
+		return dropPlan, nil
+	}
+	if options.Apply {
+		if err := Apply(dropPlan); err != nil {
+			return dropPlan, err
+		}
+
+		dropPlan.Applied = true
+		dropPlan.DryRun = false
+	}
+	return dropPlan, nil
 }
 
 func blockedByDirectoryConflict(rel string, blockedPrefixes []string) bool {

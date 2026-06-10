@@ -70,7 +70,7 @@ building every engine primitive before the first command runs._
 
 **Vertical D — Package Drop**
 
-23. [ ] **M23** `package drop` a package's managed symlinks `[cmd]`
+23. [x] **M23** `package drop` a package's managed symlinks `[cmd]`
 
 **Vertical E — Adopt / eject**
 

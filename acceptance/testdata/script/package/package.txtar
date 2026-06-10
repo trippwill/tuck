@@ -280,6 +280,99 @@ wantstate public public $WORK/src true
 ! exec tuck pkg status one two --no-color
 stderr 'accepts at most one'
 
+# package drop dry-run prints an unlink plan and does not mutate
+phase package-drop-dry-run fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck pkg drop zsh --no-color
+stdout 'context: home, dry-run'
+stdout 'packages: public:home:zsh'
+stdout 'plan:'
+stdout '- unlink'
+stdout '1 actions, 0 conflicts'
+stdout 're-run with --apply to execute'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package drop --apply removes selected managed symlinks but leaves directories
+phase package-drop-apply fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck pkg drop zsh --apply --no-color
+stdout 'context: home, apply'
+stdout '1 actions, 0 conflicts'
+! exists $WORK/home/.config/zsh/.zshrc
+exists $WORK/home/.config/zsh
+exists $WORK/src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package drop treats absent targets as no-ops
+phase package-drop-absent fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+exec tuck pkg drop zsh --apply --no-color
+stdout '0 actions, 0 conflicts'
+! exists $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+# package drop accumulates conflicts and does not mutate when any conflict exists
+phase package-drop-conflicts fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/zsh-alt fixtures/package/status/mixed
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh-alt/.config/zsh/.zshrc
+cp fixtures/package/common/existing-file $WORK/home/.config/zsh/.zprofile
+symlink $WORK/home/.config/zsh/.zlogin -> ../../unmanaged
+! exec tuck pkg drop zsh --apply --no-color
+stdout 'conflicts:'
+stdout 'owned_by_other'
+stdout 'real_file'
+stdout 'unmanaged_symlink'
+stdout '0 actions, 3 conflicts'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh-alt/.config/zsh/.zshrc
+exists $WORK/home/.config/zsh/.zprofile
+readlink $WORK/home/.config/zsh/.zlogin ../../unmanaged
+! stderr .
+
+# package drop emits the plan JSON envelope
+phase package-drop-json fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck --json pkg drop zsh
+stdout '"schemaVersion":1'
+stdout '"command":"package drop"'
+stdout '"context":"home"'
+stdout '"kind":"plan"'
+stdout '"dryRun":true'
+stdout '"applied":false'
+stdout 'public:home:zsh'
+stdout '"type":"remove_symlink"'
+stdout '"conflicts":\[\]'
+stdout '"exitCode":0'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package drop reports invalid refs, missing packages, root gating, and required refs
+phase package-drop-errors fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+! exec tuck pkg drop --no-color
+stderr 'package drop requires one or more package refs'
+! stdout .
+! exec tuck pkg drop bad/ref --no-color
+stderr 'error: package reference is invalid'
+! stdout .
+! exec tuck pkg drop missing --no-color
+stderr 'error: package "missing" not found in source "public"'
+! stdout .
+! exec tuck pkg drop zsh --root --no-color
+stderr 'root'
+! stdout .
+
 -- fixtures/package/common/public-only/tuck.toml --
 name = "public"
 -- fixtures/package/common/zsh-config/zsh/.config/zsh/.zshrc --

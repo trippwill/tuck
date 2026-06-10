@@ -120,6 +120,10 @@ func packageNoun(count int) string {
 }
 
 func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
+	return renderPlan(cmd, usePlan)
+}
+
+func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 	r := newRenderer(cmd)
 	exitCode := ExitOK
 	if len(usePlan.Conflicts) > 0 {
@@ -139,7 +143,7 @@ func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 	if usePlan.Applied {
 		mode = "apply"
 	}
-	fmt.Fprintf(r.out, "tuck package use %s   (context: %s, %s)\n\n", packageNames(usePlan.Packages), usePlan.Context, mode)
+	fmt.Fprintf(r.out, "tuck %s %s   (context: %s, %s)\n\n", usePlan.Command, packageNames(usePlan.Packages), usePlan.Context, mode)
 	if len(usePlan.Packages) > 0 {
 		fmt.Fprintf(r.out, "packages: %s\n\n", strings.Join(usePlan.Packages, " "))
 	}
@@ -150,6 +154,8 @@ func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 			fmt.Fprintf(r.out, "  + mkdir  %s\n", action.Path)
 		case "symlink":
 			fmt.Fprintf(r.out, "  + link   %s -> %s\n", action.LinkPath, action.Target)
+		case "remove_symlink":
+			fmt.Fprintf(r.out, "  - unlink %s\n", action.Path)
 		}
 	}
 	if len(usePlan.Conflicts) > 0 {
