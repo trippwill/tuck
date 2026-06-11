@@ -1,20 +1,38 @@
 package target
 
-func (c Class) ConflictCode() string {
+type ConflictCode string
+
+const (
+	ConflictAbsent            ConflictCode = "absent"
+	ConflictGeneric           ConflictCode = "conflict"
+	ConflictInsideSourceRepo  ConflictCode = "inside_source_repo"
+	ConflictMultipleProviders ConflictCode = "multiple_providers"
+	ConflictNotManagedSymlink ConflictCode = "not_a_managed_symlink"
+	ConflictOutsideTargetRoot ConflictCode = "outside_target_root"
+	ConflictPackagePathExists ConflictCode = "package_path_exists"
+	ConflictPathMismatch      ConflictCode = "path_mismatch"
+	ConflictRealDirectory     ConflictCode = "real_directory"
+	ConflictRealFile          ConflictCode = "real_file"
+	ConflictSpecialFile       ConflictCode = "special_file"
+	ConflictUnmanagedSymlink  ConflictCode = "unmanaged_symlink"
+	ConflictOwnedByOther      ConflictCode = "owned_by_other"
+)
+
+func (c Class) ConflictCode() ConflictCode {
 	switch c.Kind {
 	case RealDirectory:
-		return "real_directory"
+		return ConflictRealDirectory
 	case RealFile:
-		return "real_file"
+		return ConflictRealFile
 	case SpecialFile:
-		return "special_file"
+		return ConflictSpecialFile
 	case UnmanagedSymlink:
-		return "unmanaged_symlink"
+		return ConflictUnmanagedSymlink
 	case ManagedOther:
-		return "owned_by_other"
+		return ConflictOwnedByOther
 	case PathMismatch:
-		return "path_mismatch"
+		return ConflictPathMismatch
 	default:
-		return "conflict"
+		return ConflictGeneric
 	}
 }

@@ -52,18 +52,18 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 	class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, nil, "")
 	if class.Kind == target.PathMismatch {
 		ejectPlan.Packages = []string{class.Owner.Identity.String()}
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict("path_mismatch", targetPath, class.Owner.Identity.String(), class.Message))
+		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, class.Owner.Identity.String(), class.Message))
 		return ejectPlan, nil
 	}
 	if class.Kind != target.Managed {
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict("not_a_managed_symlink", targetPath, "", notManagedMessage(class)))
+		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictNotManagedSymlink, targetPath, "", notManagedMessage(class)))
 		return ejectPlan, nil
 	}
 
 	owner := class.Owner
 	ejectPlan.Packages = []string{owner.Identity.String()}
 	if filepath.Clean(targetPath) != filepath.Clean(owner.ExpectedTarget) {
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict("path_mismatch", targetPath, owner.Identity.String(), "managed symlink path does not match package entry"))
+		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, owner.Identity.String(), "managed symlink path does not match package entry"))
 		return ejectPlan, nil
 	}
 
@@ -71,26 +71,26 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 	info, err := os.Lstat(packagePath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict("not_a_managed_symlink", packagePath, owner.Identity.String(), "package file does not exist"))
+			ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package file does not exist"))
 			return ejectPlan, nil
 		}
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if info.IsDir() {
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict("not_a_managed_symlink", packagePath, owner.Identity.String(), "package path is a directory"))
+		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package path is a directory"))
 		return ejectPlan, nil
 	}
 
 	ejectPlan.Actions = append(ejectPlan.Actions,
-		Action{Type: "remove_symlink", Path: targetPath},
-		Action{Type: "move", Src: packagePath, Dst: targetPath},
+		Action{Type: ActionRemoveSymlink, Path: targetPath},
+		Action{Type: ActionMove, Src: packagePath, Dst: targetPath},
 	)
 	pruneDirs, err := pruneAfterEject(owner.Identity.Root, packagePath)
 	if err != nil {
 		return UsePlan{}, err
 	}
 	for _, dir := range pruneDirs {
-		ejectPlan.Actions = append(ejectPlan.Actions, Action{Type: "rmdir", Path: dir})
+		ejectPlan.Actions = append(ejectPlan.Actions, Action{Type: ActionRmdir, Path: dir})
 	}
 	if options.Apply {
 		if err := Apply(ejectPlan); err != nil {

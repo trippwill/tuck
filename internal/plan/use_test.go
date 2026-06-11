@@ -1,12 +1,67 @@
 package plan
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/trippwill/tuck/internal/target"
 )
+
+func TestActionTypeJSONPreservesStringValues(t *testing.T) {
+	got, err := json.Marshal(Action{
+		Type: ActionRemoveSymlink,
+		Path: "/tmp/link",
+	})
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	want := `{"type":"remove_symlink","path":"/tmp/link"}`
+	if string(got) != want {
+		t.Fatalf("Marshal() = %s, want %s", got, want)
+	}
+}
+
+func TestConflictCodeJSONPreservesStringValues(t *testing.T) {
+	got, err := json.Marshal(Conflict{
+		Code:    target.ConflictPathMismatch,
+		Path:    "/tmp/link",
+		Message: "path escapes root",
+	})
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	want := `{"code":"path_mismatch","path":"/tmp/link","message":"path escapes root"}`
+	if string(got) != want {
+		t.Fatalf("Marshal() = %s, want %s", got, want)
+	}
+}
+
+func TestTargetConflictCodeValues(t *testing.T) {
+	tests := map[string]target.ConflictCode{
+		"absent":                target.ConflictAbsent,
+		"conflict":              target.ConflictGeneric,
+		"inside_source_repo":    target.ConflictInsideSourceRepo,
+		"multiple_providers":    target.ConflictMultipleProviders,
+		"not_a_managed_symlink": target.ConflictNotManagedSymlink,
+		"outside_target_root":   target.ConflictOutsideTargetRoot,
+		"package_path_exists":   target.ConflictPackagePathExists,
+		"path_mismatch":         target.ConflictPathMismatch,
+		"real_directory":        target.ConflictRealDirectory,
+		"real_file":             target.ConflictRealFile,
+		"special_file":          target.ConflictSpecialFile,
+		"unmanaged_symlink":     target.ConflictUnmanagedSymlink,
+		"owned_by_other":        target.ConflictOwnedByOther,
+	}
+	for want, code := range tests {
+		if string(code) != want {
+			t.Fatalf("conflict code = %q, want %q", code, want)
+		}
+	}
+}
 
 func TestApplyCreatesRelativeSymlink(t *testing.T) {
 	root := t.TempDir()
@@ -20,8 +75,8 @@ func TestApplyCreatesRelativeSymlink(t *testing.T) {
 	}
 
 	plan := UsePlan{Actions: []Action{
-		{Type: "mkdir", Path: filepath.Dir(target)},
-		{Type: "symlink", LinkPath: target, Payload: "../../../src/zsh/.config/zsh/.zshrc", Target: source},
+		{Type: ActionMkdir, Path: filepath.Dir(target)},
+		{Type: ActionSymlink, LinkPath: target, Payload: "../../../src/zsh/.config/zsh/.zshrc", Target: source},
 	}}
 	if err := Apply(plan); err != nil {
 		t.Fatalf("Apply() error = %v", err)
@@ -49,7 +104,7 @@ func TestApplyMovesFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	plan := UsePlan{Actions: []Action{{Type: "move", Src: src, Dst: dst}}}
+	plan := UsePlan{Actions: []Action{{Type: ActionMove, Src: src, Dst: dst}}}
 	if err := Apply(plan); err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
@@ -72,7 +127,7 @@ func TestApplyRemovesEmptyDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Apply(UsePlan{Actions: []Action{{Type: "rmdir", Path: dir}}}); err != nil {
+	if err := Apply(UsePlan{Actions: []Action{{Type: ActionRmdir, Path: dir}}}); err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
 	if _, err := os.Lstat(dir); !os.IsNotExist(err) {
@@ -90,7 +145,7 @@ func TestApplyRmdirReportsNonEmptyDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Apply(UsePlan{Actions: []Action{{Type: "rmdir", Path: dir}}}); err == nil {
+	if err := Apply(UsePlan{Actions: []Action{{Type: ActionRmdir, Path: dir}}}); err == nil {
 		t.Fatal("Apply() error = nil, want error")
 	}
 }
@@ -98,7 +153,7 @@ func TestApplyRmdirReportsNonEmptyDirectory(t *testing.T) {
 func TestApplyMoveReportsErrors(t *testing.T) {
 	root := t.TempDir()
 	err := Apply(UsePlan{Actions: []Action{{
-		Type: "move",
+		Type: ActionMove,
 		Src:  filepath.Join(root, "missing"),
 		Dst:  filepath.Join(root, "dst"),
 	}}})
@@ -108,7 +163,7 @@ func TestApplyMoveReportsErrors(t *testing.T) {
 }
 
 func TestApplyRejectsUnknownActionType(t *testing.T) {
-	err := Apply(UsePlan{Actions: []Action{{Type: "bogus"}}})
+	err := Apply(UsePlan{Actions: []Action{{Type: ActionType("bogus")}}})
 	if err == nil {
 		t.Fatal("Apply() error = nil, want error")
 	}
@@ -139,8 +194,8 @@ func TestApplyPreflightsBeforeMutating(t *testing.T) {
 	}
 
 	err := Apply(UsePlan{Actions: []Action{
-		{Type: "move", Src: src, Dst: dst},
-		{Type: "symlink", LinkPath: filepath.Join(blockingFile, "link"), Payload: "payload"},
+		{Type: ActionMove, Src: src, Dst: dst},
+		{Type: ActionSymlink, LinkPath: filepath.Join(blockingFile, "link"), Payload: "payload"},
 	}})
 	if err == nil {
 		t.Fatal("Apply() error = nil, want error")
@@ -176,10 +231,10 @@ func TestApplyPreflightAccountsForPlannedState(t *testing.T) {
 	}
 
 	err := Apply(UsePlan{Actions: []Action{
-		{Type: "remove_symlink", Path: target},
-		{Type: "move", Src: packagePath, Dst: target},
-		{Type: "rmdir", Path: packageDir},
-		{Type: "rmdir", Path: packageParent},
+		{Type: ActionRemoveSymlink, Path: target},
+		{Type: ActionMove, Src: packagePath, Dst: target},
+		{Type: ActionRmdir, Path: packageDir},
+		{Type: ActionRmdir, Path: packageParent},
 	}})
 	if err != nil {
 		t.Fatalf("Apply() error = %v", err)

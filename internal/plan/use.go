@@ -32,21 +32,31 @@ type DropOptions struct {
 	Apply      bool
 }
 
+type ActionType string
+
+const (
+	ActionMkdir         ActionType = "mkdir"
+	ActionRmdir         ActionType = "rmdir"
+	ActionSymlink       ActionType = "symlink"
+	ActionRemoveSymlink ActionType = "remove_symlink"
+	ActionMove          ActionType = "move"
+)
+
 type Action struct {
-	Type     string `json:"type"`
-	Path     string `json:"path,omitempty"`
-	LinkPath string `json:"linkPath,omitempty"`
-	Payload  string `json:"payload,omitempty"`
-	Target   string `json:"target,omitempty"`
-	Src      string `json:"src,omitempty"`
-	Dst      string `json:"dst,omitempty"`
+	Type     ActionType `json:"type"`
+	Path     string     `json:"path,omitempty"`
+	LinkPath string     `json:"linkPath,omitempty"`
+	Payload  string     `json:"payload,omitempty"`
+	Target   string     `json:"target,omitempty"`
+	Src      string     `json:"src,omitempty"`
+	Dst      string     `json:"dst,omitempty"`
 }
 
 type Conflict struct {
-	Code    string `json:"code"`
-	Path    string `json:"path"`
-	Message string `json:"message"`
-	Package string `json:"package,omitempty"`
+	Code    target.ConflictCode `json:"code"`
+	Path    string              `json:"path"`
+	Message string              `json:"message"`
+	Package string              `json:"package,omitempty"`
 }
 
 type Privilege struct {
@@ -99,14 +109,14 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 		for _, entry := range packages.Directories(pkg.Entries) {
 			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, targetRoot)
 			if err != nil {
-				usePlan.Conflicts = append(usePlan.Conflicts, conflict("path_mismatch", targetPath, pkg.Identity.String(), err.Error()))
+				usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 				blockedRelPrefixes = append(blockedRelPrefixes, entry.Rel)
 				continue
 			}
 			class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, &pkg.Identity, entry.Rel)
 			switch class.Kind {
 			case target.Absent:
-				usePlan.Actions = append(usePlan.Actions, Action{Type: "mkdir", Path: targetPath})
+				usePlan.Actions = append(usePlan.Actions, Action{Type: ActionMkdir, Path: targetPath})
 			case target.RealDirectory:
 			default:
 				usePlan.Conflicts = append(usePlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
@@ -120,11 +130,11 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 			}
 			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, targetRoot)
 			if err != nil {
-				usePlan.Conflicts = append(usePlan.Conflicts, conflict("path_mismatch", targetPath, pkg.Identity.String(), err.Error()))
+				usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 				continue
 			}
 			if owner, ok := plannedTargets[targetPath]; ok && owner != pkg.Identity.String()+":"+entry.Rel {
-				usePlan.Conflicts = append(usePlan.Conflicts, conflict("multiple_providers", targetPath, pkg.Identity.String(), "multiple packages provide this target"))
+				usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictMultipleProviders, targetPath, pkg.Identity.String(), "multiple packages provide this target"))
 				continue
 			}
 			plannedTargets[targetPath] = pkg.Identity.String() + ":" + entry.Rel
@@ -134,10 +144,10 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 			case target.Absent:
 				payload, err := pathutil.SymlinkPayload(targetPath, entry.Path)
 				if err != nil {
-					usePlan.Conflicts = append(usePlan.Conflicts, conflict("path_mismatch", targetPath, pkg.Identity.String(), err.Error()))
+					usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 					continue
 				}
-				usePlan.Actions = append(usePlan.Actions, Action{Type: "symlink", LinkPath: targetPath, Payload: payload, Target: entry.Path})
+				usePlan.Actions = append(usePlan.Actions, Action{Type: ActionSymlink, LinkPath: targetPath, Payload: payload, Target: entry.Path})
 			case target.ManagedSelected:
 			default:
 				usePlan.Conflicts = append(usePlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
@@ -193,7 +203,7 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 		for _, entry := range packages.Leaves(pkg.Entries) {
 			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, targetRoot)
 			if err != nil {
-				dropPlan.Conflicts = append(dropPlan.Conflicts, conflict("path_mismatch", targetPath, pkg.Identity.String(), err.Error()))
+				dropPlan.Conflicts = append(dropPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 				continue
 			}
 
@@ -201,7 +211,7 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 			switch class.Kind {
 			case target.Absent:
 			case target.ManagedSelected:
-				dropPlan.Actions = append(dropPlan.Actions, Action{Type: "remove_symlink", Path: targetPath})
+				dropPlan.Actions = append(dropPlan.Actions, Action{Type: ActionRemoveSymlink, Path: targetPath})
 			default:
 				dropPlan.Conflicts = append(dropPlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
 			}
@@ -232,6 +242,6 @@ func blockedByDirectoryConflict(rel string, blockedPrefixes []string) bool {
 	return false
 }
 
-func conflict(code, path, pkg, message string) Conflict {
+func conflict(code target.ConflictCode, path, pkg, message string) Conflict {
 	return Conflict{Code: code, Path: path, Package: pkg, Message: message}
 }

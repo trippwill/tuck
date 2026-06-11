@@ -22,14 +22,14 @@ type Options struct {
 }
 
 type Entry struct {
-	TargetPath     string `json:"targetPath"`
-	State          string `json:"state"`
-	Package        string `json:"package,omitempty"`
-	Entry          string `json:"entry,omitempty"`
-	Code           string `json:"code,omitempty"`
-	Message        string `json:"message,omitempty"`
-	Owner          string `json:"owner,omitempty"`
-	ExpectedTarget string `json:"expectedTarget,omitempty"`
+	TargetPath     string              `json:"targetPath"`
+	State          string              `json:"state"`
+	Package        string              `json:"package,omitempty"`
+	Entry          string              `json:"entry,omitempty"`
+	Code           target.ConflictCode `json:"code,omitempty"`
+	Message        string              `json:"message,omitempty"`
+	Owner          string              `json:"owner,omitempty"`
+	ExpectedTarget string              `json:"expectedTarget,omitempty"`
 }
 
 type Result struct {
@@ -90,7 +90,7 @@ func Package(ref string, options Options) (Result, error) {
 					State:      StateConflict,
 					Package:    pkg.Identity.String(),
 					Entry:      pkgEntry.Path,
-					Code:       "path_mismatch",
+					Code:       target.ConflictPathMismatch,
 					Message:    err.Error(),
 				})
 				continue

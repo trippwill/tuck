@@ -17,11 +17,11 @@ func Apply(usePlan UsePlan) error {
 	}
 	for _, action := range usePlan.Actions {
 		switch action.Type {
-		case "mkdir":
+		case ActionMkdir:
 			if err := os.MkdirAll(action.Path, 0o755); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not create directory %q", action.Path)
 			}
-		case "rmdir":
+		case ActionRmdir:
 			info, err := os.Lstat(action.Path)
 			if err != nil {
 				return AppErrWrapf(ErrApply, err, "could not inspect directory %q", action.Path)
@@ -32,14 +32,14 @@ func Apply(usePlan UsePlan) error {
 			if err := os.Remove(action.Path); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not remove directory %q", action.Path)
 			}
-		case "symlink":
+		case ActionSymlink:
 			if err := os.MkdirAll(filepath.Dir(action.LinkPath), 0o755); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not create directory %q", filepath.Dir(action.LinkPath))
 			}
 			if err := os.Symlink(action.Payload, action.LinkPath); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not create symlink %q", action.LinkPath)
 			}
-		case "remove_symlink":
+		case ActionRemoveSymlink:
 			info, err := os.Lstat(action.Path)
 			if err != nil {
 				return AppErrWrapf(ErrApply, err, "could not inspect symlink %q", action.Path)
@@ -50,7 +50,7 @@ func Apply(usePlan UsePlan) error {
 			if err := os.Remove(action.Path); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not remove symlink %q", action.Path)
 			}
-		case "move":
+		case ActionMove:
 			if err := os.Rename(action.Src, action.Dst); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not move %q to %q", action.Src, action.Dst)
 			}
@@ -98,15 +98,15 @@ func preflightApply(usePlan UsePlan) error {
 
 func (p *applyPreflight) validate(action Action) error {
 	switch action.Type {
-	case "mkdir":
+	case ActionMkdir:
 		return p.validateMkdir(action.Path)
-	case "rmdir":
+	case ActionRmdir:
 		return p.validateRmdir(action.Path)
-	case "symlink":
+	case ActionSymlink:
 		return p.validateSymlink(action)
-	case "remove_symlink":
+	case ActionRemoveSymlink:
 		return p.validateRemoveSymlink(action.Path)
-	case "move":
+	case ActionMove:
 		return p.validateMove(action)
 	default:
 		return AppErrMsgf(ErrApply, "unknown plan action type %q", action.Type)
@@ -115,15 +115,15 @@ func (p *applyPreflight) validate(action Action) error {
 
 func (p *applyPreflight) record(action Action) {
 	switch action.Type {
-	case "mkdir":
+	case ActionMkdir:
 		p.recordMkdir(action.Path)
-	case "rmdir":
+	case ActionRmdir:
 		p.paths[filepath.Clean(action.Path)] = preflightRemoved
-	case "symlink":
+	case ActionSymlink:
 		p.paths[filepath.Clean(action.LinkPath)] = preflightSymlink
-	case "remove_symlink":
+	case ActionRemoveSymlink:
 		p.paths[filepath.Clean(action.Path)] = preflightRemoved
-	case "move":
+	case ActionMove:
 		p.paths[filepath.Clean(action.Src)] = preflightRemoved
 		p.paths[filepath.Clean(action.Dst)] = preflightNonDirectory
 	}

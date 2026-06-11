@@ -150,15 +150,15 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 	fmt.Fprintln(r.out, "plan:")
 	for _, action := range usePlan.Actions {
 		switch action.Type {
-		case "mkdir":
+		case plan.ActionMkdir:
 			fmt.Fprintf(r.out, "  + mkdir  %s\n", action.Path)
-		case "rmdir":
+		case plan.ActionRmdir:
 			fmt.Fprintf(r.out, "  - rmdir  %s\n", action.Path)
-		case "symlink":
+		case plan.ActionSymlink:
 			fmt.Fprintf(r.out, "  + link   %s -> %s\n", action.LinkPath, action.Target)
-		case "remove_symlink":
+		case plan.ActionRemoveSymlink:
 			fmt.Fprintf(r.out, "  - unlink %s\n", action.Path)
-		case "move":
+		case plan.ActionMove:
 			fmt.Fprintf(r.out, "  + move   %s -> %s\n", action.Src, action.Dst)
 		}
 	}

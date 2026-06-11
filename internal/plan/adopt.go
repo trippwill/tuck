@@ -56,12 +56,12 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
 	}
 	if !pathutil.Inside(targetPath, targetRoot) {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict("outside_target_root", targetPath, identity.String(), "target is outside the selected target root"))
+		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictOutsideTargetRoot, targetPath, identity.String(), "target is outside the selected target root"))
 		return adoptPlan, nil
 	}
 	for _, enabled := range registry.EnabledSources() {
 		if pathutil.Inside(targetPath, enabled.Path) {
-			adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict("inside_source_repo", targetPath, identity.String(), "target is inside an enabled source repository"))
+			adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictInsideSourceRepo, targetPath, identity.String(), "target is inside an enabled source repository"))
 			return adoptPlan, nil
 		}
 	}
@@ -74,29 +74,29 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 
 	packagePath, _, err := pathutil.TargetToPackage(targetRoot, targetPath, identity.Root)
 	if err != nil {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict("path_mismatch", targetPath, identity.String(), err.Error()))
+		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
 		return adoptPlan, nil
 	}
 	if _, err := os.Lstat(packagePath); err == nil {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict("package_path_exists", packagePath, identity.String(), "destination package path already exists"))
+		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
 		return adoptPlan, nil
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if !pathutil.Inside(packagePath, identity.Root) {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict("path_mismatch", packagePath, identity.String(), "package path escapes package root"))
+		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
 		return adoptPlan, nil
 	}
 	payload, err := pathutil.SymlinkPayload(targetPath, packagePath)
 	if err != nil {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict("path_mismatch", targetPath, identity.String(), err.Error()))
+		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
 		return adoptPlan, nil
 	}
 
 	adoptPlan.Actions = append(adoptPlan.Actions,
-		Action{Type: "mkdir", Path: filepath.Dir(packagePath)},
-		Action{Type: "move", Src: targetPath, Dst: packagePath},
-		Action{Type: "symlink", LinkPath: targetPath, Payload: payload, Target: packagePath},
+		Action{Type: ActionMkdir, Path: filepath.Dir(packagePath)},
+		Action{Type: ActionMove, Src: targetPath, Dst: packagePath},
+		Action{Type: ActionSymlink, LinkPath: targetPath, Payload: payload, Target: packagePath},
 	)
 
 	if options.Apply {
@@ -109,9 +109,9 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 	return adoptPlan, nil
 }
 
-func adoptConflictCode(class target.Class) string {
+func adoptConflictCode(class target.Class) target.ConflictCode {
 	if class.Kind == target.Absent {
-		return "absent"
+		return target.ConflictAbsent
 	}
 	return class.ConflictCode()
 }
