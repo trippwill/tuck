@@ -75,9 +75,6 @@ func statusCommand() *cli.Command {
 }
 
 func adoptAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Bool("root") {
-		return cli.Exit("error: --root is not implemented for adopt yet", ExitFail)
-	}
 	if cmd.Args().Present() {
 		return cli.Exit("error: adopt accepts exactly <file> <package>", ExitFail)
 	}
@@ -87,18 +84,19 @@ func adoptAction(_ context.Context, cmd *cli.Command) error {
 		File:     file,
 		Ref:      ref,
 		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
 		Apply:    cmd.Bool("apply"),
 	})
 	if err != nil {
+		if isPrivilegeRequired(err) {
+			return renderPlanError(cmd, adoptPlan, err)
+		}
 		return renderError(cmd, "adopt", err)
 	}
 	return renderPlan(cmd, adoptPlan)
 }
 
 func ejectAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Bool("root") {
-		return cli.Exit("error: --root is not implemented for eject yet", ExitFail)
-	}
 	if cmd.Args().Present() {
 		return cli.Exit("error: eject accepts exactly one <file>", ExitFail)
 	}
@@ -106,24 +104,26 @@ func ejectAction(_ context.Context, cmd *cli.Command) error {
 	ejectPlan, err := plan.BuildEject(plan.EjectOptions{
 		File:     file,
 		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
 		Apply:    cmd.Bool("apply"),
 	})
 	if err != nil {
+		if isPrivilegeRequired(err) {
+			return renderPlanError(cmd, ejectPlan, err)
+		}
 		return renderError(cmd, "eject", err)
 	}
 	return renderPlan(cmd, ejectPlan)
 }
 
 func statusAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Bool("root") {
-		return cli.Exit("error: --root is not implemented for status yet", ExitFail)
-	}
 	if cmd.Args().Present() {
 		return cli.Exit("error: status accepts exactly one <file>", ExitFail)
 	}
 	file := cmd.StringArgs("file")[0]
 	result, err := statuspkg.File(file, statuspkg.Options{
 		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
 	})
 	if err != nil {
 		return renderError(cmd, "status", err)

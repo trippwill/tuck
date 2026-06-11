@@ -22,6 +22,58 @@ exists $WORK/home/.config/zsh/.zshrc
 readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
 ! stderr .
 
+# package root context lists, plans, applies, statuses, and drops .root packages with logical paths
+phase package-root-context fixtures/package/common/public-only fixtures/package/common/root-sshd
+wantstate public public $WORK/src true
+mkdir $WORK/root
+env TUCK_TEST_ROOT_DIR=$WORK/root
+env TUCK_TEST_PRIVILEGE=granted
+exec tuck pkg list --root --no-color
+stdout 'context: root'
+stdout 'sshd'
+! stdout 'zsh'
+exec tuck pkg use sshd --root --no-color
+stdout 'context: root, dry-run'
+stdout '/etc/ssh/sshd_config'
+! stdout $WORK/root
+! exists $WORK/root/etc/ssh/sshd_config
+exec tuck pkg use sshd --root --apply --no-color
+stdout 'context: root, apply'
+stdout '/etc/ssh/sshd_config'
+readlink $WORK/root/etc/ssh/sshd_config ../../../src/.root/sshd/etc/ssh/sshd_config
+exec tuck pkg status sshd --root --no-color
+stdout 'public:root:sshd'
+stdout 'deployed'
+stdout '/etc/ssh/sshd_config'
+exec tuck pkg drop sshd --root --apply --no-color
+stdout 'context: root, apply'
+! exists $WORK/root/etc/ssh/sshd_config
+exists $WORK/root/etc/ssh
+! stderr .
+
+# package root context requires privilege for apply but not dry-run
+phase package-root-privilege fixtures/package/common/public-only fixtures/package/common/root-sshd
+wantstate public public $WORK/src true
+mkdir $WORK/root
+env TUCK_TEST_ROOT_DIR=$WORK/root
+env TUCK_TEST_PRIVILEGE=denied
+exec tuck pkg use sshd --root --no-color
+stdout 'context: root, dry-run'
+stdout '/etc/ssh/sshd_config'
+! exists $WORK/root/etc/ssh/sshd_config
+! exec tuck pkg use sshd --root --apply --no-color
+stdout 'context: root, apply'
+stdout '/etc/ssh/sshd_config'
+stderr 'root-context write requires elevated privileges'
+! exists $WORK/root/etc/ssh/sshd_config
+! exec tuck --json pkg use sshd --root --apply
+stdout '"schemaVersion":1'
+stdout '"command":"package use"'
+stdout '"context":"root"'
+stdout '"kind":"error"'
+stdout '"code":"privilege_required"'
+stdout '"exitCode":1'
+
 # package use accumulates directory and real-file conflicts
 phase package-use-conflicts fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/use/conflicts
 wantstate public public $WORK/src true
@@ -143,15 +195,16 @@ stdout '"packages":\[\]'
 stdout '"exitCode":0'
 ! stderr .
 
-# package list reports source-selection errors and unimplemented root context
+# package list reports source-selection errors and empty root context
 phase package-list-errors fixtures/package/common/public-only
 ! exec tuck pkg list --no-color
 stderr 'no active source'
 wantstate public public $WORK/src true
 ! exec tuck pkg list --source missing --no-color
 stderr 'source is not enabled'
-! exec tuck pkg list --root --no-color
-stderr 'root'
+exec tuck pkg list --root --no-color
+stdout 'context: root'
+stdout '0 packages'
 
 # package list human output includes context, source, packages, and summary
 phase package-list-human fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home
@@ -369,7 +422,7 @@ stdout '"exitCode":0'
 readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
 ! stderr .
 
-# package drop reports invalid refs, missing packages, root gating, and required refs
+# package drop reports invalid refs, missing packages, and required refs
 phase package-drop-errors fixtures/package/common/public-only fixtures/package/common/zsh-config
 wantstate public public $WORK/src true
 ! exec tuck pkg drop --no-color
@@ -383,7 +436,7 @@ stderr 'error: invalid package ref "bad/ref"'
 stderr 'error: package "missing" not found in source "public"'
 ! stdout .
 ! exec tuck pkg drop zsh --root --no-color
-stderr 'root'
+stderr 'error: package "zsh" not found in source "public"'
 ! stdout .
 
 -- fixtures/package/common/public-only/tuck.toml --
@@ -396,6 +449,8 @@ name = "public"
 hidden
 -- fixtures/package/common/hidden-root/.root/root-only --
 root
+-- fixtures/package/common/root-sshd/.root/sshd/etc/ssh/sshd_config --
+# sshd
 -- fixtures/package/common/zsh-alt/zsh-alt/.config/zsh/.zshrc --
 # alternate
 -- fixtures/package/common/existing-file --

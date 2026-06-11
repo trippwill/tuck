@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/trippwill/tuck/internal/domain"
-	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pathutil"
 	"github.com/trippwill/tuck/internal/resolve"
 	"github.com/trippwill/tuck/internal/state"
@@ -17,12 +16,14 @@ import (
 type EjectOptions struct {
 	File       string
 	SourceID   string
+	Context    string
 	TargetRoot string
 	Apply      bool
 }
 
 func BuildEject(options EjectOptions) (UsePlan, error) {
-	targetRoot, err := domain.TargetRoot(options.TargetRoot, true)
+	context := selectedContext(options.Context)
+	scope, err := domain.NewTargetScope(context, options.TargetRoot, true)
 	if err != nil {
 		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
 	}
@@ -41,7 +42,7 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 
 	ejectPlan := UsePlan{
 		Command:   "eject",
-		Context:   packages.ContextHome,
+		Context:   scope.Context,
 		DryRun:    !options.Apply,
 		Applied:   false,
 		Privilege: Privilege{Required: false},
@@ -49,7 +50,8 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 		Conflicts: []Conflict{},
 	}
 
-	class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, nil, "")
+	physicalTargetPath := scope.PhysicalPath(targetPath)
+	class := target.ClassifyAt(targetPath, physicalTargetPath, source, scope.Context, scope.LogicalRoot, nil, "")
 	if class.Kind == target.PathMismatch {
 		ejectPlan.Packages = []string{class.Owner.Identity.String()}
 		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, class.Owner.Identity.String(), class.Message))
@@ -82,8 +84,8 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 	}
 
 	ejectPlan.Actions = append(ejectPlan.Actions,
-		Action{Type: ActionRemoveSymlink, Path: targetPath},
-		Action{Type: ActionMove, Src: packagePath, Dst: targetPath},
+		Action{Type: ActionRemoveSymlink, Path: targetPath, physicalPath: physicalTargetPath},
+		Action{Type: ActionMove, Src: packagePath, Dst: targetPath, physicalDst: physicalTargetPath},
 	)
 	pruneDirs, err := pruneAfterEject(owner.Identity.Root, packagePath)
 	if err != nil {
@@ -92,7 +94,11 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 	for _, dir := range pruneDirs {
 		ejectPlan.Actions = append(ejectPlan.Actions, Action{Type: ActionRmdir, Path: dir})
 	}
+	markPrivilege(&ejectPlan)
 	if options.Apply {
+		if privilegeDenied(ejectPlan) {
+			return ejectPlan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
+		}
 		if err := Apply(ejectPlan); err != nil {
 			return ejectPlan, err
 		}

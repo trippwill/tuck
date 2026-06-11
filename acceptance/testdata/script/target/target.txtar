@@ -3,8 +3,12 @@ phase status-errors fixtures/target/status/common
 ! exec tuck status $WORK/home/missing --no-color
 stderr 'no active source'
 wantstate public public $WORK/src true
-! exec tuck status --root /etc/hosts --no-color
-stderr 'root'
+mkdir $WORK/root
+env TUCK_TEST_ROOT_DIR=$WORK/root
+exec tuck status --root /etc/hosts --no-color
+stdout 'context: root'
+stdout 'absent'
+stdout '/etc/hosts'
 
 # file status classifies absent, unmanaged, and mismatched targets
 phase status-file-absent-unmanaged-mismatch fixtures/target/status/common
@@ -47,6 +51,37 @@ stdout 'tuck status'
 stdout 'deployed'
 stdout 'public:home:zsh'
 stdout '.config/zsh/.zshrc'
+! stderr .
+
+# root target operations use logical paths while reading and writing the physical test root
+phase root-target-operations fixtures/target/status/common fixtures/target/root/common
+wantstate public public $WORK/src true
+mkdir $WORK/root
+mkdir $WORK/root/etc
+mkdir $WORK/root/etc/ssh
+env TUCK_TEST_ROOT_DIR=$WORK/root
+env TUCK_TEST_PRIVILEGE=granted
+symlink $WORK/root/etc/ssh/sshd_config -> ../../../src/.root/sshd/etc/ssh/sshd_config
+exec tuck status --root /etc/ssh/sshd_config --no-color
+stdout 'context: root'
+stdout 'deployed'
+stdout 'public:root:sshd'
+stdout '/etc/ssh/sshd_config'
+! stdout $WORK/root
+cp fixtures/target/adopt/root.conf $WORK/root/etc/tuck.conf
+exec tuck adopt --root /etc/tuck.conf sys --apply --no-color
+stdout 'context: root, apply'
+stdout 'public:root:sys'
+stdout '/etc/tuck.conf'
+! stdout $WORK/root
+readlink $WORK/root/etc/tuck.conf ../../src/.root/sys/etc/tuck.conf
+exists $WORK/src/.root/sys/etc/tuck.conf
+exec tuck eject --root /etc/tuck.conf --apply --no-color
+stdout 'context: root, apply'
+stdout 'public:root:sys'
+exists $WORK/root/etc/tuck.conf
+! exists $WORK/src/.root/sys/etc/tuck.conf
+cmp $WORK/root/etc/tuck.conf fixtures/target/adopt/root.conf
 ! stderr .
 
 # top-level status usage validation is target-command-specific
@@ -156,7 +191,7 @@ stdout '0 actions, 1 conflicts'
 exists $WORK/home/.dotfiles/zsh/.config/zsh/.zshrc
 ! stderr .
 
-# adopt reports source/ref errors, usage validation, and root gating
+# adopt reports source/ref errors and usage validation
 phase adopt-errors fixtures/target/status/common
 ! exec tuck adopt $WORK/home/file nvim --no-color
 stderr 'no active source'
@@ -171,9 +206,6 @@ stderr 'adopt accepts exactly <file> <package>'
 stderr 'error: invalid package ref "bad/ref"'
 ! exec tuck adopt --source missing $WORK/home/file nvim --no-color
 stderr 'source is not enabled'
-! exec tuck adopt --root /etc/hosts nvim --no-color
-stderr 'root'
-! stdout .
 
 # eject dry-run prints an unlink/move plan and does not mutate
 phase eject-dry-run fixtures/target/status/common
@@ -306,16 +338,13 @@ stdout 'package path is a directory'
 stdout '0 actions, 1 conflicts'
 ! stderr .
 
-# eject reports usage validation and root gating
+# eject reports usage validation
 phase eject-errors fixtures/target/status/common
 wantstate public public $WORK/src true
 ! exec tuck eject --no-color
 stderr 'Incorrect Usage'
 ! exec tuck eject one two --no-color
 stderr 'eject accepts exactly one <file>'
-! exec tuck eject --root /etc/hosts --no-color
-stderr 'root'
-! stdout .
 
 -- fixtures/target/status/common/tuck.toml --
 name = "public"
@@ -323,8 +352,12 @@ name = "public"
 # zshrc
 -- fixtures/target/adopt/init.lua --
 vim.o.number = true
+-- fixtures/target/adopt/root.conf --
+root=true
 -- fixtures/target/adopt/zprofile --
 # zprofile
+-- fixtures/target/root/common/.root/sshd/etc/ssh/sshd_config --
+# sshd
 -- fixtures/target/eject/private-source/tuck.toml --
 name = "private"
 -- fixtures/target/eject/private-source/zsh/.config/zsh/.zshrc --

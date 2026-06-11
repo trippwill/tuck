@@ -14,13 +14,15 @@ import (
 type ErrPlan string
 
 const (
-	ErrApply ErrPlan = "plan apply failed"
+	ErrApply             ErrPlan = "plan apply failed"
+	ErrPrivilegeRequired ErrPlan = "privilege required"
 )
 
 type UseOptions struct {
 	Refs       []string
 	All        bool
 	SourceID   string
+	Context    string
 	TargetRoot string
 	Apply      bool
 }
@@ -28,6 +30,7 @@ type UseOptions struct {
 type DropOptions struct {
 	Refs       []string
 	SourceID   string
+	Context    string
 	TargetRoot string
 	Apply      bool
 }
@@ -50,6 +53,11 @@ type Action struct {
 	Target   string     `json:"target,omitempty"`
 	Src      string     `json:"src,omitempty"`
 	Dst      string     `json:"dst,omitempty"`
+
+	physicalPath     string
+	physicalLinkPath string
+	physicalSrc      string
+	physicalDst      string
 }
 
 type Conflict struct {
@@ -60,7 +68,9 @@ type Conflict struct {
 }
 
 type Privilege struct {
-	Required bool `json:"required"`
+	Required  bool   `json:"required"`
+	Satisfied *bool  `json:"satisfied,omitempty"`
+	Reason    string `json:"reason,omitempty"`
 }
 
 type UsePlan struct {
@@ -75,7 +85,8 @@ type UsePlan struct {
 }
 
 func BuildUse(options UseOptions) (UsePlan, error) {
-	targetRoot, err := domain.TargetRoot(options.TargetRoot, true)
+	context := selectedContext(options.Context)
+	scope, err := domain.NewTargetScope(context, options.TargetRoot, true)
 	if err != nil {
 		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
 	}
@@ -85,14 +96,14 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 		return UsePlan{}, err
 	}
 
-	resolvedPackages, err := packages.Resolve(source, packages.ContextHome, options.Refs, options.All)
+	resolvedPackages, err := packages.Resolve(source, scope.Context, options.Refs, options.All)
 	if err != nil {
 		return UsePlan{}, err
 	}
 
 	usePlan := UsePlan{
 		Command:   "package use",
-		Context:   packages.ContextHome,
+		Context:   scope.Context,
 		DryRun:    !options.Apply,
 		Applied:   false,
 		Privilege: Privilege{Required: false},
@@ -107,16 +118,16 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 	for _, pkg := range resolvedPackages {
 		blockedRelPrefixes := make([]string, 0)
 		for _, entry := range packages.Directories(pkg.Entries) {
-			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, targetRoot)
+			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, scope.LogicalRoot)
 			if err != nil {
 				usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 				blockedRelPrefixes = append(blockedRelPrefixes, entry.Rel)
 				continue
 			}
-			class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, &pkg.Identity, entry.Rel)
+			class := target.ClassifyAt(targetPath, scope.PhysicalPath(targetPath), source, scope.Context, scope.LogicalRoot, &pkg.Identity, entry.Rel)
 			switch class.Kind {
 			case target.Absent:
-				usePlan.Actions = append(usePlan.Actions, Action{Type: ActionMkdir, Path: targetPath})
+				usePlan.Actions = append(usePlan.Actions, Action{Type: ActionMkdir, Path: targetPath, physicalPath: scope.PhysicalPath(targetPath)})
 			case target.RealDirectory:
 			default:
 				usePlan.Conflicts = append(usePlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
@@ -128,7 +139,7 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 			if blockedByDirectoryConflict(entry.Rel, blockedRelPrefixes) {
 				continue
 			}
-			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, targetRoot)
+			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, scope.LogicalRoot)
 			if err != nil {
 				usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 				continue
@@ -139,15 +150,16 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 			}
 			plannedTargets[targetPath] = pkg.Identity.String() + ":" + entry.Rel
 
-			class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, &pkg.Identity, entry.Rel)
+			physicalTargetPath := scope.PhysicalPath(targetPath)
+			class := target.ClassifyAt(targetPath, physicalTargetPath, source, scope.Context, scope.LogicalRoot, &pkg.Identity, entry.Rel)
 			switch class.Kind {
 			case target.Absent:
-				payload, err := pathutil.SymlinkPayload(targetPath, entry.Path)
+				payload, err := pathutil.SymlinkPayload(physicalTargetPath, entry.Path)
 				if err != nil {
 					usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 					continue
 				}
-				usePlan.Actions = append(usePlan.Actions, Action{Type: ActionSymlink, LinkPath: targetPath, Payload: payload, Target: entry.Path})
+				usePlan.Actions = append(usePlan.Actions, Action{Type: ActionSymlink, LinkPath: targetPath, physicalLinkPath: physicalTargetPath, Payload: payload, Target: entry.Path})
 			case target.ManagedSelected:
 			default:
 				usePlan.Conflicts = append(usePlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
@@ -159,7 +171,11 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 		usePlan.Actions = []Action{}
 		return usePlan, nil
 	}
+	markPrivilege(&usePlan)
 	if options.Apply {
+		if privilegeDenied(usePlan) {
+			return usePlan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
+		}
 		if err := Apply(usePlan); err != nil {
 			return usePlan, err
 		}
@@ -171,7 +187,8 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 }
 
 func BuildDrop(options DropOptions) (UsePlan, error) {
-	targetRoot, err := domain.TargetRoot(options.TargetRoot, true)
+	context := selectedContext(options.Context)
+	scope, err := domain.NewTargetScope(context, options.TargetRoot, true)
 	if err != nil {
 		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
 	}
@@ -181,14 +198,14 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 		return UsePlan{}, err
 	}
 
-	resolvedPackages, err := packages.Resolve(source, packages.ContextHome, options.Refs, false)
+	resolvedPackages, err := packages.Resolve(source, scope.Context, options.Refs, false)
 	if err != nil {
 		return UsePlan{}, err
 	}
 
 	dropPlan := UsePlan{
 		Command:   "package drop",
-		Context:   packages.ContextHome,
+		Context:   scope.Context,
 		DryRun:    !options.Apply,
 		Applied:   false,
 		Privilege: Privilege{Required: false},
@@ -201,17 +218,18 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 
 	for _, pkg := range resolvedPackages {
 		for _, entry := range packages.Leaves(pkg.Entries) {
-			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, targetRoot)
+			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, scope.LogicalRoot)
 			if err != nil {
 				dropPlan.Conflicts = append(dropPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
 				continue
 			}
 
-			class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, &pkg.Identity, entry.Rel)
+			physicalTargetPath := scope.PhysicalPath(targetPath)
+			class := target.ClassifyAt(targetPath, physicalTargetPath, source, scope.Context, scope.LogicalRoot, &pkg.Identity, entry.Rel)
 			switch class.Kind {
 			case target.Absent:
 			case target.ManagedSelected:
-				dropPlan.Actions = append(dropPlan.Actions, Action{Type: ActionRemoveSymlink, Path: targetPath})
+				dropPlan.Actions = append(dropPlan.Actions, Action{Type: ActionRemoveSymlink, Path: targetPath, physicalPath: physicalTargetPath})
 			default:
 				dropPlan.Conflicts = append(dropPlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
 			}
@@ -222,7 +240,11 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 		dropPlan.Actions = []Action{}
 		return dropPlan, nil
 	}
+	markPrivilege(&dropPlan)
 	if options.Apply {
+		if privilegeDenied(dropPlan) {
+			return dropPlan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
+		}
 		if err := Apply(dropPlan); err != nil {
 			return dropPlan, err
 		}
@@ -231,6 +253,29 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 		dropPlan.DryRun = false
 	}
 	return dropPlan, nil
+}
+
+func selectedContext(context string) string {
+	if context == packages.ContextRoot {
+		return packages.ContextRoot
+	}
+	return packages.ContextHome
+}
+
+func markPrivilege(usePlan *UsePlan) {
+	if usePlan.Context != packages.ContextRoot || len(usePlan.Actions) == 0 {
+		return
+	}
+	satisfied := hasRootPrivilege()
+	usePlan.Privilege = Privilege{
+		Required:  true,
+		Satisfied: &satisfied,
+		Reason:    "root-context write",
+	}
+}
+
+func privilegeDenied(usePlan UsePlan) bool {
+	return usePlan.Privilege.Required && usePlan.Privilege.Satisfied != nil && !*usePlan.Privilege.Satisfied
 }
 
 func blockedByDirectoryConflict(rel string, blockedPrefixes []string) bool {

@@ -1,6 +1,9 @@
 package app
 
-import "github.com/urfave/cli/v3"
+import (
+	"github.com/trippwill/tuck/internal/packages"
+	"github.com/urfave/cli/v3"
+)
 
 func domainFlags() []cli.Flag {
 	return []cli.Flag{
@@ -13,4 +16,11 @@ func mutatingDomainFlags() []cli.Flag {
 	return append(domainFlags(), []cli.Flag{
 		&cli.BoolFlag{Name: "apply", Usage: "execute the plan instead of just printing it"},
 	}...)
+}
+
+func contextFromFlag(cmd *cli.Command) string {
+	if cmd.Bool("root") {
+		return packages.ContextRoot
+	}
+	return packages.ContextHome
 }

@@ -18,7 +18,10 @@ type ErrPackage string
 
 const ErrPackageNotFound ErrPackage = "package not found"
 
-const ContextHome = "home"
+const (
+	ContextHome = "home"
+	ContextRoot = "root"
+)
 
 type Identity struct {
 	Source  string
@@ -74,7 +77,7 @@ func List(options ListOptions) (Listing, error) {
 }
 
 func Base(source state.Source, context string) string {
-	if context == "root" {
+	if context == ContextRoot {
 		return filepath.Join(source.Path, ".root")
 	}
 	return source.Path
@@ -149,6 +152,9 @@ func ResolveForAdopt(source state.Source, context string, rawRef string) (Identi
 func Discover(base string) ([]string, error) {
 	entries, err := os.ReadDir(base)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return []string{}, nil
+		}
 		return nil, err
 	}
 	names := make([]string, 0, len(entries))

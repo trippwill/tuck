@@ -39,7 +39,11 @@ type Class struct {
 }
 
 func Classify(targetPath string, source state.Source, context string, targetRoot string, selected *packages.Identity, selectedRel string) Class {
-	info, err := os.Lstat(targetPath)
+	return ClassifyAt(targetPath, targetPath, source, context, targetRoot, selected, selectedRel)
+}
+
+func ClassifyAt(logicalPath string, physicalPath string, source state.Source, context string, targetRoot string, selected *packages.Identity, selectedRel string) Class {
+	info, err := os.Lstat(physicalPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return Class{Kind: Absent}
@@ -56,7 +60,7 @@ func Classify(targetPath string, source state.Source, context string, targetRoot
 		return Class{Kind: SpecialFile, Message: "target is a special file"}
 	}
 
-	owner, ok := InferOwner(targetPath, source, context, targetRoot)
+	owner, ok := InferOwnerAt(logicalPath, physicalPath, source, context, targetRoot)
 	if !ok {
 		return Class{Kind: UnmanagedSymlink, Message: "target is an unmanaged symlink"}
 	}

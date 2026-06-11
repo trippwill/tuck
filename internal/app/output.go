@@ -140,7 +140,7 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 	}
 
 	mode := "dry-run"
-	if usePlan.Applied {
+	if !usePlan.DryRun {
 		mode = "apply"
 	}
 	fmt.Fprintf(r.out, "tuck %s %s   (context: %s, %s)\n\n", usePlan.Command, packageNames(usePlan.Packages), usePlan.Context, mode)
@@ -173,13 +173,27 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 		}
 	}
 	fmt.Fprintf(r.out, "\n%d actions, %d conflicts\n", len(usePlan.Actions), len(usePlan.Conflicts))
-	if !usePlan.Applied && len(usePlan.Conflicts) == 0 {
+	if usePlan.DryRun && len(usePlan.Conflicts) == 0 {
 		fmt.Fprintln(r.out, "re-run with --apply to execute")
 	}
 	if exitCode != ExitOK {
 		return cli.Exit("", ExitFail)
 	}
 	return nil
+}
+
+func renderPlanError(cmd *cli.Command, usePlan plan.UsePlan, err error) error {
+	r := newRenderer(cmd)
+	if r.json {
+		return r.renderErrorContext(usePlan.Command, usePlan.Context, err)
+	}
+	if renderErr := renderPlan(cmd, usePlan); renderErr != nil {
+		return renderErr
+	}
+	appErr := classifyError(err)
+	fmt.Fprintf(r.err, "error: %s\n", appErr.Message)
+	fmt.Fprintf(r.err, "hint: %s\n", appErr.Hint)
+	return cli.Exit("", ExitFail)
 }
 
 func renderStatus(cmd *cli.Command, result statuspkg.Result) error {
@@ -293,9 +307,13 @@ func renderError(cmd *cli.Command, command string, err error) error {
 }
 
 func (r renderer) renderError(command string, err error) error {
+	return r.renderErrorContext(command, "", err)
+}
+
+func (r renderer) renderErrorContext(command string, context string, err error) error {
 	appErr := classifyError(err)
 	if r.json {
-		if err := r.writeEnvelope(command, "", "error", errorData{Error: appErr}, ExitFail); err != nil {
+		if err := r.writeEnvelope(command, context, "error", errorData{Error: appErr}, ExitFail); err != nil {
 			return err
 		}
 		return cli.Exit("", ExitFail)
@@ -304,6 +322,10 @@ func (r renderer) renderError(command string, err error) error {
 	fmt.Fprintf(r.err, "error: %s\n", appErr.Message)
 	fmt.Fprintf(r.err, "hint: %s\n", appErr.Hint)
 	return cli.Exit("", ExitFail)
+}
+
+func isPrivilegeRequired(err error) bool {
+	return errors.Is(err, plan.ErrPrivilegeRequired)
 }
 
 func classifyError(err error) errorRecord {
@@ -355,6 +377,12 @@ func classifyError(err error) errorRecord {
 			Code:    "io_error",
 			Message: detailMessage(err, "could not apply target-tree plan", plan.ErrApply),
 			Hint:    "retry after fixing filesystem permissions or target state",
+		}
+	case errors.Is(err, plan.ErrPrivilegeRequired):
+		return errorRecord{
+			Code:    "privilege_required",
+			Message: detailMessage(err, "root-context write requires elevated privileges", plan.ErrPrivilegeRequired),
+			Hint:    "re-run with elevated privileges or omit --apply to inspect the plan",
 		}
 	case errors.Is(err, resolve.ErrNoSource):
 		return errorRecord{

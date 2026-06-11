@@ -89,9 +89,6 @@ func packageCommand() *cli.Command {
 }
 
 func packageUseAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Bool("root") {
-		return cli.Exit("error: --root is not implemented for package use yet", ExitFail)
-	}
 	refs := cmd.StringArgs("package")
 	if len(refs) == 0 && !cmd.Bool("all") {
 		return cli.Exit("error: package use requires one or more package refs or --all", ExitFail)
@@ -103,40 +100,42 @@ func packageUseAction(_ context.Context, cmd *cli.Command) error {
 		Refs:     refs,
 		All:      cmd.Bool("all"),
 		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
 		Apply:    cmd.Bool("apply"),
 	})
 	if err != nil {
+		if isPrivilegeRequired(err) {
+			return renderPlanError(cmd, usePlan, err)
+		}
 		return renderError(cmd, "package use", err)
 	}
 	return renderUsePlan(cmd, usePlan)
 }
 
 func packageDropAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Bool("root") {
-		return cli.Exit("error: --root is not implemented for package drop yet", ExitFail)
-	}
 	refs := cmd.StringArgs("package")
 	dropPlan, err := plan.BuildDrop(plan.DropOptions{
 		Refs:     refs,
 		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
 		Apply:    cmd.Bool("apply"),
 	})
 	if err != nil {
+		if isPrivilegeRequired(err) {
+			return renderPlanError(cmd, dropPlan, err)
+		}
 		return renderError(cmd, "package drop", err)
 	}
 	return renderPlan(cmd, dropPlan)
 }
 
 func packageListAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Bool("root") {
-		return cli.Exit("error: --root is not implemented for package list yet", ExitFail)
-	}
 	if cmd.Args().Present() {
 		return cli.Exit("error: package list accepts no arguments", ExitFail)
 	}
 	listing, err := packages.List(packages.ListOptions{
 		SourceID: cmd.String("source"),
-		Context:  packages.ContextHome,
+		Context:  contextFromFlag(cmd),
 	})
 	if err != nil {
 		return renderError(cmd, "package list", err)
@@ -145,9 +144,6 @@ func packageListAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func packageStatusAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Bool("root") {
-		return cli.Exit("error: --root is not implemented for package status yet", ExitFail)
-	}
 	if cmd.Args().Present() {
 		return cli.Exit("error: package status accepts at most one package ref", ExitFail)
 	}
@@ -157,6 +153,7 @@ func packageStatusAction(_ context.Context, cmd *cli.Command) error {
 	}
 	result, err := statuspkg.Package(ref, statuspkg.Options{
 		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
 	})
 	if err != nil {
 		return renderError(cmd, "package status", err)

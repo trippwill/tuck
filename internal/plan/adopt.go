@@ -18,12 +18,14 @@ type AdoptOptions struct {
 	File       string
 	Ref        string
 	SourceID   string
+	Context    string
 	TargetRoot string
 	Apply      bool
 }
 
 func BuildAdopt(options AdoptOptions) (UsePlan, error) {
-	targetRoot, err := domain.TargetRoot(options.TargetRoot, true)
+	context := selectedContext(options.Context)
+	scope, err := domain.NewTargetScope(context, options.TargetRoot, true)
 	if err != nil {
 		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
 	}
@@ -35,14 +37,14 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 	if err != nil {
 		return UsePlan{}, err
 	}
-	identity, err := packages.ResolveForAdopt(source, packages.ContextHome, options.Ref)
+	identity, err := packages.ResolveForAdopt(source, scope.Context, options.Ref)
 	if err != nil {
 		return UsePlan{}, err
 	}
 
 	adoptPlan := UsePlan{
 		Command:   "adopt",
-		Context:   packages.ContextHome,
+		Context:   scope.Context,
 		DryRun:    !options.Apply,
 		Applied:   false,
 		Packages:  []string{identity.String()},
@@ -55,7 +57,7 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 	if err != nil {
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
 	}
-	if !pathutil.Inside(targetPath, targetRoot) {
+	if !pathutil.Inside(targetPath, scope.LogicalRoot) {
 		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictOutsideTargetRoot, targetPath, identity.String(), "target is outside the selected target root"))
 		return adoptPlan, nil
 	}
@@ -66,13 +68,14 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 		}
 	}
 
-	class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, nil, "")
+	physicalTargetPath := scope.PhysicalPath(targetPath)
+	class := target.ClassifyAt(targetPath, physicalTargetPath, source, scope.Context, scope.LogicalRoot, nil, "")
 	if class.Kind != target.RealFile {
 		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(adoptConflictCode(class), targetPath, identity.String(), adoptConflictMessage(class)))
 		return adoptPlan, nil
 	}
 
-	packagePath, _, err := pathutil.TargetToPackage(targetRoot, targetPath, identity.Root)
+	packagePath, _, err := pathutil.TargetToPackage(scope.LogicalRoot, targetPath, identity.Root)
 	if err != nil {
 		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
 		return adoptPlan, nil
@@ -87,7 +90,7 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
 		return adoptPlan, nil
 	}
-	payload, err := pathutil.SymlinkPayload(targetPath, packagePath)
+	payload, err := pathutil.SymlinkPayload(physicalTargetPath, packagePath)
 	if err != nil {
 		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
 		return adoptPlan, nil
@@ -95,11 +98,15 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 
 	adoptPlan.Actions = append(adoptPlan.Actions,
 		Action{Type: ActionMkdir, Path: filepath.Dir(packagePath)},
-		Action{Type: ActionMove, Src: targetPath, Dst: packagePath},
-		Action{Type: ActionSymlink, LinkPath: targetPath, Payload: payload, Target: packagePath},
+		Action{Type: ActionMove, Src: targetPath, physicalSrc: physicalTargetPath, Dst: packagePath},
+		Action{Type: ActionSymlink, LinkPath: targetPath, physicalLinkPath: physicalTargetPath, Payload: payload, Target: packagePath},
 	)
 
+	markPrivilege(&adoptPlan)
 	if options.Apply {
+		if privilegeDenied(adoptPlan) {
+			return adoptPlan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
+		}
 		if err := Apply(adoptPlan); err != nil {
 			return adoptPlan, err
 		}

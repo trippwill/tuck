@@ -18,6 +18,7 @@ const (
 
 type Options struct {
 	SourceID   string
+	Context    string
 	TargetRoot string
 }
 
@@ -40,7 +41,7 @@ type Result struct {
 }
 
 func File(path string, options Options) (Result, error) {
-	source, targetRoot, err := active(options)
+	source, scope, err := active(options)
 	if err != nil {
 		return Result{}, err
 	}
@@ -48,30 +49,30 @@ func File(path string, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, nil, "")
+	class := target.ClassifyAt(targetPath, scope.PhysicalPath(targetPath), source, scope.Context, scope.LogicalRoot, nil, "")
 	return Result{
 		Command: "status",
-		Context: packages.ContextHome,
+		Context: scope.Context,
 		Source:  source.ID,
 		Entries: []Entry{entryFromClass(targetPath, "", "", class, false)},
 	}, nil
 }
 
 func Package(ref string, options Options) (Result, error) {
-	source, targetRoot, err := active(options)
+	source, scope, err := active(options)
 	if err != nil {
 		return Result{}, err
 	}
 	var resolved []packages.Resolved
 	if ref == "" {
-		resolved, err = packages.Resolve(source, packages.ContextHome, nil, true)
+		resolved, err = packages.Resolve(source, scope.Context, nil, true)
 	} else {
 		parsed, parseErr := pkgref.Parse(ref)
 		if parseErr != nil {
 			return Result{}, parseErr
 		}
 		var one packages.Resolved
-		one, err = packages.ResolveOne(source, packages.ContextHome, parsed.Name)
+		one, err = packages.ResolveOne(source, scope.Context, parsed.Name)
 		if err == nil {
 			resolved = []packages.Resolved{one}
 		}
@@ -83,7 +84,7 @@ func Package(ref string, options Options) (Result, error) {
 	entries := make([]Entry, 0)
 	for _, pkg := range resolved {
 		for _, pkgEntry := range packages.Leaves(pkg.Entries) {
-			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, pkgEntry.Path, targetRoot)
+			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, pkgEntry.Path, scope.LogicalRoot)
 			if err != nil {
 				entries = append(entries, Entry{
 					TargetPath: targetPath,
@@ -95,14 +96,14 @@ func Package(ref string, options Options) (Result, error) {
 				})
 				continue
 			}
-			class := target.Classify(targetPath, source, packages.ContextHome, targetRoot, &pkg.Identity, pkgEntry.Rel)
+			class := target.ClassifyAt(targetPath, scope.PhysicalPath(targetPath), source, scope.Context, scope.LogicalRoot, &pkg.Identity, pkgEntry.Rel)
 			entries = append(entries, entryFromClass(targetPath, pkg.Identity.String(), pkgEntry.Path, class, true))
 		}
 	}
 
 	return Result{
 		Command: "package status",
-		Context: packages.ContextHome,
+		Context: scope.Context,
 		Source:  source.ID,
 		Entries: entries,
 	}, nil

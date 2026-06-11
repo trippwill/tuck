@@ -11,13 +11,17 @@ import (
 )
 
 func InferOwner(linkPath string, source state.Source, context string, targetRoot string) (Owner, bool) {
-	payload, err := os.Readlink(linkPath)
+	return InferOwnerAt(linkPath, linkPath, source, context, targetRoot)
+}
+
+func InferOwnerAt(logicalLinkPath string, physicalLinkPath string, source state.Source, context string, targetRoot string) (Owner, bool) {
+	payload, err := os.Readlink(physicalLinkPath)
 	if err != nil {
 		return Owner{}, false
 	}
 	targetAbs := payload
 	if !filepath.IsAbs(payload) {
-		targetAbs = filepath.Join(filepath.Dir(linkPath), payload)
+		targetAbs = filepath.Join(filepath.Dir(physicalLinkPath), payload)
 	}
 	targetAbs = filepath.Clean(targetAbs)
 	base := filepath.Clean(packages.Base(source, context))
@@ -49,6 +53,6 @@ func InferOwner(linkPath string, source state.Source, context string, targetRoot
 		PackageRel:     packageRel,
 		EntryPath:      targetAbs,
 		ExpectedTarget: expectedTarget,
-		Mismatch:       filepath.Clean(linkPath) != expectedTarget,
+		Mismatch:       filepath.Clean(logicalLinkPath) != expectedTarget,
 	}, true
 }
