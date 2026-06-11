@@ -53,11 +53,283 @@ stdout '.config/zsh/.zshrc'
 phase status-usage fixtures/target/status/common
 wantstate public public $WORK/src true
 ! exec tuck status --no-color
-stderr 'requires exactly one'
+stderr 'Incorrect Usage'
 ! exec tuck status one two --no-color
-stderr 'requires exactly one'
+stderr 'status accepts exactly one <file>'
+
+# adopt dry-run prints a move/link plan and does not mutate
+phase adopt-dry-run fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
+exec tuck adopt $WORK/home/.config/nvim/init.lua nvim --no-color
+stdout 'tuck adopt nvim'
+stdout 'context: home, dry-run'
+stdout 'packages: public:home:nvim'
+stdout 'plan:'
+stdout '\+ mkdir'
+stdout '\+ move'
+stdout '\+ link'
+stdout '3 actions, 0 conflicts'
+stdout 're-run with --apply to execute'
+exists $WORK/home/.config/nvim/init.lua
+! exists $WORK/src/nvim/.config/nvim/init.lua
+! stderr .
+
+# adopt --apply moves a file into a new package and links it back
+phase adopt-apply-new-package fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
+exec tuck adopt $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+stdout 'context: home, apply'
+stdout '3 actions, 0 conflicts'
+readlink $WORK/home/.config/nvim/init.lua ../../../src/nvim/.config/nvim/init.lua
+exists $WORK/src/nvim/.config/nvim/init.lua
+! stderr .
+
+# adopt can add a new leaf to an existing package
+phase adopt-existing-package fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zprofile
+exec tuck adopt $WORK/home/.config/zsh/.zprofile zsh --apply --no-color
+stdout 'public:home:zsh'
+stdout '3 actions, 0 conflicts'
+readlink $WORK/home/.config/zsh/.zprofile ../../../src/zsh/.config/zsh/.zprofile
+exists $WORK/src/zsh/.config/zsh/.zprofile
+! stderr .
+
+# adopt emits the plan JSON envelope
+phase adopt-json fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
+exec tuck --json adopt $WORK/home/.config/nvim/init.lua nvim
+stdout '"schemaVersion":1'
+stdout '"command":"adopt"'
+stdout '"context":"home"'
+stdout '"kind":"plan"'
+stdout '"dryRun":true'
+stdout '"applied":false'
+stdout 'public:home:nvim'
+stdout '"type":"move"'
+stdout '"src":"'$WORK'/home/.config/nvim/init.lua"'
+stdout '"dst":"'$WORK'/src/nvim/.config/nvim/init.lua"'
+stdout '"type":"symlink"'
+stdout '"conflicts":\[\]'
+stdout '"exitCode":0'
+exists $WORK/home/.config/nvim/init.lua
+! exists $WORK/src/nvim/.config/nvim/init.lua
+! stderr .
+
+# adopt reports target and package-path conflicts without mutating
+phase adopt-conflicts fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+mkdir $WORK/home/.config/nvim/init.lua
+! exec tuck adopt $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+stdout 'conflicts:'
+stdout 'real_directory'
+stdout '0 actions, 1 conflicts'
+mkdir $WORK/home/.config/zsh
+cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
+! exec tuck adopt $WORK/home/.config/zsh/.zshrc zsh --apply --no-color
+stdout 'package_path_exists'
+stdout '0 actions, 1 conflicts'
+exists $WORK/home/.config/zsh/.zshrc
+exists $WORK/src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# adopt rejects files inside an enabled source repository
+phase adopt-inside-source fixtures/target/status/common
+exec cp -R $WORK/src $WORK/home/.dotfiles
+wantstate public public $WORK/home/.dotfiles true
+! exec tuck adopt $WORK/home/.dotfiles/zsh/.config/zsh/.zshrc zsh --no-color
+stdout 'inside_source_repo'
+stdout '0 actions, 1 conflicts'
+exists $WORK/home/.dotfiles/zsh/.config/zsh/.zshrc
+! stderr .
+
+# adopt reports source/ref errors, usage validation, and root gating
+phase adopt-errors fixtures/target/status/common
+! exec tuck adopt $WORK/home/file nvim --no-color
+stderr 'no active source'
+wantstate public public $WORK/src true
+! exec tuck adopt --no-color
+stderr 'Incorrect Usage'
+! exec tuck adopt one --no-color
+stderr 'Incorrect Usage'
+! exec tuck adopt one two three --no-color
+stderr 'adopt accepts exactly <file> <package>'
+! exec tuck adopt $WORK/home/file bad/ref --no-color
+stderr 'error: package reference is invalid'
+! exec tuck adopt --source missing $WORK/home/file nvim --no-color
+stderr 'source is not enabled'
+! exec tuck adopt --root /etc/hosts nvim --no-color
+stderr 'root'
+! stdout .
+
+# eject dry-run prints an unlink/move plan and does not mutate
+phase eject-dry-run fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck eject $WORK/home/.config/zsh/.zshrc --no-color
+stdout 'tuck eject zsh'
+stdout 'context: home, dry-run'
+stdout 'packages: public:home:zsh'
+stdout 'plan:'
+stdout '- unlink'
+stdout '\+ move'
+stdout '- rmdir'
+stdout '4 actions, 0 conflicts'
+stdout 're-run with --apply to execute'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+exists $WORK/src/zsh/.config/zsh/.zshrc
+exists $WORK/src/zsh/.config/zsh
+exists $WORK/src/zsh/.config
+exists $WORK/src/zsh
+! stderr .
+
+# eject --apply removes the managed symlink and restores the real target file
+phase eject-apply fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck eject $WORK/home/.config/zsh/.zshrc --apply --no-color
+stdout 'context: home, apply'
+stdout '4 actions, 0 conflicts'
+exists $WORK/home/.config/zsh/.zshrc
+! exists $WORK/src/zsh/.config/zsh/.zshrc
+! exists $WORK/src/zsh/.config/zsh
+! exists $WORK/src/zsh/.config
+exists $WORK/src/zsh
+cmp $WORK/home/.config/zsh/.zshrc fixtures/target/status/common/zsh/.config/zsh/.zshrc
+! stderr .
+
+# eject emits the plan JSON envelope
+phase eject-json fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck --json eject $WORK/home/.config/zsh/.zshrc
+stdout '"schemaVersion":1'
+stdout '"command":"eject"'
+stdout '"context":"home"'
+stdout '"kind":"plan"'
+stdout '"dryRun":true'
+stdout '"applied":false'
+stdout 'public:home:zsh'
+stdout '"type":"remove_symlink"'
+stdout '"type":"move"'
+stdout '"src":"'$WORK'/src/zsh/.config/zsh/.zshrc"'
+stdout '"dst":"'$WORK'/home/.config/zsh/.zshrc"'
+stdout '"type":"rmdir"'
+stdout '"path":"'$WORK'/src/zsh/.config/zsh"'
+stdout '"path":"'$WORK'/src/zsh/.config"'
+stdout '"exitCode":0'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# eject preserves source directories that still contain sibling leaves
+phase eject-preserves-sibling-leaf fixtures/target/status/common fixtures/target/eject/sibling-leaf
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck eject $WORK/home/.config/zsh/.zshrc --apply --no-color
+stdout '2 actions, 0 conflicts'
+! stdout 'rmdir'
+exists $WORK/src/zsh/.config/zsh
+exists $WORK/src/zsh/.config/zsh/.zprofile
+! stderr .
+
+# eject preserves source directories that still contain extra entries
+phase eject-preserves-extra-entry fixtures/target/status/common fixtures/target/eject/extra-entry
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zshrc
+exec tuck eject $WORK/home/.config/zsh/.zshrc --apply --no-color
+stdout '2 actions, 0 conflicts'
+! stdout 'rmdir'
+exists $WORK/src/zsh/.config/zsh
+exists $WORK/src/zsh/.config/zsh/plugins
+! stderr .
+
+# eject infers ownership only in the active source and honors --source
+phase eject-active-source fixtures/target/status/common
+wantstate public public $WORK/src true private $WORK/fixtures/target/eject/private-source true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> $WORK/fixtures/target/eject/private-source/zsh/.config/zsh/.zshrc
+! exec tuck eject $WORK/home/.config/zsh/.zshrc --no-color
+stdout 'not_a_managed_symlink'
+stdout '0 actions, 1 conflicts'
+exec tuck eject --source private $WORK/home/.config/zsh/.zshrc --no-color
+stdout 'packages: private:home:zsh'
+stdout '4 actions, 0 conflicts'
+! stderr .
+
+# eject reports unmanaged links, mismatches, and invalid package payloads
+phase eject-conflicts fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zlogin -> ../../unmanaged
+! exec tuck eject $WORK/home/.config/zsh/.zlogin --no-color
+stdout 'not_a_managed_symlink'
+stdout '0 actions, 1 conflicts'
+mkdir $WORK/home/wrong
+symlink $WORK/home/wrong/.zshrc -> ../../src/zsh/.config/zsh/.zshrc
+! exec tuck eject $WORK/home/wrong/.zshrc --no-color
+stdout 'path_mismatch'
+stdout '0 actions, 1 conflicts'
+symlink $WORK/home/.config/zsh/missing -> ../../../src/zsh/.config/zsh/missing
+! exec tuck eject $WORK/home/.config/zsh/missing --no-color
+stdout 'package file does not exist'
+stdout '0 actions, 1 conflicts'
+rm $WORK/home/.config/zsh/missing
+rm $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh -> ../../src/zsh/.config/zsh
+! exec tuck eject $WORK/home/.config/zsh --no-color
+stdout 'package path is a directory'
+stdout '0 actions, 1 conflicts'
+! stderr .
+
+# eject reports usage validation and root gating
+phase eject-errors fixtures/target/status/common
+wantstate public public $WORK/src true
+! exec tuck eject --no-color
+stderr 'Incorrect Usage'
+! exec tuck eject one two --no-color
+stderr 'eject accepts exactly one <file>'
+! exec tuck eject --root /etc/hosts --no-color
+stderr 'root'
+! stdout .
 
 -- fixtures/target/status/common/tuck.toml --
 name = "public"
 -- fixtures/target/status/common/zsh/.config/zsh/.zshrc --
 # zshrc
+-- fixtures/target/adopt/init.lua --
+vim.o.number = true
+-- fixtures/target/adopt/zprofile --
+# zprofile
+-- fixtures/target/eject/private-source/tuck.toml --
+name = "private"
+-- fixtures/target/eject/private-source/zsh/.config/zsh/.zshrc --
+# private zshrc
+-- fixtures/target/eject/sibling-leaf/zsh/.config/zsh/.zprofile --
+# zprofile
+-- fixtures/target/eject/extra-entry/zsh/.config/zsh/plugins/README --
+plugins

@@ -38,6 +38,8 @@ type Action struct {
 	LinkPath string `json:"linkPath,omitempty"`
 	Payload  string `json:"payload,omitempty"`
 	Target   string `json:"target,omitempty"`
+	Src      string `json:"src,omitempty"`
+	Dst      string `json:"dst,omitempty"`
 }
 
 type Conflict struct {

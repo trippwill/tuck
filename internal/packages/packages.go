@@ -133,6 +133,19 @@ func ResolveOne(source state.Source, context string, name string) (Resolved, err
 	}, nil
 }
 
+func ResolveForAdopt(source state.Source, context string, rawRef string) (Identity, error) {
+	ref, err := pkgref.Parse(rawRef)
+	if err != nil {
+		return Identity{}, err
+	}
+	return Identity{
+		Source:  source.ID,
+		Context: context,
+		Name:    ref.Name,
+		Root:    filepath.Join(Base(source, context), ref.Name),
+	}, nil
+}
+
 func Discover(base string) ([]string, error) {
 	entries, err := os.ReadDir(base)
 	if err != nil {

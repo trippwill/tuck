@@ -2,6 +2,7 @@ words = [
     "Wrapf",
     "apperr",
     "pathutil",
+    "statuspkg",
     "testhooks",
     "tuckcli",
     "undeploy",

@@ -1,6 +1,9 @@
 package pathutil
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 func TestInsideIsPathSegmentAware(t *testing.T) {
 	if !Inside("/home/me/.dotfiles/zsh", "/home/me/.dotfiles") {
@@ -28,5 +31,35 @@ func TestSymlinkPayload(t *testing.T) {
 	}
 	if got != "../../../../src/zsh/.config/zsh/.zshrc" {
 		t.Fatalf("SymlinkPayload() = %q", got)
+	}
+}
+
+func TestExpandInput(t *testing.T) {
+	root := t.TempDir()
+	home := filepath.Join(root, "home")
+	t.Setenv("HOME", home)
+	t.Chdir(filepath.Join(root))
+
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{name: "home", raw: "~", want: home},
+		{name: "home child", raw: "~/dot/../file", want: filepath.Join(home, "file")},
+		{name: "relative", raw: "relative/../file", want: filepath.Join(root, "file")},
+		{name: "absolute", raw: filepath.Join(root, "abs/../file"), want: filepath.Join(root, "file")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ExpandInput(tt.raw)
+			if err != nil {
+				t.Fatalf("ExpandInput() error = %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("ExpandInput() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

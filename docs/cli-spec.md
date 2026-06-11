@@ -413,7 +413,8 @@ tuck [--json] eject [--source <id>] [--root] [--apply] <file>
 - **Behavior:** expand `<file>` without following the final symlink; classify in
   the active source/context; reject unless it is a managed symlink whose link
   path matches the package-relative target and whose package file exists and is
-  not a directory. Plan: remove symlink, move package-to-target.
+  not a directory. Plan: remove symlink, move package-to-target, and remove
+  now-empty intermediate source/package directories below the package root.
 - **Execution:** dry-run by default; mutates only with `--apply`.
 
 ### 7.3 `status`
@@ -545,11 +546,12 @@ tuck [--json] source default <id>
 
 ## 8. Plan and action model
 
-Mutating target-tree commands emit an ordered list of actions:
+Mutating commands that plan filesystem changes emit an ordered list of actions:
 
 | Action | Fields | Meaning |
 | --- | --- | --- |
 | `mkdir` | `path` | Create a real directory in the target tree. |
+| `rmdir` | `path` | Remove an empty directory left behind in a source package tree. |
 | `symlink` | `linkPath`, `payload`, `target` | Create a symlink. `payload` is relative link text; `target` is the resolved destination. |
 | `copy` | `src`, `dst`, `mode` | Copy a package file to the target tree and optionally set its mode. |
 | `remove_symlink` | `path` | Remove a managed target symlink. |
@@ -1100,7 +1102,9 @@ does not already exist.
 **Eject.** Requires: target is a symlink managed in the selected context, managed
 package file exists and is not a directory, symlink path matches the
 package-relative target path, and materializing the file does not overwrite
-unrelated content.
+unrelated content. After moving the package file back to the target, eject
+removes empty intermediate directories along the source/package path, stopping
+before the package root.
 
 ### 12.7 Operation algorithms
 
@@ -1201,9 +1205,13 @@ reject if packagePath is a directory
 
 plan remove_symlink targetPath
 plan move packagePath -> targetPath
+for dir in parents(dirname(packagePath), stop before owner.packageRoot), deepest first:
+    if dir will be empty after the move and earlier planned rmdir actions:
+        plan rmdir dir
 ```
 
-The now-empty package directory is left in place.
+The package root itself is left in place. Removing a package is a separate
+operation.
 
 ### 12.8 Listing algorithms
 

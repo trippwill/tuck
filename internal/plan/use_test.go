@@ -32,3 +32,75 @@ func TestApplyCreatesRelativeSymlink(t *testing.T) {
 		t.Fatalf("payload = %q", got)
 	}
 }
+
+func TestApplyMovesFile(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "home/file")
+	dst := filepath.Join(root, "src/pkg/file")
+	if err := os.MkdirAll(filepath.Dir(src), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, []byte("contents"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := UsePlan{Actions: []Action{{Type: "move", Src: src, Dst: dst}}}
+	if err := Apply(plan); err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+	if _, err := os.Lstat(src); !os.IsNotExist(err) {
+		t.Fatalf("source exists after move, err = %v", err)
+	}
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	if string(got) != "contents" {
+		t.Fatalf("moved contents = %q", got)
+	}
+}
+
+func TestApplyRemovesEmptyDirectory(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "src/pkg/.config/zsh")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Apply(UsePlan{Actions: []Action{{Type: "rmdir", Path: dir}}}); err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+	if _, err := os.Lstat(dir); !os.IsNotExist(err) {
+		t.Fatalf("directory exists after rmdir, err = %v", err)
+	}
+}
+
+func TestApplyRmdirReportsNonEmptyDirectory(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "src/pkg/.config/zsh")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "file"), []byte("contents"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Apply(UsePlan{Actions: []Action{{Type: "rmdir", Path: dir}}}); err == nil {
+		t.Fatal("Apply() error = nil, want error")
+	}
+}
+
+func TestApplyMoveReportsErrors(t *testing.T) {
+	root := t.TempDir()
+	err := Apply(UsePlan{Actions: []Action{{
+		Type: "move",
+		Src:  filepath.Join(root, "missing"),
+		Dst:  filepath.Join(root, "dst"),
+	}}})
+	if err == nil {
+		t.Fatal("Apply() error = nil, want error")
+	}
+}

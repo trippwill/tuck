@@ -1,6 +1,7 @@
 package pathutil
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -61,4 +62,29 @@ func TargetToPackage(targetRoot, targetPath, packageRoot string) (string, string
 
 func SymlinkPayload(linkPath, targetPath string) (string, error) {
 	return filepath.Rel(filepath.Dir(linkPath), targetPath)
+}
+
+func ExpandInput(raw string) (string, error) {
+	path := raw
+	if path == "~" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		path = home
+	} else if strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		path = filepath.Join(home, strings.TrimPrefix(path, "~/"))
+	}
+	if !filepath.IsAbs(path) {
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			return "", err
+		}
+		path = abs
+	}
+	return filepath.Clean(path), nil
 }

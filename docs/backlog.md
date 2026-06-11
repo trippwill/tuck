@@ -74,8 +74,8 @@ building every engine primitive before the first command runs._
 
 **Vertical E — Adopt / eject**
 
-24. [ ] **M24** `adopt` a real file into a package and link it back `[cmd]`
-25. [ ] **M25** `eject` a managed file back to its target location (active-source ownership; `--source` valid) `[cmd]`
+24. [x] **M24** `adopt` a real file into a package and link it back `[cmd]`
+25. [x] **M25** `eject` a managed file back to its target location (active-source ownership; `--source` valid) `[cmd]`
 
 **Vertical F — Root context**
 
@@ -140,6 +140,6 @@ _Unordered idea bucket; IDs are for reference only._
 9. [ ] **P9** Explore Windows support `[eng]`
 10. [ ] **P10** Explore a watch / auto-refresh mode `[cmd]`
 11. [ ] **P11** Add a machine-local source-id override (e.g. `source add --id <id>`) to resolve manifest-name collisions between repos `[cmd]`
-12. [ ] **P12** Optionally prune now-empty intermediate directories left behind after `package drop` / `eject` `[cmd]`
+12. [ ] **P12** Optionally prune now-empty intermediate directories left behind after `package drop` `[cmd]`
 13. [ ] **P13** Explore a boilerplate generator tool for const sentinel errors `[eng]`
 14. [ ] **P14** Explore per-file hardlink deployment for symlink-hostile files on the same filesystem `[engine]`

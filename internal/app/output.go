@@ -152,10 +152,14 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 		switch action.Type {
 		case "mkdir":
 			fmt.Fprintf(r.out, "  + mkdir  %s\n", action.Path)
+		case "rmdir":
+			fmt.Fprintf(r.out, "  - rmdir  %s\n", action.Path)
 		case "symlink":
 			fmt.Fprintf(r.out, "  + link   %s -> %s\n", action.LinkPath, action.Target)
 		case "remove_symlink":
 			fmt.Fprintf(r.out, "  - unlink %s\n", action.Path)
+		case "move":
+			fmt.Fprintf(r.out, "  + move   %s -> %s\n", action.Src, action.Dst)
 		}
 	}
 	if len(usePlan.Conflicts) > 0 {
@@ -349,7 +353,7 @@ func classifyError(err error) errorRecord {
 	case errors.Is(err, plan.ErrApply):
 		return errorRecord{
 			Code:    "io_error",
-			Message: "could not apply package use plan",
+			Message: "could not apply target-tree plan",
 			Hint:    "retry after fixing filesystem permissions or target state",
 		}
 	case errors.Is(err, resolve.ErrNoSource):
@@ -376,8 +380,8 @@ func classifyError(err error) errorRecord {
 func trimSentinel(err error, sentinel string) string {
 	message := err.Error()
 	prefix := sentinel + ": "
-	if strings.HasPrefix(message, prefix) {
-		return strings.TrimPrefix(message, prefix)
+	if after, ok := strings.CutPrefix(message, prefix); ok {
+		return after
 	}
 	return message
 }
