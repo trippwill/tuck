@@ -311,49 +311,49 @@ func classifyError(err error) errorRecord {
 	case errors.Is(err, state.ErrSourceRoot):
 		return errorRecord{
 			Code:    "source_root_missing",
-			Message: "source root is missing or invalid",
+			Message: detailMessage(err, "source root is missing or invalid", state.ErrSourceRoot),
 			Hint:    "pass the path to an existing source repository",
 		}
 	case errors.Is(err, state.ErrInvalid):
 		return errorRecord{
 			Code:    "state_invalid",
-			Message: "machine source state is invalid",
+			Message: detailMessage(err, "machine source state is invalid", state.ErrInvalid),
 			Hint:    "fix or remove the machine-local sources.toml",
 		}
 	case errors.Is(err, state.ErrWrite):
 		return errorRecord{
 			Code:    "io_error",
-			Message: "could not write machine source state",
+			Message: detailMessage(err, "could not write machine source state", state.ErrWrite),
 			Hint:    "retry after fixing filesystem permissions or disk state",
 		}
 	case errors.Is(err, manifest.ErrMissing):
 		return errorRecord{
 			Code:    "manifest_missing",
-			Message: "source manifest is missing",
+			Message: detailMessage(err, "source manifest is missing", manifest.ErrMissing),
 			Hint:    "create tuck.toml in the source repository with a valid name",
 		}
 	case errors.Is(err, manifest.ErrInvalid):
 		return errorRecord{
 			Code:    "manifest_invalid",
-			Message: "source manifest is invalid",
+			Message: detailMessage(err, "source manifest is invalid", manifest.ErrInvalid),
 			Hint:    "fix tuck.toml in the source repository",
 		}
 	case errors.Is(err, pkgref.ErrInvalidRef):
 		return errorRecord{
 			Code:    "invalid_ref",
-			Message: "package reference is invalid",
+			Message: detailMessage(err, "package reference is invalid", pkgref.ErrInvalidRef),
 			Hint:    "pass a plain package name that does not start with '.' and does not contain '/', '..', ':', or a source prefix",
 		}
 	case errors.Is(err, packages.ErrPackageNotFound):
 		return errorRecord{
 			Code:    "package_not_found",
-			Message: trimSentinel(err, packages.ErrPackageNotFound.Error()),
+			Message: detailMessage(err, packages.ErrPackageNotFound.Error(), packages.ErrPackageNotFound),
 			Hint:    "run tuck pkg list to see packages in the active source",
 		}
 	case errors.Is(err, plan.ErrApply):
 		return errorRecord{
 			Code:    "io_error",
-			Message: "could not apply target-tree plan",
+			Message: detailMessage(err, "could not apply target-tree plan", plan.ErrApply),
 			Hint:    "retry after fixing filesystem permissions or target state",
 		}
 	case errors.Is(err, resolve.ErrNoSource):
@@ -371,17 +371,31 @@ func classifyError(err error) errorRecord {
 	default:
 		return errorRecord{
 			Code:    "io_error",
-			Message: "runtime error",
+			Message: detailMessage(err, "runtime error"),
 			Hint:    "retry after fixing filesystem permissions or disk state",
 		}
 	}
 }
 
-func trimSentinel(err error, sentinel string) string {
-	message := err.Error()
-	prefix := sentinel + ": "
-	if after, ok := strings.CutPrefix(message, prefix); ok {
-		return after
+func detailMessage(err error, fallback string, sentinels ...error) string {
+	if err == nil {
+		return fallback
+	}
+	message := strings.TrimSpace(err.Error())
+	if message == "" {
+		return fallback
+	}
+	for _, sentinel := range sentinels {
+		if sentinel == nil {
+			continue
+		}
+		sentinelText := sentinel.Error()
+		if message == sentinelText {
+			return fallback
+		}
+		if after, ok := strings.CutPrefix(message, sentinelText+": "); ok && after != "" {
+			return after
+		}
 	}
 	return message
 }
