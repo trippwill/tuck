@@ -565,8 +565,18 @@ Planning rules:
 3. If any conflict exists, print conflicts, exit `1`, and mutate nothing.
 4. If conflict-free, print the planned actions.
 5. Mutate only when `--apply` is given.
-6. Apply actions in listed order. For `package refresh`, removals precede
+6. Before the first mutation, preflight the ordered action list against the
+   current filesystem plus the planned effects of earlier actions. If preflight
+   finds a predictable failure, exit `1` and mutate nothing.
+7. Apply actions in listed order. For `package refresh`, removals precede
    creations.
+
+Apply preflight is a best-effort safety gate, not a transaction or rollback
+system. It validates action requirements that can be known before mutation, such
+as destination existence, parent-directory usability, symlink-vs-directory
+expectations, and whether later `rmdir` actions will see directories as empty
+after earlier planned removals or moves. Execution still checks each action when
+it runs because the filesystem may change after preflight.
 
 Collision and deduplication rules:
 
@@ -1235,12 +1245,13 @@ a ref, summarize every package in the active source/context.
 
 ### 12.9 Execution planning
 
-Mutations are explicit actions: `mkdir`, `symlink`, `remove_symlink`, and
-`move`. Planning resolves the active source, packages, target paths, and
+Mutations are explicit actions: `mkdir`, `rmdir`, `symlink`, `remove_symlink`,
+and `move`. Planning resolves the active source, packages, target paths, and
 ownership before mutating; accumulates all conflicts; exits `1` without mutation
-on any conflict; prints actions on a clean plan; and mutates only with `--apply`.
-Root-context mutations make their privilege requirement visible in the plan and
-never self-escalate.
+on any conflict; prints actions on a clean plan; mutates only with `--apply`;
+and preflights the full action list before the first mutation. Root-context
+mutations make their privilege requirement visible in the plan and never
+self-escalate.
 
 ---
 
