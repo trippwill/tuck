@@ -44,7 +44,7 @@ Scope this slice deliberately:
 - Source registry and active source resolution are implemented:
   `state.Load()` and `resolve.ActiveSource(registry, explicitID)`.
 - Generated `apperr` helpers are available. New engine packages should define
-  string sentinel types with `//go:generate go run ../../cmd/errgen -types ...`.
+  string sentinel types with `//go:generate go run ../../cmd/errgen -type ...`.
 - `internal/pathutil` is still a scaffold and is available for path-segment-aware
   primitives.
 - Acceptance harness has `wanthome` and `readlink`; no package-use suite exists.

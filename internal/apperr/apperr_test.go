@@ -80,6 +80,38 @@ func TestErrorStringIncludesSentinelMessageAndCause(t *testing.T) {
 	}
 }
 
+func TestNestedAppErrUsesStandardErrorTraversal(t *testing.T) {
+	rootCause := errors.New("disk failed")
+	inner := AppErrWrapf(errMissing, rootCause, "could not read manifest")
+	outer := AppErrWrapf(errInvalid, inner, "invalid registry")
+
+	if !errors.Is(outer, errInvalid) {
+		t.Fatalf("errors.Is(outer, errInvalid) = false, want true")
+	}
+	if !errors.Is(outer, errMissing) {
+		t.Fatalf("errors.Is(outer, errMissing) = false, want true")
+	}
+	if !errors.Is(outer, rootCause) {
+		t.Fatalf("errors.Is(outer, rootCause) = false, want true")
+	}
+	if got, want := outer.Error(), "invalid: invalid registry: missing: could not read manifest: disk failed"; got != want {
+		t.Fatalf("Error() = %q, want %q", got, want)
+	}
+}
+
+func TestNestedAppErrAsReturnsOutermostAppError(t *testing.T) {
+	inner := AppErrMsgf(errMissing, "could not read manifest")
+	outer := AppErrWrapf(errInvalid, inner, "invalid registry")
+
+	var appErr *Error[testErr]
+	if !errors.As(outer, &appErr) {
+		t.Fatalf("errors.As(outer, *Error[testErr]) = false, want true")
+	}
+	if got := appErr.Sentinel(); got != errInvalid {
+		t.Fatalf("Sentinel() = %v, want outer sentinel %v", got, errInvalid)
+	}
+}
+
 func TestNilErrorReceiver(t *testing.T) {
 	var err *Error[testErr]
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//go:generate go run ../../cmd/errgen -types ErrRef
+//go:generate go run ../../cmd/errgen -type ErrRef
 type ErrRef string
 
 const ErrInvalidRef ErrRef = "invalid package reference"

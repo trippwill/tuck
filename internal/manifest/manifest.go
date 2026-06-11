@@ -8,7 +8,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-//go:generate go run ../../cmd/errgen -types ErrManifest
+//go:generate go run ../../cmd/errgen -type ErrManifest
 type ErrManifest string
 
 const (

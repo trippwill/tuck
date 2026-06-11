@@ -65,11 +65,11 @@ readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
 phase package-use-invalid-ref fixtures/package/common/public-only
 wantstate public public $WORK/src true
 ! exec tuck pkg use ../zsh --no-color
-stderr 'error: package reference is invalid'
+stderr 'error: invalid package ref "../zsh"'
 stderr 'hint: pass a plain package name'
 ! stdout .
 ! exec tuck pkg use .hidden --no-color
-stderr 'error: package reference is invalid'
+stderr 'error: invalid package ref ".hidden"'
 stderr 'hint: pass a plain package name'
 ! stdout .
 
@@ -377,7 +377,7 @@ stderr 'Incorrect Usage'
 stderr 'sufficient count of arg package not provided'
 stdout 'USAGE'
 ! exec tuck pkg drop bad/ref --no-color
-stderr 'error: package reference is invalid'
+stderr 'error: invalid package ref "bad/ref"'
 ! stdout .
 ! exec tuck pkg drop missing --no-color
 stderr 'error: package "missing" not found in source "public"'

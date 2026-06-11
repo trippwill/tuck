@@ -168,7 +168,7 @@ stderr 'Incorrect Usage'
 ! exec tuck adopt one two three --no-color
 stderr 'adopt accepts exactly <file> <package>'
 ! exec tuck adopt $WORK/home/file bad/ref --no-color
-stderr 'error: package reference is invalid'
+stderr 'error: invalid package ref "bad/ref"'
 ! exec tuck adopt --source missing $WORK/home/file nvim --no-color
 stderr 'source is not enabled'
 ! exec tuck adopt --root /etc/hosts nvim --no-color

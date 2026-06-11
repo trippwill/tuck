@@ -6,26 +6,20 @@ import "github.com/trippwill/tuck/internal/apperr"
 
 func (k ErrPlan) Error() string { return string(k) }
 
-type PlanErr interface {
-	error
-	comparable
-	ErrPlan
-}
+type Error = apperr.Error[ErrPlan]
 
-type Error[S PlanErr] = apperr.Error[S]
-
-func AppErrMsg[S PlanErr](sentinel S, msg string) error {
+func AppErrMsg(sentinel ErrPlan, msg string) error {
 	return apperr.AppErrMsg(sentinel, msg)
 }
 
-func AppErrMsgf[S PlanErr](sentinel S, format string, args ...any) error {
+func AppErrMsgf(sentinel ErrPlan, format string, args ...any) error {
 	return apperr.AppErrMsgf(sentinel, format, args...)
 }
 
-func AppErrWrap[S PlanErr](sentinel S, err error) error {
+func AppErrWrap(sentinel ErrPlan, err error) error {
 	return apperr.AppErrWrap(sentinel, err)
 }
 
-func AppErrWrapf[S PlanErr](sentinel S, err error, format string, args ...any) error {
+func AppErrWrapf(sentinel ErrPlan, err error, format string, args ...any) error {
 	return apperr.AppErrWrapf(sentinel, err, format, args...)
 }

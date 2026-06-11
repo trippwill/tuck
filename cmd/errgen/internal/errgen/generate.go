@@ -11,41 +11,36 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unicode"
 )
 
 const apperrImport = "github.com/trippwill/tuck/internal/apperr"
 
 type Options struct {
-	TypeNames      []string
+	TypeName       string
 	ConstraintName string
 	Dir            string
 	Output         string
 }
 
 func Generate(options Options) ([]byte, error) {
-	if len(options.TypeNames) == 0 {
-		return nil, errors.New("-types is required")
-	}
-	typeNames, err := normalizeTypeNames(options.TypeNames)
+	typeName, err := normalizeTypeName(options.TypeName)
 	if err != nil {
 		return nil, err
+	}
+	if options.ConstraintName != "" {
+		return nil, errors.New("-constraint is not supported; errgen uses one sentinel type per package")
 	}
 	dir := options.Dir
 	if dir == "" {
 		dir = "."
 	}
 
-	info, err := inspectPackage(dir, typeNames)
+	info, err := inspectPackage(dir, typeName)
 	if err != nil {
 		return nil, err
 	}
-	constraintName := options.ConstraintName
-	if constraintName == "" {
-		constraintName = exportedName(info.PackageName) + "Err"
-	}
 
-	source, err := render(info.PackageName, typeNames, constraintName)
+	source, err := render(info.PackageName, typeName)
 	if err != nil {
 		return nil, err
 	}
@@ -65,27 +60,18 @@ type packageInfo struct {
 	PackageName string
 }
 
-func normalizeTypeNames(typeNames []string) ([]string, error) {
-	normalized := make([]string, 0, len(typeNames))
-	seen := make(map[string]struct{}, len(typeNames))
-	for _, typeName := range typeNames {
-		typeName = strings.TrimSpace(typeName)
-		if typeName == "" {
-			continue
-		}
-		if _, ok := seen[typeName]; ok {
-			return nil, fmt.Errorf("duplicate type %q", typeName)
-		}
-		seen[typeName] = struct{}{}
-		normalized = append(normalized, typeName)
+func normalizeTypeName(typeName string) (string, error) {
+	typeName = strings.TrimSpace(typeName)
+	if typeName == "" {
+		return "", errors.New("-type is required")
 	}
-	if len(normalized) == 0 {
-		return nil, errors.New("-types is required")
+	if strings.Contains(typeName, ",") {
+		return "", errors.New("-type must name exactly one sentinel type")
 	}
-	return normalized, nil
+	return typeName, nil
 }
 
-func inspectPackage(dir string, typeNames []string) (packageInfo, error) {
+func inspectPackage(dir string, sentinelType string) (packageInfo, error) {
 	files, err := parseFiles(dir)
 	if err != nil {
 		return packageInfo{}, err
@@ -95,13 +81,9 @@ func inspectPackage(dir string, typeNames []string) (packageInfo, error) {
 	}
 
 	packageName := files[0].Name.Name
-	selected := make(map[string]struct{}, len(typeNames))
-	typeFound := make(map[string]bool, len(typeNames))
-	stringType := make(map[string]bool, len(typeNames))
-	constFound := make(map[string]bool, len(typeNames))
-	for _, typeName := range typeNames {
-		selected[typeName] = struct{}{}
-	}
+	typeFound := false
+	stringType := false
+	constFound := false
 
 	for _, file := range files {
 		if file.Name.Name != packageName {
@@ -121,13 +103,13 @@ func inspectPackage(dir string, typeNames []string) (packageInfo, error) {
 					if !ok {
 						continue
 					}
-					typeName := typeSpec.Name.Name
-					if _, ok := selected[typeName]; !ok {
+					declaredType := typeSpec.Name.Name
+					if declaredType != sentinelType {
 						continue
 					}
-					typeFound[typeName] = true
+					typeFound = true
 					if ident, ok := typeSpec.Type.(*ast.Ident); ok && ident.Name == "string" {
-						stringType[typeName] = true
+						stringType = true
 					}
 				}
 			case token.CONST:
@@ -146,8 +128,8 @@ func inspectPackage(dir string, typeNames []string) (packageInfo, error) {
 							effectiveType = ""
 						}
 					}
-					if _, ok := selected[effectiveType]; ok {
-						constFound[effectiveType] = true
+					if effectiveType == sentinelType {
+						constFound = true
 					}
 					previousType = effectiveType
 				}
@@ -155,16 +137,14 @@ func inspectPackage(dir string, typeNames []string) (packageInfo, error) {
 		}
 	}
 
-	for _, typeName := range typeNames {
-		if !typeFound[typeName] {
-			return packageInfo{}, fmt.Errorf("type %q not found", typeName)
-		}
-		if !stringType[typeName] {
-			return packageInfo{}, fmt.Errorf("type %q must have underlying type string", typeName)
-		}
-		if !constFound[typeName] {
-			return packageInfo{}, fmt.Errorf("no constants of type %q found", typeName)
-		}
+	if !typeFound {
+		return packageInfo{}, fmt.Errorf("type %q not found", sentinelType)
+	}
+	if !stringType {
+		return packageInfo{}, fmt.Errorf("type %q must have underlying type string", sentinelType)
+	}
+	if !constFound {
+		return packageInfo{}, fmt.Errorf("no constants of type %q found", sentinelType)
 	}
 
 	return packageInfo{PackageName: packageName}, nil
@@ -223,31 +203,23 @@ func identName(expr ast.Expr) string {
 	return ident.Name
 }
 
-func render(packageName string, typeNames []string, constraintName string) ([]byte, error) {
+func render(packageName string, typeName string) ([]byte, error) {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "// Code generated by errgen; DO NOT EDIT.\n\n")
 	fmt.Fprintf(&b, "package %s\n\n", packageName)
 	fmt.Fprintf(&b, "import %q\n\n", apperrImport)
-	for _, typeName := range typeNames {
-		fmt.Fprintf(&b, "func (k %s) Error() string { return string(k) }\n", typeName)
-	}
-	fmt.Fprintf(&b, "\n")
-	fmt.Fprintf(&b, "type %s interface {\n", constraintName)
-	fmt.Fprintf(&b, "\terror\n")
-	fmt.Fprintf(&b, "\tcomparable\n")
-	fmt.Fprintf(&b, "\t%s\n", strings.Join(typeNames, " | "))
-	fmt.Fprintf(&b, "}\n\n")
-	fmt.Fprintf(&b, "type Error[S %s] = apperr.Error[S]\n\n", constraintName)
-	fmt.Fprintf(&b, "func AppErrMsg[S %s](sentinel S, msg string) error {\n", constraintName)
+	fmt.Fprintf(&b, "func (k %s) Error() string { return string(k) }\n\n", typeName)
+	fmt.Fprintf(&b, "type Error = apperr.Error[%s]\n\n", typeName)
+	fmt.Fprintf(&b, "func AppErrMsg(sentinel %s, msg string) error {\n", typeName)
 	fmt.Fprintf(&b, "\treturn apperr.AppErrMsg(sentinel, msg)\n")
 	fmt.Fprintf(&b, "}\n\n")
-	fmt.Fprintf(&b, "func AppErrMsgf[S %s](sentinel S, format string, args ...any) error {\n", constraintName)
+	fmt.Fprintf(&b, "func AppErrMsgf(sentinel %s, format string, args ...any) error {\n", typeName)
 	fmt.Fprintf(&b, "\treturn apperr.AppErrMsgf(sentinel, format, args...)\n")
 	fmt.Fprintf(&b, "}\n\n")
-	fmt.Fprintf(&b, "func AppErrWrap[S %s](sentinel S, err error) error {\n", constraintName)
+	fmt.Fprintf(&b, "func AppErrWrap(sentinel %s, err error) error {\n", typeName)
 	fmt.Fprintf(&b, "\treturn apperr.AppErrWrap(sentinel, err)\n")
 	fmt.Fprintf(&b, "}\n\n")
-	fmt.Fprintf(&b, "func AppErrWrapf[S %s](sentinel S, err error, format string, args ...any) error {\n", constraintName)
+	fmt.Fprintf(&b, "func AppErrWrapf(sentinel %s, err error, format string, args ...any) error {\n", typeName)
 	fmt.Fprintf(&b, "\treturn apperr.AppErrWrapf(sentinel, err, format, args...)\n")
 	fmt.Fprintf(&b, "}\n")
 
@@ -256,28 +228,4 @@ func render(packageName string, typeNames []string, constraintName string) ([]by
 		return nil, fmt.Errorf("format generated source: %w", err)
 	}
 	return source, nil
-}
-
-func exportedName(name string) string {
-	var b strings.Builder
-	capitalizeNext := true
-	for _, r := range name {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			capitalizeNext = true
-			continue
-		}
-		if b.Len() == 0 && unicode.IsDigit(r) {
-			b.WriteRune('_')
-		}
-		if capitalizeNext {
-			b.WriteRune(unicode.ToUpper(r))
-			capitalizeNext = false
-			continue
-		}
-		b.WriteRune(r)
-	}
-	if b.Len() == 0 {
-		return "Package"
-	}
-	return b.String()
 }

@@ -30,7 +30,7 @@ func (r Registry) EnabledSources() []Source {
 	return enabled
 }
 
-//go:generate go run ../../cmd/errgen -types ErrState
+//go:generate go run ../../cmd/errgen -type ErrState
 type ErrState string
 
 const (

@@ -4,23 +4,22 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/trippwill/tuck/cmd/errgen/internal/errgen"
 )
 
 func main() {
-	typeNames := flag.String("types", "", "comma-separated sentinel error type names")
-	constraintName := flag.String("constraint", "", "generated constraint name")
+	typeName := flag.String("type", "", "sentinel error type name")
+	constraintName := flag.String("constraint", "", "unsupported legacy generated constraint name")
 	output := flag.String("output", "", "output file path")
 	flag.Parse()
 
-	if *output == "" && *typeNames != "" {
+	if *output == "" && *typeName != "" {
 		*output = "apperr_gen.go"
 	}
 
 	if _, err := errgen.Generate(errgen.Options{
-		TypeNames:      splitTypes(*typeNames),
+		TypeName:       *typeName,
 		ConstraintName: *constraintName,
 		Dir:            ".",
 		Output:         *output,
@@ -28,18 +27,4 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-func splitTypes(raw string) []string {
-	if raw == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	types := make([]string, 0, len(parts))
-	for _, part := range parts {
-		if trimmed := strings.TrimSpace(part); trimmed != "" {
-			types = append(types, trimmed)
-		}
-	}
-	return types
 }

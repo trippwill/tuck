@@ -10,7 +10,7 @@ import (
 	"github.com/trippwill/tuck/internal/target"
 )
 
-//go:generate go run ../../cmd/errgen -types ErrPlan
+//go:generate go run ../../cmd/errgen -type ErrPlan
 type ErrPlan string
 
 const (

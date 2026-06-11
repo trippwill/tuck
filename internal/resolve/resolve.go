@@ -2,7 +2,7 @@ package resolve
 
 import "github.com/trippwill/tuck/internal/state"
 
-//go:generate go run ../../cmd/errgen -types ErrSource
+//go:generate go run ../../cmd/errgen -type ErrSource
 type ErrSource string
 
 const (

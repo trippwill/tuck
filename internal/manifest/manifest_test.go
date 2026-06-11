@@ -103,16 +103,16 @@ func TestLoadErrors(t *testing.T) {
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("Load() error = %v, want errors.Is(..., %v)", err, tt.wantErr)
 			}
-			var manifestErr *Error[ErrManifest]
+			var manifestErr *Error
 			if !errors.As(err, &manifestErr) {
-				t.Fatalf("Load() error = %T, want errors.As(..., *manifest.Error[manifest.ErrManifest])", err)
+				t.Fatalf("Load() error = %T, want errors.As(..., *manifest.Error)", err)
 			}
 			if got := manifestErr.Sentinel(); got != tt.wantErr {
 				t.Fatalf("Load() error sentinel = %v, want %v", got, tt.wantErr)
 			}
-			asTypeErr, ok := errors.AsType[*Error[ErrManifest]](err)
+			asTypeErr, ok := errors.AsType[*Error](err)
 			if !ok {
-				t.Fatalf("Load() error = %T, want errors.AsType[*manifest.Error[manifest.ErrManifest]](...) ok", err)
+				t.Fatalf("Load() error = %T, want errors.AsType[*manifest.Error](...) ok", err)
 			}
 			if got := asTypeErr.Sentinel(); got != tt.wantErr {
 				t.Fatalf("Load() AsType error sentinel = %v, want %v", got, tt.wantErr)
@@ -121,6 +121,18 @@ func TestLoadErrors(t *testing.T) {
 				t.Fatalf("Load() missing error = %v, want errors.Is(..., os.ErrNotExist)", err)
 			}
 		})
+	}
+}
+
+func TestGeneratedErrorAliasSupportsTypedInspection(t *testing.T) {
+	err := AppErrMsgf(ErrInvalid, "invalid manifest name %q", "bad/name")
+
+	var manifestErr *Error
+	if !errors.As(err, &manifestErr) {
+		t.Fatalf("errors.As(err, *manifest.Error) = false, want true")
+	}
+	if got := manifestErr.Sentinel(); got != ErrInvalid {
+		t.Fatalf("Sentinel() = %v, want %v", got, ErrInvalid)
 	}
 }
 

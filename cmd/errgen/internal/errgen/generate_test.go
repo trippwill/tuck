@@ -10,23 +10,20 @@ import (
 	"testing"
 )
 
-func TestGeneratePackageLevelConstrainedHelpers(t *testing.T) {
+func TestGeneratePackageLevelHelpers(t *testing.T) {
 	dir := writePackage(t, map[string]string{
 		"errors.go": `package sample
 
 type ErrThing string
-type ErrWidget string
 
 const (
 	ErrMissing ErrThing = "missing thing"
 	ErrInvalid ErrThing = "invalid thing"
 )
-
-const ErrBroken ErrWidget = "broken widget"
 `,
 	})
 
-	got, err := Generate(Options{Dir: dir, TypeNames: []string{"ErrThing", "ErrWidget"}})
+	got, err := Generate(Options{Dir: dir, TypeName: "ErrThing"})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -35,26 +32,23 @@ const ErrBroken ErrWidget = "broken widget"
 		"package sample",
 		`import "github.com/trippwill/tuck/internal/apperr"`,
 		"func (k ErrThing) Error() string",
-		"func (k ErrWidget) Error() string",
-		"type SampleErr interface",
-		"error",
-		"comparable",
-		"ErrThing | ErrWidget",
-		"type Error[S SampleErr] = apperr.Error[S]",
-		"func AppErrMsg[S SampleErr](sentinel S, msg string) error",
-		"func AppErrMsgf[S SampleErr](sentinel S, format string, args ...any) error",
-		"func AppErrWrap[S SampleErr](sentinel S, err error) error",
-		"func AppErrWrapf[S SampleErr](sentinel S, err error, format string, args ...any) error",
+		"type Error = apperr.Error[ErrThing]",
+		"func AppErrMsg(sentinel ErrThing, msg string) error",
+		"func AppErrMsgf(sentinel ErrThing, format string, args ...any) error",
+		"func AppErrWrap(sentinel ErrThing, err error) error",
+		"func AppErrWrapf(sentinel ErrThing, err error, format string, args ...any) error",
 	)
 	assertNotContains(t, string(got),
-		"type Error = apperr.Error[",
+		"type SampleErr interface",
+		"type Error[S ",
+		"func AppErrMsg[S ",
 		"func AppErr(",
 		"func AppErrf(",
 		"apperr.Wrap",
 	)
 }
 
-func TestGenerateConstraintOverride(t *testing.T) {
+func TestGenerateReportsConstraintUnsupported(t *testing.T) {
 	dir := writePackage(t, map[string]string{
 		"errors.go": `package sample
 
@@ -64,17 +58,13 @@ const ErrMissing ErrThing = "missing thing"
 `,
 	})
 
-	got, err := Generate(Options{Dir: dir, TypeNames: []string{"ErrThing"}, ConstraintName: "ThingErr"})
-	if err != nil {
-		t.Fatalf("Generate() error = %v", err)
+	_, err := Generate(Options{Dir: dir, TypeName: "ErrThing", ConstraintName: "ThingErr"})
+	if err == nil {
+		t.Fatalf("Generate() error = nil, want unsupported constraint error")
 	}
-
-	assertContains(t, string(got),
-		"type ThingErr interface",
-		"type Error[S ThingErr] = apperr.Error[S]",
-		"func AppErrWrapf[S ThingErr](sentinel S, err error, format string, args ...any) error",
-	)
-	assertNotContains(t, string(got), "SampleErr")
+	if !strings.Contains(err.Error(), `-constraint is not supported`) {
+		t.Fatalf("Generate() error = %q, want unsupported constraint", err)
+	}
 }
 
 func TestGenerateOutputFile(t *testing.T) {
@@ -87,7 +77,7 @@ const ErrMissing ErrThing = "missing thing"
 `,
 	})
 
-	got, err := Generate(Options{Dir: dir, TypeNames: []string{"ErrThing"}, Output: "custom_gen.go"})
+	got, err := Generate(Options{Dir: dir, TypeName: "ErrThing", Output: "custom_gen.go"})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -112,14 +102,11 @@ replace github.com/trippwill/tuck => ` + repoRoot(t) + `
 		"errors.go": `package errgenfixture
 
 type ErrThing string
-type ErrWidget string
 
 const (
 	ErrMissing ErrThing = "missing thing"
 	ErrInvalid ErrThing = "invalid thing"
 )
-
-const ErrBroken ErrWidget = "broken widget"
 `,
 		"errors_test.go": `package errgenfixture
 
@@ -143,17 +130,12 @@ func TestGeneratedHelpers(t *testing.T) {
 		t.Fatalf("errors.Is(err, cause) = false, want true")
 	}
 
-	var appErr *Error[ErrThing]
+	var appErr *Error
 	if !errors.As(err, &appErr) {
-		t.Fatalf("errors.As(err, *Error[ErrThing]) = false, want true")
+		t.Fatalf("errors.As(err, *Error) = false, want true")
 	}
 	if got := appErr.Sentinel(); got != ErrInvalid {
 		t.Fatalf("Sentinel() = %v, want %v", got, ErrInvalid)
-	}
-
-	widgetErr := AppErrMsg(ErrBroken, "bad widget")
-	if !errors.Is(widgetErr, ErrBroken) {
-		t.Fatalf("errors.Is(widgetErr, ErrBroken) = false, want true")
 	}
 
 	if got := AppErrMsg(ErrMissing, ""); got != ErrMissing {
@@ -171,7 +153,7 @@ func compileRejectsUnselectedSentinel() {
 `,
 	})
 
-	if _, err := Generate(Options{Dir: dir, TypeNames: []string{"ErrThing", "ErrWidget"}, Output: "apperr_gen.go"}); err != nil {
+	if _, err := Generate(Options{Dir: dir, TypeName: "ErrThing", Output: "apperr_gen.go"}); err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
 	cmd := exec.Command("go", "test", ".")
@@ -180,7 +162,7 @@ func compileRejectsUnselectedSentinel() {
 	if err == nil {
 		t.Fatalf("go test unexpectedly succeeded; want unselected sentinel compile failure")
 	}
-	if !strings.Contains(string(out), "errOther") || !strings.Contains(string(out), "does not satisfy") {
+	if !strings.Contains(string(out), "errOther") || !strings.Contains(string(out), "as ErrThing") {
 		t.Fatalf("go test error did not reject unselected sentinel:\n%s", out)
 	}
 
@@ -195,7 +177,7 @@ func compileRejectsUnselectedSentinel() {
 	}
 }
 
-func TestGenerateReportsMissingTypes(t *testing.T) {
+func TestGenerateReportsMissingTypeFlag(t *testing.T) {
 	dir := writePackage(t, map[string]string{
 		"errors.go": `package sample
 `,
@@ -203,10 +185,31 @@ func TestGenerateReportsMissingTypes(t *testing.T) {
 
 	_, err := Generate(Options{Dir: dir})
 	if err == nil {
-		t.Fatalf("Generate() error = nil, want missing -types error")
+		t.Fatalf("Generate() error = nil, want missing -type error")
 	}
-	if !strings.Contains(err.Error(), `-types is required`) {
-		t.Fatalf("Generate() error = %q, want missing -types", err)
+	if !strings.Contains(err.Error(), `-type is required`) {
+		t.Fatalf("Generate() error = %q, want missing -type", err)
+	}
+}
+
+func TestGenerateReportsCommaSeparatedType(t *testing.T) {
+	dir := writePackage(t, map[string]string{
+		"errors.go": `package sample
+
+type ErrThing string
+type ErrWidget string
+
+const ErrMissing ErrThing = "missing thing"
+const ErrBroken ErrWidget = "broken widget"
+`,
+	})
+
+	_, err := Generate(Options{Dir: dir, TypeName: "ErrThing,ErrWidget"})
+	if err == nil {
+		t.Fatalf("Generate() error = nil, want comma-separated type error")
+	}
+	if !strings.Contains(err.Error(), `-type must name exactly one sentinel type`) {
+		t.Fatalf("Generate() error = %q, want comma-separated type", err)
 	}
 }
 
@@ -216,7 +219,7 @@ func TestGenerateReportsMissingType(t *testing.T) {
 `,
 	})
 
-	_, err := Generate(Options{Dir: dir, TypeNames: []string{"ErrThing"}})
+	_, err := Generate(Options{Dir: dir, TypeName: "ErrThing"})
 	if err == nil {
 		t.Fatalf("Generate() error = nil, want missing type error")
 	}
@@ -235,7 +238,7 @@ const ErrMissing ErrThing = 1
 `,
 	})
 
-	_, err := Generate(Options{Dir: dir, TypeNames: []string{"ErrThing"}})
+	_, err := Generate(Options{Dir: dir, TypeName: "ErrThing"})
 	if err == nil {
 		t.Fatalf("Generate() error = nil, want non-string type error")
 	}
@@ -252,7 +255,7 @@ type ErrThing string
 `,
 	})
 
-	_, err := Generate(Options{Dir: dir, TypeNames: []string{"ErrThing"}})
+	_, err := Generate(Options{Dir: dir, TypeName: "ErrThing"})
 	if err == nil {
 		t.Fatalf("Generate() error = nil, want no typed constants error")
 	}

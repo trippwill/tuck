@@ -324,16 +324,16 @@ sentinels, add a small string type and constants, then generate the boilerplate
 with:
 
 ```go
-//go:generate go run ../../cmd/errgen -types ErrKind
+//go:generate go run ../../cmd/errgen -type ErrKind
 ```
 
-`errgen` supplies sentinel `Error()` methods, a package-specific constraint such
-as `StateErr`, `type Error[S StateErr] = apperr.Error[S]`, and generic
-package-local helpers named for their two axes: `AppErrMsg` / `AppErrMsgf` for
-context-only errors and `AppErrWrap` / `AppErrWrapf` for errors that preserve a
-cause. Keep tests red for generated behavior, not for missing generated symbols:
-add the production compile seam or run the generator before asserting behavior
-that depends on generated helpers.
+`errgen` supplies sentinel `Error()` methods, a package-local
+`type Error = apperr.Error[ErrKind]` alias, and non-generic helpers named for
+their two axes: `AppErrMsg` / `AppErrMsgf` for context-only errors and
+`AppErrWrap` / `AppErrWrapf` for errors that preserve a cause. Keep tests red
+for generated behavior, not for missing generated symbols: add the production
+compile seam or run the generator before asserting behavior that depends on
+generated helpers.
 Run `mise run generate` when adding or changing generated helpers, and use
 `mise run check` for the full gate.
 

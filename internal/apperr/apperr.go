@@ -3,8 +3,12 @@
 //
 // Sentinels must be comparable errors, usually package-local string types with
 // const values. Error unwraps to both the sentinel and the wrapped cause, so
-// callers can use errors.Is with either one. Callers that need the typed
-// sentinel can use errors.As to recover *Error[S] and then call Sentinel.
+// callers normally classify failures with errors.Is and the package sentinel.
+//
+// Callers that need typed app-error metadata should prefer the generated
+// package-local Error aliases, such as *manifest.Error, rather than naming
+// *apperr.Error[S] directly. Direct use of Error[S] is primarily for this
+// package and generic helpers.
 package apperr
 
 import "fmt"

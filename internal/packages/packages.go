@@ -13,7 +13,7 @@ import (
 	"github.com/trippwill/tuck/internal/state"
 )
 
-//go:generate go run ../../cmd/errgen -types ErrPackage
+//go:generate go run ../../cmd/errgen -type ErrPackage
 type ErrPackage string
 
 const ErrPackageNotFound ErrPackage = "package not found"
