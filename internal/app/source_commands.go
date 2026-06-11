@@ -37,7 +37,11 @@ func sourceCommand() *cli.Command {
 				Name:      "rm",
 				Usage:     "remove a source from this machine",
 				ArgsUsage: "<id>",
-				Action:    notImplemented("source rm"),
+				Arguments: []cli.Argument{
+					requiredStringArgs("id", "<id>"),
+				},
+				OnUsageError: commandUsageError,
+				Action:       sourceRmAction,
 			},
 			{
 				Name:    "list",
@@ -49,7 +53,11 @@ func sourceCommand() *cli.Command {
 				Name:      "default",
 				Usage:     "set the default source",
 				ArgsUsage: "<id>",
-				Action:    notImplemented("source default"),
+				Arguments: []cli.Argument{
+					requiredStringArgs("id", "<id>"),
+				},
+				OnUsageError: commandUsageError,
+				Action:       sourceDefaultAction,
 			},
 		},
 	}
@@ -70,10 +78,29 @@ func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func sourceListAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Args().Present() {
+		return cli.Exit("error: source list accepts no arguments", ExitFail)
+	}
 	registry, err := state.Load()
 	if err != nil {
 		return renderError(cmd, "source list", err)
 	}
 
 	return renderSourceList(cmd, registry)
+}
+
+func sourceRmAction(ctx context.Context, cmd *cli.Command) error {
+	if cmd.Args().Present() {
+		return cli.Exit("error: source rm accepts exactly one <id>", ExitFail)
+	}
+	_ = cmd.StringArgs("id")[0]
+	return notImplemented("source rm")(ctx, cmd)
+}
+
+func sourceDefaultAction(ctx context.Context, cmd *cli.Command) error {
+	if cmd.Args().Present() {
+		return cli.Exit("error: source default accepts exactly one <id>", ExitFail)
+	}
+	_ = cmd.StringArgs("id")[0]
+	return notImplemented("source default")(ctx, cmd)
 }

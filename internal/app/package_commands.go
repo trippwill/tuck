@@ -22,6 +22,10 @@ func packageCommand() *cli.Command {
 				Name:      "use",
 				Usage:     "create managed symlinks for packages",
 				ArgsUsage: "<package>...",
+				Arguments: []cli.Argument{
+					variadicStringArgs("package", "<package>...", 0),
+				},
+				OnUsageError: commandUsageError,
 				Flags: append(
 					mutatingDomainFlags(),
 					&cli.BoolFlag{Name: "all", Usage: "activate all packages in the active source"},
@@ -32,15 +36,23 @@ func packageCommand() *cli.Command {
 				Name:      "drop",
 				Usage:     "remove managed symlinks for packages",
 				ArgsUsage: "<package>...",
-				Flags:     mutatingDomainFlags(),
-				Action:    packageDropAction,
+				Arguments: []cli.Argument{
+					variadicStringArgs("package", "<package>...", 1),
+				},
+				OnUsageError: commandUsageError,
+				Flags:        mutatingDomainFlags(),
+				Action:       packageDropAction,
 			},
 			{
 				Name:      "refresh",
 				Usage:     "re-sync managed symlinks (drop + use)",
 				ArgsUsage: "<package>...",
-				Flags:     mutatingDomainFlags(),
-				Action:    notImplemented("package refresh"),
+				Arguments: []cli.Argument{
+					variadicStringArgs("package", "<package>...", 1),
+				},
+				OnUsageError: commandUsageError,
+				Flags:        mutatingDomainFlags(),
+				Action:       notImplemented("package refresh"),
 			},
 			{
 				Name:    "list",
@@ -54,15 +66,23 @@ func packageCommand() *cli.Command {
 				Aliases:   []string{"tree"},
 				Usage:     "show package contents",
 				ArgsUsage: "<package>",
-				Flags:     domainFlags(),
-				Action:    notImplemented("package show"),
+				Arguments: []cli.Argument{
+					requiredStringArgs("package", "<package>"),
+				},
+				OnUsageError: commandUsageError,
+				Flags:        domainFlags(),
+				Action:       packageShowAction,
 			},
 			{
 				Name:      "status",
 				Usage:     "show managed/conflict state for packages",
 				ArgsUsage: "[package]",
-				Flags:     domainFlags(),
-				Action:    packageStatusAction,
+				Arguments: []cli.Argument{
+					optionalStringArgs("package", "[package]"),
+				},
+				OnUsageError: commandUsageError,
+				Flags:        domainFlags(),
+				Action:       packageStatusAction,
 			},
 		},
 	}
@@ -72,7 +92,7 @@ func packageUseAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Bool("root") {
 		return cli.Exit("error: --root is not implemented for package use yet", ExitFail)
 	}
-	refs := cmd.Args().Slice()
+	refs := cmd.StringArgs("package")
 	if len(refs) == 0 && !cmd.Bool("all") {
 		return cli.Exit("error: package use requires one or more package refs or --all", ExitFail)
 	}
@@ -95,10 +115,7 @@ func packageDropAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Bool("root") {
 		return cli.Exit("error: --root is not implemented for package drop yet", ExitFail)
 	}
-	refs := cmd.Args().Slice()
-	if len(refs) == 0 {
-		return cli.Exit("error: package drop requires one or more package refs", ExitFail)
-	}
+	refs := cmd.StringArgs("package")
 	dropPlan, err := plan.BuildDrop(plan.DropOptions{
 		Refs:     refs,
 		SourceID: cmd.String("source"),
@@ -114,7 +131,7 @@ func packageListAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Bool("root") {
 		return cli.Exit("error: --root is not implemented for package list yet", ExitFail)
 	}
-	if cmd.Args().Len() != 0 {
+	if cmd.Args().Present() {
 		return cli.Exit("error: package list accepts no arguments", ExitFail)
 	}
 	listing, err := packages.List(packages.ListOptions{
@@ -131,14 +148,25 @@ func packageStatusAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Bool("root") {
 		return cli.Exit("error: --root is not implemented for package status yet", ExitFail)
 	}
-	if cmd.Args().Len() > 1 {
+	if cmd.Args().Present() {
 		return cli.Exit("error: package status accepts at most one package ref", ExitFail)
 	}
-	result, err := statuspkg.Package(cmd.Args().First(), statuspkg.Options{
+	ref := ""
+	if refs := cmd.StringArgs("package"); len(refs) > 0 {
+		ref = refs[0]
+	}
+	result, err := statuspkg.Package(ref, statuspkg.Options{
 		SourceID: cmd.String("source"),
 	})
 	if err != nil {
 		return renderError(cmd, "package status", err)
 	}
 	return renderStatus(cmd, result)
+}
+
+func packageShowAction(ctx context.Context, cmd *cli.Command) error {
+	if cmd.Args().Present() {
+		return cli.Exit("error: package show accepts exactly one package ref", ExitFail)
+	}
+	return notImplemented("package show")(ctx, cmd)
 }

@@ -207,6 +207,18 @@ wantstate public public $WORK/src true
 ! exec tuck pkg list extra --no-color
 stderr 'accepts no arguments'
 
+# package refresh/show declare required package arguments before implementation
+phase package-stub-argument-usage fixtures/package/common/public-only
+wantstate public public $WORK/src true
+! exec tuck pkg refresh --no-color
+stderr 'Incorrect Usage'
+stderr 'sufficient count of arg package not provided'
+! exec tuck pkg show --no-color
+stderr 'Incorrect Usage'
+stderr 'sufficient count of arg package not provided'
+! exec tuck pkg show zsh extra --no-color
+stderr 'package show accepts exactly one package ref'
+
 # package status reports invalid refs and missing packages
 phase package-status-errors fixtures/package/common/public-only fixtures/package/common/zsh-config
 wantstate public public $WORK/src true
@@ -361,8 +373,9 @@ readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
 phase package-drop-errors fixtures/package/common/public-only fixtures/package/common/zsh-config
 wantstate public public $WORK/src true
 ! exec tuck pkg drop --no-color
-stderr 'package drop requires one or more package refs'
-! stdout .
+stderr 'Incorrect Usage'
+stderr 'sufficient count of arg package not provided'
+stdout 'USAGE'
 ! exec tuck pkg drop bad/ref --no-color
 stderr 'error: package reference is invalid'
 ! stdout .
