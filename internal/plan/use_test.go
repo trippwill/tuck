@@ -1,8 +1,10 @@
 package plan
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -102,5 +104,18 @@ func TestApplyMoveReportsErrors(t *testing.T) {
 	}}})
 	if err == nil {
 		t.Fatal("Apply() error = nil, want error")
+	}
+}
+
+func TestApplyRejectsUnknownActionType(t *testing.T) {
+	err := Apply(UsePlan{Actions: []Action{{Type: "bogus"}}})
+	if err == nil {
+		t.Fatal("Apply() error = nil, want error")
+	}
+	if !errors.Is(err, ErrApply) {
+		t.Fatalf("Apply() error = %v, want errors.Is(..., %v)", err, ErrApply)
+	}
+	if !strings.Contains(err.Error(), "bogus") {
+		t.Fatalf("Apply() error = %q, want unknown action type", err.Error())
 	}
 }

@@ -48,6 +48,8 @@ func Apply(usePlan UsePlan) error {
 			if err := os.Rename(action.Src, action.Dst); err != nil {
 				return AppErrWrapf(ErrApply, err, "could not move %q to %q", action.Src, action.Dst)
 			}
+		default:
+			return AppErrMsgf(ErrApply, "unknown plan action type %q", action.Type)
 		}
 	}
 	return nil
