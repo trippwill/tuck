@@ -34,6 +34,41 @@ func TestDiscoverSkipsDotPrefixedDirectories(t *testing.T) {
 	}
 }
 
+func TestDirectoriesReturnsOnlyDirectoriesWithoutChildDirectories(t *testing.T) {
+	entries := []Entry{
+		{Rel: ".config", Dir: true},
+		{Rel: ".config/app", Dir: true},
+		{Rel: ".config/app/config", Dir: false},
+		{Rel: ".config/app/plugins", Dir: true},
+		{Rel: ".config/app/plugins/plugin.toml", Dir: false},
+		{Rel: ".ssh", Dir: true},
+		{Rel: ".ssh/config", Dir: false},
+		{Rel: "bin", Dir: true},
+		{Rel: "bin/tool", Dir: false},
+	}
+
+	got := directoryRels(Directories(entries))
+	want := []string{".config/app/plugins", ".ssh", "bin"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Directories() = %#v, want %#v", got, want)
+	}
+}
+
+func TestDirectoriesKeepsSiblingPrefixDirectoriesIndependent(t *testing.T) {
+	entries := []Entry{
+		{Rel: "config", Dir: true},
+		{Rel: "config-extra", Dir: true},
+		{Rel: "config/app", Dir: true},
+		{Rel: "config/app/settings.toml", Dir: false},
+	}
+
+	got := directoryRels(Directories(entries))
+	want := []string{"config-extra", "config/app"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Directories() = %#v, want %#v", got, want)
+	}
+}
+
 func TestResolveForAdoptDoesNotRequireExistingPackage(t *testing.T) {
 	source := state.Source{ID: "public", Path: "/src"}
 
@@ -54,4 +89,12 @@ func TestResolveForAdoptValidatesPackageRef(t *testing.T) {
 	if !errors.Is(err, pkgref.ErrInvalidRef) {
 		t.Fatalf("ResolveForAdopt() error = %v, want ErrInvalidRef", err)
 	}
+}
+
+func directoryRels(entries []Entry) []string {
+	rels := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		rels = append(rels, entry.Rel)
+	}
+	return rels
 }

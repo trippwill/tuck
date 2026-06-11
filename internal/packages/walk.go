@@ -4,7 +4,6 @@ import (
 	"io/fs"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/trippwill/tuck/internal/pathutil"
 )
@@ -35,23 +34,36 @@ func Enumerate(root string) ([]Entry, error) {
 }
 
 func Directories(entries []Entry) []Entry {
-	hasChildDir := make(map[string]bool)
-	for _, candidate := range entries {
-		if !candidate.Dir {
-			continue
-		}
-		for _, other := range entries {
-			if other.Dir && other.Rel != candidate.Rel && strings.HasPrefix(other.Rel, candidate.Rel+string(filepath.Separator)) {
-				hasChildDir[candidate.Rel] = true
-				break
-			}
+	dirSet := make(map[string]struct{})
+	for _, entry := range entries {
+		if entry.Dir {
+			dirSet[entry.Rel] = struct{}{}
 		}
 	}
+
+	hasChildDir := make(map[string]struct{}, len(dirSet))
+	for rel := range dirSet {
+		for parent := filepath.Dir(rel); parent != "." && parent != rel; {
+			if _, ok := dirSet[parent]; ok {
+				hasChildDir[parent] = struct{}{}
+			}
+			next := filepath.Dir(parent)
+			if next == parent {
+				break
+			}
+			parent = next
+		}
+	}
+
 	dirs := make([]Entry, 0)
 	for _, entry := range entries {
-		if entry.Dir && !hasChildDir[entry.Rel] {
-			dirs = append(dirs, entry)
+		if !entry.Dir {
+			continue
 		}
+		if _, ok := hasChildDir[entry.Rel]; ok {
+			continue
+		}
+		dirs = append(dirs, entry)
 	}
 	return dirs
 }
