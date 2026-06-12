@@ -260,7 +260,157 @@ wantstate public public $WORK/src true
 ! exec tuck pkg list extra --no-color
 stderr 'accepts no arguments'
 
-# package refresh/show declare required package arguments before implementation
+# package refresh dry-run plans unlink and relink without mutating
+phase package-refresh-dry-run fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> $WORK/src/zsh/.config/zsh/.zshrc
+exec tuck pkg refresh zsh --no-color
+stdout 'context: home, dry-run'
+stdout '- unlink'
+stdout '\+ link'
+stdout '2 actions, 0 conflicts'
+stdout 're-run with --apply to execute'
+readlink $WORK/home/.config/zsh/.zshrc $WORK/src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package refresh --apply normalizes selected managed symlink payloads
+phase package-refresh-apply-normalizes fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> $WORK/src/zsh/.config/zsh/.zshrc
+exec tuck pkg refresh zsh --apply --no-color
+stdout 'context: home, apply'
+stdout '- unlink'
+stdout '\+ link'
+stdout '2 actions, 0 conflicts'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package refresh links absent package entries
+phase package-refresh-absent fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+exec tuck pkg refresh zsh --apply --no-color
+stdout 'context: home, apply'
+stdout '\+ mkdir'
+stdout '\+ link'
+stdout '2 actions, 0 conflicts'
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package refresh accumulates conflicts and mutates nothing
+phase package-refresh-conflicts fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/status/mixed
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+cp fixtures/package/common/existing-file $WORK/home/.config/zsh/.zshrc
+symlink $WORK/home/.config/zsh/.zprofile -> ../outside
+! exec tuck pkg refresh zsh --apply --no-color
+stdout 'conflicts:'
+stdout 'real_file'
+stdout 'unmanaged_symlink'
+stdout '0 actions, 2 conflicts'
+exists $WORK/home/.config/zsh/.zshrc
+readlink $WORK/home/.config/zsh/.zprofile ../outside
+! stderr .
+
+# package refresh emits the plan JSON envelope
+phase package-refresh-json fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> $WORK/src/zsh/.config/zsh/.zshrc
+exec tuck --json pkg refresh zsh
+stdout '"schemaVersion":1'
+stdout '"command":"package refresh"'
+stdout '"context":"home"'
+stdout '"kind":"plan"'
+stdout '"dryRun":true'
+stdout '"applied":false'
+stdout 'public:home:zsh'
+stdout '"type":"remove_symlink"'
+stdout '"type":"symlink"'
+stdout '"conflicts":\[\]'
+stdout '"exitCode":0'
+readlink $WORK/home/.config/zsh/.zshrc $WORK/src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# package refresh root apply requires privilege but dry-run does not
+phase package-refresh-root-privilege fixtures/package/common/public-only fixtures/package/common/root-sshd
+wantstate public public $WORK/src true
+mkdir $WORK/root
+mkdir $WORK/root/etc
+mkdir $WORK/root/etc/ssh
+env TUCK_TEST_ROOT_DIR=$WORK/root
+env TUCK_TEST_PRIVILEGE=denied
+symlink $WORK/root/etc/ssh/sshd_config -> $WORK/src/.root/sshd/etc/ssh/sshd_config
+exec tuck pkg refresh sshd --root --no-color
+stdout 'context: root, dry-run'
+stdout '/etc/ssh/sshd_config'
+! exec tuck pkg refresh sshd --root --apply --no-color
+stdout 'context: root, apply'
+stdout '- unlink'
+stderr 'root-context write requires elevated privileges'
+readlink $WORK/root/etc/ssh/sshd_config $WORK/src/.root/sshd/etc/ssh/sshd_config
+
+# package show human output includes package tree entries
+phase package-show-human fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/status/mixed
+wantstate public public $WORK/src true
+exec tuck pkg show zsh --no-color
+stdout 'tuck package show'
+stdout 'context: home'
+stdout 'source: public'
+stdout 'public:home:zsh'
+stdout 'dir  .config'
+stdout 'dir  .config/zsh'
+stdout 'leaf .config/zsh/.zlogin'
+stdout 'leaf .config/zsh/.zprofile'
+stdout 'leaf .config/zsh/.zshrc'
+stdout '5 entries'
+! stderr .
+
+# package show emits the tree JSON envelope
+phase package-show-json fixtures/package/common/public-only fixtures/package/common/zsh-config
+wantstate public public $WORK/src true
+exec tuck --json pkg show zsh
+stdout '"schemaVersion":1'
+stdout '"command":"package show"'
+stdout '"context":"home"'
+stdout '"kind":"tree"'
+stdout '"identity":"public:home:zsh"'
+stdout '"root":"'$WORK'/src/zsh"'
+stdout '"rel":".config/zsh/.zshrc"'
+stdout '"type":"leaf"'
+stdout '"exitCode":0'
+! stderr .
+
+# package show aliases and root context use the selected package base
+phase package-show-alias-root fixtures/package/common/public-only fixtures/package/common/root-sshd
+wantstate public public $WORK/src true
+exec tuck pkg tree sshd --root --no-color
+stdout 'tuck package show'
+stdout 'context: root'
+stdout 'public:root:sshd'
+stdout 'dir  etc'
+stdout 'leaf etc/ssh/sshd_config'
+! stdout $WORK/root
+exec tuck package tree sshd --root --no-color
+stdout 'public:root:sshd'
+! stderr .
+
+# package show reports invalid refs and missing packages
+phase package-show-errors fixtures/package/common/public-only
+wantstate public public $WORK/src true
+! exec tuck pkg show bad/ref --no-color
+stderr 'invalid package ref "bad/ref"'
+! stdout .
+! exec tuck pkg show missing --no-color
+stderr 'package "missing" not found in source "public"'
+! stdout .
+
+# package refresh/show declare required package arguments
 phase package-stub-argument-usage fixtures/package/common/public-only
 wantstate public public $WORK/src true
 ! exec tuck pkg refresh --no-color

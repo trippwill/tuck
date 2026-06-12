@@ -52,7 +52,7 @@ func packageCommand() *cli.Command {
 				},
 				OnUsageError: commandUsageError,
 				Flags:        mutatingDomainFlags(),
-				Action:       notImplemented("package refresh"),
+				Action:       packageRefreshAction,
 			},
 			{
 				Name:    "list",
@@ -129,6 +129,23 @@ func packageDropAction(_ context.Context, cmd *cli.Command) error {
 	return renderPlan(cmd, dropPlan)
 }
 
+func packageRefreshAction(_ context.Context, cmd *cli.Command) error {
+	refs := cmd.StringArgs("package")
+	refreshPlan, err := plan.BuildRefresh(plan.RefreshOptions{
+		Refs:     refs,
+		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
+		Apply:    cmd.Bool("apply"),
+	})
+	if err != nil {
+		if isPrivilegeRequired(err) {
+			return renderPlanError(cmd, refreshPlan, err)
+		}
+		return renderError(cmd, "package refresh", err)
+	}
+	return renderPlan(cmd, refreshPlan)
+}
+
 func packageListAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
 		return cli.Exit("error: package list accepts no arguments", ExitFail)
@@ -161,9 +178,17 @@ func packageStatusAction(_ context.Context, cmd *cli.Command) error {
 	return renderStatus(cmd, result)
 }
 
-func packageShowAction(ctx context.Context, cmd *cli.Command) error {
+func packageShowAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
 		return cli.Exit("error: package show accepts exactly one package ref", ExitFail)
 	}
-	return notImplemented("package show")(ctx, cmd)
+	tree, err := packages.Show(packages.ShowOptions{
+		SourceID: cmd.String("source"),
+		Context:  contextFromFlag(cmd),
+		Ref:      cmd.StringArgs("package")[0],
+	})
+	if err != nil {
+		return renderError(cmd, "package show", err)
+	}
+	return renderPackageTree(cmd, tree)
 }

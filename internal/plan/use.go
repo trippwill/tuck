@@ -35,6 +35,14 @@ type DropOptions struct {
 	Apply      bool
 }
 
+type RefreshOptions struct {
+	Refs       []string
+	SourceID   string
+	Context    string
+	TargetRoot string
+	Apply      bool
+}
+
 type ActionType string
 
 const (
@@ -253,6 +261,124 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 		dropPlan.DryRun = false
 	}
 	return dropPlan, nil
+}
+
+func BuildRefresh(options RefreshOptions) (UsePlan, error) {
+	context := selectedContext(options.Context)
+	scope, err := domain.NewTargetScope(context, options.TargetRoot, true)
+	if err != nil {
+		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
+	}
+
+	source, err := domain.ActiveSource(options.SourceID)
+	if err != nil {
+		return UsePlan{}, err
+	}
+
+	resolvedPackages, err := packages.Resolve(source, scope.Context, options.Refs, false)
+	if err != nil {
+		return UsePlan{}, err
+	}
+
+	refreshPlan := UsePlan{
+		Command:   "package refresh",
+		Context:   scope.Context,
+		DryRun:    !options.Apply,
+		Applied:   false,
+		Privilege: Privilege{Required: false},
+		Actions:   []Action{},
+		Conflicts: []Conflict{},
+	}
+	for _, pkg := range resolvedPackages {
+		refreshPlan.Packages = append(refreshPlan.Packages, pkg.Identity.String())
+	}
+
+	removeActions := make([]Action, 0)
+	createActions := make([]Action, 0)
+	plannedTargets := make(map[string]string)
+	for _, pkg := range resolvedPackages {
+		blockedRelPrefixes := make([]string, 0)
+		for _, entry := range packages.Directories(pkg.Entries) {
+			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, scope.LogicalRoot)
+			if err != nil {
+				refreshPlan.Conflicts = append(refreshPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
+				blockedRelPrefixes = append(blockedRelPrefixes, entry.Rel)
+				continue
+			}
+			class := target.ClassifyAt(targetPath, scope.PhysicalPath(targetPath), source, scope.Context, scope.LogicalRoot, &pkg.Identity, entry.Rel)
+			switch class.Kind {
+			case target.Absent:
+				createActions = append(createActions, Action{Type: ActionMkdir, Path: targetPath, physicalPath: scope.PhysicalPath(targetPath)})
+			case target.RealDirectory:
+			default:
+				refreshPlan.Conflicts = append(refreshPlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
+				blockedRelPrefixes = append(blockedRelPrefixes, entry.Rel)
+			}
+		}
+
+		for _, entry := range packages.Leaves(pkg.Entries) {
+			if blockedByDirectoryConflict(entry.Rel, blockedRelPrefixes) {
+				continue
+			}
+			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, entry.Path, scope.LogicalRoot)
+			if err != nil {
+				refreshPlan.Conflicts = append(refreshPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, pkg.Identity.String(), err.Error()))
+				continue
+			}
+			if owner, ok := plannedTargets[targetPath]; ok && owner != pkg.Identity.String()+":"+entry.Rel {
+				refreshPlan.Conflicts = append(refreshPlan.Conflicts, conflict(target.ConflictMultipleProviders, targetPath, pkg.Identity.String(), "multiple packages provide this target"))
+				continue
+			}
+			plannedTargets[targetPath] = pkg.Identity.String() + ":" + entry.Rel
+
+			physicalTargetPath := scope.PhysicalPath(targetPath)
+			class := target.ClassifyAt(targetPath, physicalTargetPath, source, scope.Context, scope.LogicalRoot, &pkg.Identity, entry.Rel)
+			switch class.Kind {
+			case target.Absent:
+				action, ok := symlinkAction(targetPath, physicalTargetPath, entry.Path, pkg.Identity.String(), &refreshPlan)
+				if ok {
+					createActions = append(createActions, action)
+				}
+			case target.ManagedSelected:
+				removeActions = append(removeActions, Action{Type: ActionRemoveSymlink, Path: targetPath, physicalPath: physicalTargetPath})
+				action, ok := symlinkAction(targetPath, physicalTargetPath, entry.Path, pkg.Identity.String(), &refreshPlan)
+				if ok {
+					createActions = append(createActions, action)
+				}
+			default:
+				refreshPlan.Conflicts = append(refreshPlan.Conflicts, conflict(class.ConflictCode(), targetPath, pkg.Identity.String(), class.Message))
+			}
+		}
+	}
+
+	if len(refreshPlan.Conflicts) > 0 {
+		refreshPlan.Actions = []Action{}
+		return refreshPlan, nil
+	}
+	refreshPlan.Actions = append(refreshPlan.Actions, removeActions...)
+	refreshPlan.Actions = append(refreshPlan.Actions, createActions...)
+	markPrivilege(&refreshPlan)
+	if options.Apply {
+		if privilegeDenied(refreshPlan) {
+			return refreshPlan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
+		}
+		if err := Apply(refreshPlan); err != nil {
+			return refreshPlan, err
+		}
+
+		refreshPlan.Applied = true
+		refreshPlan.DryRun = false
+	}
+	return refreshPlan, nil
+}
+
+func symlinkAction(targetPath string, physicalTargetPath string, entryPath string, packageID string, usePlan *UsePlan) (Action, bool) {
+	payload, err := pathutil.SymlinkPayload(physicalTargetPath, entryPath)
+	if err != nil {
+		usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, packageID, err.Error()))
+		return Action{}, false
+	}
+	return Action{Type: ActionSymlink, LinkPath: targetPath, physicalLinkPath: physicalTargetPath, Payload: payload, Target: entryPath}, true
 }
 
 func selectedContext(context string) string {

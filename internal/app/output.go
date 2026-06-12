@@ -112,6 +112,25 @@ func renderPackageList(cmd *cli.Command, listing packages.Listing) error {
 	return nil
 }
 
+func renderPackageTree(cmd *cli.Command, tree packages.Tree) error {
+	r := newRenderer(cmd)
+	if r.json {
+		return r.writeEnvelope(tree.Command, tree.Context, "tree", tree, ExitOK)
+	}
+
+	fmt.Fprintf(r.out, "tuck package show   (context: %s, source: %s)\n\n", tree.Context, tree.Source)
+	fmt.Fprintf(r.out, "package: %s\n", tree.Package.Identity)
+	fmt.Fprintf(r.out, "root: %s\n\n", tree.Package.Root)
+	for _, entry := range tree.Package.Entries {
+		fmt.Fprintf(r.out, "%-4s %s\n", entry.Type, entry.Rel)
+	}
+	if len(tree.Package.Entries) > 0 {
+		fmt.Fprintln(r.out)
+	}
+	fmt.Fprintf(r.out, "%d %s\n", len(tree.Package.Entries), entryNoun(len(tree.Package.Entries)))
+	return nil
+}
+
 func packageNoun(count int) string {
 	if count == 1 {
 		return "package"

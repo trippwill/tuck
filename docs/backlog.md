@@ -92,9 +92,9 @@ building every engine primitive before the first command runs._
 _Goal: a shippable v1 others can install and trust — machine output (JSON),
 distributed builds, and docs._
 
-1. [ ] **R1** `package refresh` a package (refresh + normalize link payloads) `[cmd]`
+1. [x] **R1** `package refresh` a package (refresh + normalize link payloads) `[cmd]`
 2. [x] **R2** List packages in the active source (`package list`) `[cmd]`
-3. [ ] **R3** Show a package's file tree, and all packages in the active source (`package show`) `[cmd]`
+3. [x] **R3** Show a package's file tree in the active source (`package show`) `[cmd]`
 4. [ ] **R4** `source rm <id>` — remove a source from machine state `[cmd]`
 5. [ ] **R5** `source init <path> [--name <id>] [--description <text>]` — scaffold a repo `tuck.toml` manifest without registering it `[cmd]`
 6. [ ] **R6** `source add <path> --init [--name <id>] [--description <text>]` — explicitly create a missing manifest, then register the source `[cmd]`

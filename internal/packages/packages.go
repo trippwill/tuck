@@ -56,6 +56,30 @@ type Listing struct {
 	Packages []string
 }
 
+type ShowOptions struct {
+	SourceID string
+	Context  string
+	Ref      string
+}
+
+type Tree struct {
+	Command string      `json:"-"`
+	Context string      `json:"-"`
+	Source  string      `json:"-"`
+	Package TreePackage `json:"package"`
+}
+
+type TreePackage struct {
+	Identity string      `json:"identity"`
+	Root     string      `json:"root"`
+	Entries  []TreeEntry `json:"entries"`
+}
+
+type TreeEntry struct {
+	Rel  string `json:"rel"`
+	Type string `json:"type"`
+}
+
 func List(options ListOptions) (Listing, error) {
 	context := options.Context
 	if context == "" {
@@ -73,6 +97,43 @@ func List(options ListOptions) (Listing, error) {
 		Source:   source.ID,
 		Context:  context,
 		Packages: names,
+	}, nil
+}
+
+func Show(options ShowOptions) (Tree, error) {
+	context := options.Context
+	if context == "" {
+		context = ContextHome
+	}
+	source, err := domain.ActiveSource(options.SourceID)
+	if err != nil {
+		return Tree{}, err
+	}
+	ref, err := pkgref.Parse(options.Ref)
+	if err != nil {
+		return Tree{}, err
+	}
+	resolved, err := ResolveOne(source, context, ref.Name)
+	if err != nil {
+		return Tree{}, err
+	}
+	entries := make([]TreeEntry, 0, len(resolved.Entries))
+	for _, entry := range resolved.Entries {
+		entryType := "leaf"
+		if entry.Dir {
+			entryType = "dir"
+		}
+		entries = append(entries, TreeEntry{Rel: entry.Rel, Type: entryType})
+	}
+	return Tree{
+		Command: "package show",
+		Context: context,
+		Source:  source.ID,
+		Package: TreePackage{
+			Identity: resolved.Identity.String(),
+			Root:     resolved.Identity.Root,
+			Entries:  entries,
+		},
 	}, nil
 }
 
