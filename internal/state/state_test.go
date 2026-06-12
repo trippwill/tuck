@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -227,6 +228,51 @@ func TestLoadDisabledEntriesDoNotParticipateInEnabledOnlyValidation(t *testing.T
 	}
 }
 
+func TestStateHomeUsesInvokingSudoUserWhenElevated(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", "")
+	t.Setenv("TUCK_TEST_STATE_DIR", "")
+	t.Setenv("SUDO_UID", "1000")
+	withSudoUserLookup(t, 0, func(uid string) (*user.User, error) {
+		if uid != "1000" {
+			t.Fatalf("lookup uid = %q, want 1000", uid)
+		}
+		return &user.User{HomeDir: "/home/alice"}, nil
+	})
+
+	got := stateHome()
+	want := filepath.Join("/home/alice", ".local", "state")
+	if got != want {
+		t.Fatalf("stateHome() = %q, want %q", got, want)
+	}
+}
+
+func TestStateHomePrefersXDGOverInvokingSudoUser(t *testing.T) {
+	xdgStateHome := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", xdgStateHome)
+	t.Setenv("TUCK_TEST_STATE_DIR", "")
+	t.Setenv("SUDO_UID", "1000")
+	withSudoUserLookup(t, 0, func(string) (*user.User, error) {
+		t.Fatal("lookupUserID should not be called when XDG_STATE_HOME is set")
+		return nil, nil
+	})
+
+	if got := stateHome(); got != xdgStateHome {
+		t.Fatalf("stateHome() = %q, want %q", got, xdgStateHome)
+	}
+}
+
+func TestInvokingUserStateHomeRequiresElevatedSudo(t *testing.T) {
+	t.Setenv("SUDO_UID", "1000")
+	withSudoUserLookup(t, 1000, func(string) (*user.User, error) {
+		t.Fatal("lookupUserID should not be called when euid is not root")
+		return nil, nil
+	})
+
+	if got := invokingUserStateHome(); got != "" {
+		t.Fatalf("invokingUserStateHome() = %q, want empty", got)
+	}
+}
+
 func withStateHome(t *testing.T) string {
 	t.Helper()
 
@@ -234,6 +280,19 @@ func withStateHome(t *testing.T) string {
 	t.Setenv("XDG_STATE_HOME", stateRoot)
 	t.Setenv("TUCK_TEST_STATE_DIR", "")
 	return stateRoot
+}
+
+func withSudoUserLookup(t *testing.T, euid int, lookup func(string) (*user.User, error)) {
+	t.Helper()
+
+	oldGeteuid := geteuid
+	oldLookupUserID := lookupUserID
+	geteuid = func() int { return euid }
+	lookupUserID = lookup
+	t.Cleanup(func() {
+		geteuid = oldGeteuid
+		lookupUserID = oldLookupUserID
+	})
 }
 
 func writeSources(t *testing.T, stateRoot, contents string) {

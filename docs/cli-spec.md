@@ -274,6 +274,13 @@ ${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml
 For tests, the state directory may be overridden by `TUCK_TEST_STATE_DIR`, which
 is compiled in only under the `tuck_testhooks` build tag.
 
+When a root-context apply is re-run through `sudo`, `sudo` may reset `HOME` and
+`XDG_STATE_HOME` to root's environment. If `tuck` is running as root and
+`SUDO_UID` identifies the invoking user, and no explicit `XDG_STATE_HOME` is
+set, `tuck` reads and writes the invoking user's state directory instead of
+root's. This keeps source selection in the user's machine-local scope while
+still using elevated privileges for root-context target writes.
+
 ```toml
 default = "public"
 checksum = "sha256:..."
