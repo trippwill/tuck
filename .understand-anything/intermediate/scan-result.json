@@ -1,0 +1,930 @@
+{
+  "name": "tuck",
+  "description": "No description available",
+  "languages": [
+    "go",
+    "json",
+    "markdown",
+    "mod",
+    "sum",
+    "toml",
+    "txtar",
+    "unknown"
+  ],
+  "frameworks": [],
+  "files": [
+    {
+      "path": ".codebook.toml",
+      "language": "toml",
+      "sizeLines": 16,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".mise.toml",
+      "language": "toml",
+      "sizeLines": 43,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".understand-anything/config.json",
+      "language": "json",
+      "sizeLines": 3,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".zed/debug.json",
+      "language": "json",
+      "sizeLines": 10,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".zed/settings.json",
+      "language": "json",
+      "sizeLines": 13,
+      "fileCategory": "config"
+    },
+    {
+      "path": "acceptance/doc.go",
+      "language": "go",
+      "sizeLines": 2,
+      "fileCategory": "code"
+    },
+    {
+      "path": "acceptance/harness_test.go",
+      "language": "go",
+      "sizeLines": 260,
+      "fileCategory": "code"
+    },
+    {
+      "path": "acceptance/suites_test.go",
+      "language": "go",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "acceptance/testdata/script/foundation/foundation.txtar",
+      "language": "txtar",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "acceptance/testdata/script/package/package.txtar",
+      "language": "txtar",
+      "sizeLines": 476,
+      "fileCategory": "code"
+    },
+    {
+      "path": "acceptance/testdata/script/source/source.txtar",
+      "language": "txtar",
+      "sizeLines": 162,
+      "fileCategory": "code"
+    },
+    {
+      "path": "AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 52,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "cmd/errgen/internal/errgen/generate_test.go",
+      "language": "go",
+      "sizeLines": 318,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cmd/errgen/internal/errgen/generate.go",
+      "language": "go",
+      "sizeLines": 231,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cmd/errgen/main.go",
+      "language": "go",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "docs/backlog.md",
+      "language": "markdown",
+      "sizeLines": 145,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/cli-spec.md",
+      "language": "markdown",
+      "sizeLines": 1400,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/specs/m11-m20-green-package-use.md",
+      "language": "markdown",
+      "sizeLines": 361,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/specs/m21-m22-green-status.md",
+      "language": "markdown",
+      "sizeLines": 228,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/specs/m3-green-manifest.md",
+      "language": "markdown",
+      "sizeLines": 111,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/specs/m4-m6-green-state-resolve.md",
+      "language": "markdown",
+      "sizeLines": 202,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/specs/m7-m10-green-source-commands.md",
+      "language": "markdown",
+      "sizeLines": 485,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/testing-strategy.md",
+      "language": "markdown",
+      "sizeLines": 425,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "go.mod",
+      "language": "mod",
+      "sizeLines": 14,
+      "fileCategory": "config"
+    },
+    {
+      "path": "go.sum",
+      "language": "sum",
+      "sizeLines": 18,
+      "fileCategory": "config"
+    },
+    {
+      "path": "internal/app/app.go",
+      "language": "go",
+      "sizeLines": 3,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/args.go",
+      "language": "go",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/exit.go",
+      "language": "go",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/file_commands.go",
+      "language": "go",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/flags.go",
+      "language": "go",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/main.go",
+      "language": "go",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/output_test.go",
+      "language": "go",
+      "sizeLines": 209,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/output.go",
+      "language": "go",
+      "sizeLines": 429,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/package_commands.go",
+      "language": "go",
+      "sizeLines": 169,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/root.go",
+      "language": "go",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/source_commands.go",
+      "language": "go",
+      "sizeLines": 106,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/app/stubs.go",
+      "language": "go",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/apperr/apperr_test.go",
+      "language": "go",
+      "sizeLines": 127,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/apperr/apperr.go",
+      "language": "go",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/domain/domain_test.go",
+      "language": "go",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/domain/domain.go",
+      "language": "go",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/domain/root_physical_notesthooks.go",
+      "language": "go",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/domain/root_physical_testhooks.go",
+      "language": "go",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/manifest/apperr_gen.go",
+      "language": "go",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/manifest/manifest_test.go",
+      "language": "go",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/manifest/manifest.go",
+      "language": "go",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/packages/apperr_gen.go",
+      "language": "go",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/packages/packages_test.go",
+      "language": "go",
+      "sizeLines": 100,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/packages/packages.go",
+      "language": "go",
+      "sizeLines": 169,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/packages/walk.go",
+      "language": "go",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/pathutil/doc.go",
+      "language": "go",
+      "sizeLines": 2,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/pathutil/pathutil_test.go",
+      "language": "go",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/pathutil/pathutil.go",
+      "language": "go",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/pkgref/apperr_gen.go",
+      "language": "go",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/pkgref/pkgref_test.go",
+      "language": "go",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/pkgref/pkgref.go",
+      "language": "go",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/adopt.go",
+      "language": "go",
+      "sizeLines": 134,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/apperr_gen.go",
+      "language": "go",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/apply.go",
+      "language": "go",
+      "sizeLines": 384,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/eject_test.go",
+      "language": "go",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/eject.go",
+      "language": "go",
+      "sizeLines": 150,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/privilege_notesthooks.go",
+      "language": "go",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/privilege_testhooks.go",
+      "language": "go",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/use_test.go",
+      "language": "go",
+      "sizeLines": 255,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/plan/use.go",
+      "language": "go",
+      "sizeLines": 292,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/resolve/apperr_gen.go",
+      "language": "go",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/resolve/resolve_test.go",
+      "language": "go",
+      "sizeLines": 109,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/resolve/resolve.go",
+      "language": "go",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/apperr_gen.go",
+      "language": "go",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/machine_paths_notesthooks.go",
+      "language": "go",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/machine_paths_testhooks.go",
+      "language": "go",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/machine_paths.go",
+      "language": "go",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/marshal.go",
+      "language": "go",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/paths.go",
+      "language": "go",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/state_test.go",
+      "language": "go",
+      "sizeLines": 329,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/state_testhooks_test.go",
+      "language": "go",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/state.go",
+      "language": "go",
+      "sizeLines": 185,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/validate.go",
+      "language": "go",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/state/write_test.go",
+      "language": "go",
+      "sizeLines": 177,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/status/scope.go",
+      "language": "go",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "internal/status/status.go",
+      "language": "go",
+      "sizeLines": 154,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 82,
+  "filteredByIgnore": 1,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    ".codebook.toml": [],
+    ".mise.toml": [],
+    ".understand-anything/.understandignore": [],
+    ".understand-anything/config.json": [],
+    ".zed/debug.json": [],
+    ".zed/settings.json": [],
+    "acceptance/doc.go": [],
+    "acceptance/harness_test.go": [
+      "internal/app/app.go",
+      "internal/app/args.go",
+      "internal/app/exit.go",
+      "internal/app/file_commands.go",
+      "internal/app/flags.go",
+      "internal/app/main.go",
+      "internal/app/output_test.go",
+      "internal/app/output.go",
+      "internal/app/package_commands.go",
+      "internal/app/root.go",
+      "internal/app/source_commands.go",
+      "internal/app/stubs.go"
+    ],
+    "acceptance/suites_test.go": [],
+    "acceptance/testdata/script/foundation/foundation.txtar": [],
+    "acceptance/testdata/script/package/package.txtar": [],
+    "acceptance/testdata/script/source/source.txtar": [],
+    "AGENTS.md": [],
+    "cmd/errgen/internal/errgen/generate_test.go": [],
+    "cmd/errgen/internal/errgen/generate.go": [],
+    "cmd/errgen/main.go": [
+      "cmd/errgen/internal/errgen/generate_test.go",
+      "cmd/errgen/internal/errgen/generate.go"
+    ],
+    "docs/backlog.md": [],
+    "docs/cli-spec.md": [],
+    "docs/specs/m11-m20-green-package-use.md": [],
+    "docs/specs/m21-m22-green-status.md": [],
+    "docs/specs/m3-green-manifest.md": [],
+    "docs/specs/m4-m6-green-state-resolve.md": [],
+    "docs/specs/m7-m10-green-source-commands.md": [],
+    "docs/testing-strategy.md": [],
+    "go.mod": [],
+    "go.sum": [],
+    "internal/app/app.go": [],
+    "internal/app/args.go": [],
+    "internal/app/exit.go": [],
+    "internal/app/file_commands.go": [
+      "internal/plan/adopt.go",
+      "internal/plan/apperr_gen.go",
+      "internal/plan/apply.go",
+      "internal/plan/eject_test.go",
+      "internal/plan/eject.go",
+      "internal/plan/privilege_notesthooks.go",
+      "internal/plan/privilege_testhooks.go",
+      "internal/plan/use_test.go",
+      "internal/plan/use.go",
+      "internal/status/scope.go",
+      "internal/status/status.go"
+    ],
+    "internal/app/flags.go": [
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go"
+    ],
+    "internal/app/main.go": [],
+    "internal/app/output_test.go": [
+      "internal/apperr/apperr_test.go",
+      "internal/apperr/apperr.go",
+      "internal/manifest/apperr_gen.go",
+      "internal/manifest/manifest_test.go",
+      "internal/manifest/manifest.go",
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go",
+      "internal/pkgref/apperr_gen.go",
+      "internal/pkgref/pkgref_test.go",
+      "internal/pkgref/pkgref.go",
+      "internal/plan/adopt.go",
+      "internal/plan/apperr_gen.go",
+      "internal/plan/apply.go",
+      "internal/plan/eject_test.go",
+      "internal/plan/eject.go",
+      "internal/plan/privilege_notesthooks.go",
+      "internal/plan/privilege_testhooks.go",
+      "internal/plan/use_test.go",
+      "internal/plan/use.go",
+      "internal/resolve/apperr_gen.go",
+      "internal/resolve/resolve_test.go",
+      "internal/resolve/resolve.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/app/output.go": [
+      "internal/manifest/apperr_gen.go",
+      "internal/manifest/manifest_test.go",
+      "internal/manifest/manifest.go",
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go",
+      "internal/pkgref/apperr_gen.go",
+      "internal/pkgref/pkgref_test.go",
+      "internal/pkgref/pkgref.go",
+      "internal/plan/adopt.go",
+      "internal/plan/apperr_gen.go",
+      "internal/plan/apply.go",
+      "internal/plan/eject_test.go",
+      "internal/plan/eject.go",
+      "internal/plan/privilege_notesthooks.go",
+      "internal/plan/privilege_testhooks.go",
+      "internal/plan/use_test.go",
+      "internal/plan/use.go",
+      "internal/resolve/apperr_gen.go",
+      "internal/resolve/resolve_test.go",
+      "internal/resolve/resolve.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go",
+      "internal/status/scope.go",
+      "internal/status/status.go"
+    ],
+    "internal/app/package_commands.go": [
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go",
+      "internal/plan/adopt.go",
+      "internal/plan/apperr_gen.go",
+      "internal/plan/apply.go",
+      "internal/plan/eject_test.go",
+      "internal/plan/eject.go",
+      "internal/plan/privilege_notesthooks.go",
+      "internal/plan/privilege_testhooks.go",
+      "internal/plan/use_test.go",
+      "internal/plan/use.go",
+      "internal/status/scope.go",
+      "internal/status/status.go"
+    ],
+    "internal/app/root.go": [],
+    "internal/app/source_commands.go": [
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/app/stubs.go": [],
+    "internal/apperr/apperr_test.go": [],
+    "internal/apperr/apperr.go": [],
+    "internal/domain/domain_test.go": [],
+    "internal/domain/domain.go": [
+      "internal/resolve/apperr_gen.go",
+      "internal/resolve/resolve_test.go",
+      "internal/resolve/resolve.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/domain/root_physical_notesthooks.go": [],
+    "internal/domain/root_physical_testhooks.go": [],
+    "internal/manifest/apperr_gen.go": [
+      "internal/apperr/apperr_test.go",
+      "internal/apperr/apperr.go"
+    ],
+    "internal/manifest/manifest_test.go": [],
+    "internal/manifest/manifest.go": [],
+    "internal/packages/apperr_gen.go": [
+      "internal/apperr/apperr_test.go",
+      "internal/apperr/apperr.go"
+    ],
+    "internal/packages/packages_test.go": [
+      "internal/pkgref/apperr_gen.go",
+      "internal/pkgref/pkgref_test.go",
+      "internal/pkgref/pkgref.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/packages/packages.go": [
+      "internal/domain/domain_test.go",
+      "internal/domain/domain.go",
+      "internal/domain/root_physical_notesthooks.go",
+      "internal/domain/root_physical_testhooks.go",
+      "internal/pkgref/apperr_gen.go",
+      "internal/pkgref/pkgref_test.go",
+      "internal/pkgref/pkgref.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/packages/walk.go": [
+      "internal/pathutil/doc.go",
+      "internal/pathutil/pathutil_test.go",
+      "internal/pathutil/pathutil.go"
+    ],
+    "internal/pathutil/doc.go": [],
+    "internal/pathutil/pathutil_test.go": [],
+    "internal/pathutil/pathutil.go": [],
+    "internal/pkgref/apperr_gen.go": [
+      "internal/apperr/apperr_test.go",
+      "internal/apperr/apperr.go"
+    ],
+    "internal/pkgref/pkgref_test.go": [],
+    "internal/pkgref/pkgref.go": [],
+    "internal/plan/adopt.go": [
+      "internal/domain/domain_test.go",
+      "internal/domain/domain.go",
+      "internal/domain/root_physical_notesthooks.go",
+      "internal/domain/root_physical_testhooks.go",
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go",
+      "internal/pathutil/doc.go",
+      "internal/pathutil/pathutil_test.go",
+      "internal/pathutil/pathutil.go",
+      "internal/resolve/apperr_gen.go",
+      "internal/resolve/resolve_test.go",
+      "internal/resolve/resolve.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/plan/apperr_gen.go": [
+      "internal/apperr/apperr_test.go",
+      "internal/apperr/apperr.go"
+    ],
+    "internal/plan/apply.go": [],
+    "internal/plan/eject_test.go": [],
+    "internal/plan/eject.go": [
+      "internal/domain/domain_test.go",
+      "internal/domain/domain.go",
+      "internal/domain/root_physical_notesthooks.go",
+      "internal/domain/root_physical_testhooks.go",
+      "internal/pathutil/doc.go",
+      "internal/pathutil/pathutil_test.go",
+      "internal/pathutil/pathutil.go",
+      "internal/resolve/apperr_gen.go",
+      "internal/resolve/resolve_test.go",
+      "internal/resolve/resolve.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/plan/privilege_notesthooks.go": [],
+    "internal/plan/privilege_testhooks.go": [],
+    "internal/plan/use_test.go": [],
+    "internal/plan/use.go": [
+      "internal/domain/domain_test.go",
+      "internal/domain/domain.go",
+      "internal/domain/root_physical_notesthooks.go",
+      "internal/domain/root_physical_testhooks.go",
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go",
+      "internal/pathutil/doc.go",
+      "internal/pathutil/pathutil_test.go",
+      "internal/pathutil/pathutil.go"
+    ],
+    "internal/resolve/apperr_gen.go": [
+      "internal/apperr/apperr_test.go",
+      "internal/apperr/apperr.go"
+    ],
+    "internal/resolve/resolve_test.go": [
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/resolve/resolve.go": [
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/state/apperr_gen.go": [
+      "internal/apperr/apperr_test.go",
+      "internal/apperr/apperr.go"
+    ],
+    "internal/state/machine_paths_notesthooks.go": [],
+    "internal/state/machine_paths_testhooks.go": [],
+    "internal/state/machine_paths.go": [],
+    "internal/state/marshal.go": [],
+    "internal/state/paths.go": [],
+    "internal/state/state_test.go": [
+      "internal/manifest/apperr_gen.go",
+      "internal/manifest/manifest_test.go",
+      "internal/manifest/manifest.go"
+    ],
+    "internal/state/state_testhooks_test.go": [],
+    "internal/state/state.go": [
+      "internal/manifest/apperr_gen.go",
+      "internal/manifest/manifest_test.go",
+      "internal/manifest/manifest.go"
+    ],
+    "internal/state/validate.go": [
+      "internal/manifest/apperr_gen.go",
+      "internal/manifest/manifest_test.go",
+      "internal/manifest/manifest.go"
+    ],
+    "internal/state/write_test.go": [],
+    "internal/status/scope.go": [
+      "internal/domain/domain_test.go",
+      "internal/domain/domain.go",
+      "internal/domain/root_physical_notesthooks.go",
+      "internal/domain/root_physical_testhooks.go",
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go",
+      "internal/pathutil/doc.go",
+      "internal/pathutil/pathutil_test.go",
+      "internal/pathutil/pathutil.go",
+      "internal/state/apperr_gen.go",
+      "internal/state/machine_paths_notesthooks.go",
+      "internal/state/machine_paths_testhooks.go",
+      "internal/state/machine_paths.go",
+      "internal/state/marshal.go",
+      "internal/state/paths.go",
+      "internal/state/state_test.go",
+      "internal/state/state_testhooks_test.go",
+      "internal/state/state.go",
+      "internal/state/validate.go",
+      "internal/state/write_test.go"
+    ],
+    "internal/status/status.go": [
+      "internal/packages/apperr_gen.go",
+      "internal/packages/packages_test.go",
+      "internal/packages/packages.go",
+      "internal/packages/walk.go",
+      "internal/pathutil/doc.go",
+      "internal/pathutil/pathutil_test.go",
+      "internal/pathutil/pathutil.go",
+      "internal/pkgref/apperr_gen.go",
+      "internal/pkgref/pkgref_test.go",
+      "internal/pkgref/pkgref.go"
+    ]
+  }
+}

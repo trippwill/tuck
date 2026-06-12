@@ -1,0 +1,5457 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "f6c97c6acac63f7c2198ae2d0198eb159b6537f0",
+  "generatedAt": "2026-06-12T20:37:03.700Z",
+  "files": {
+    ".codebook.toml": {
+      "filePath": ".codebook.toml",
+      "contentHash": "48918524d67aa91fcd190433ddfe374b0b664edca2d0e3ddaf0965b69ed0fc0b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    ".mise.toml": {
+      "filePath": ".mise.toml",
+      "contentHash": "015a04e0c83845dde17fa1e6bad7dd8bb8b071f8bc5b675b943ad3619f0a14e5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 44,
+      "hasStructuralAnalysis": true
+    },
+    ".understand-anything/.understandignore": {
+      "filePath": ".understand-anything/.understandignore",
+      "contentHash": "25edf4a0f81c5f5c6e47a2213f9200343d4e9f3790b330e80102721f93500829",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 36,
+      "hasStructuralAnalysis": false
+    },
+    ".understand-anything/config.json": {
+      "filePath": ".understand-anything/config.json",
+      "contentHash": "08d37f20ea0af2233ae24f094723759f952381ecb6dd7f2aaa05ef96e95eae6b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": true
+    },
+    ".zed/debug.json": {
+      "filePath": ".zed/debug.json",
+      "contentHash": "308e202ad2ede8ce368bdac819be8f8064d0b75fb5c41d6807a2093455b54b6f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    ".zed/settings.json": {
+      "filePath": ".zed/settings.json",
+      "contentHash": "31fe182e2c516c8970dbf1eb8e023829f8c892ed3ea6f2442f5a8800f4fd3f7a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "acceptance/doc.go": {
+      "filePath": "acceptance/doc.go",
+      "contentHash": "f1406016fa6be69bd8991cf00961b1a7a58e36c6108dc809fb8ff4401a9c25df",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "acceptance/harness_test.go": {
+      "filePath": "acceptance/harness_test.go",
+      "contentHash": "2b92e336f10aef5b8045afb88c166f2ce639335817b35333d8cb40387f9a9ed7",
+      "functions": [
+        {
+          "name": "TestMain",
+          "params": [
+            "m"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "runScriptSuite",
+          "params": [
+            "t",
+            "suite"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "setupScriptEnv",
+          "params": [
+            "e"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "scriptCommands",
+          "params": [],
+          "returnType": "map[string]func(ts *testscript.TestScript, neg bool, args []string)",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "cmdPhase",
+          "params": [
+            "ts",
+            "neg",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 37
+        },
+        {
+          "name": "copyTree",
+          "params": [
+            "src",
+            "dst"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 33
+        },
+        {
+          "name": "copyFile",
+          "params": [
+            "src",
+            "dst"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "cmdReadlink",
+          "params": [
+            "ts",
+            "neg",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "cmdWantHome",
+          "params": [
+            "ts",
+            "neg",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 41
+        },
+        {
+          "name": "cmdWantState",
+          "params": [
+            "ts",
+            "neg",
+            "args"
+          ],
+          "exported": false,
+          "lineCount": 41
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "io",
+          "specifiers": [
+            "io"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strconv",
+          "specifiers": [
+            "strconv"
+          ]
+        },
+        {
+          "source": "syscall",
+          "specifiers": [
+            "syscall"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        },
+        {
+          "source": "github.com/rogpeppe/go-internal/testscript",
+          "specifiers": [
+            "testscript"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/app",
+          "specifiers": [
+            "app"
+          ]
+        }
+      ],
+      "exports": [
+        "TestMain"
+      ],
+      "totalLines": 261,
+      "hasStructuralAnalysis": true
+    },
+    "acceptance/suites_test.go": {
+      "filePath": "acceptance/suites_test.go",
+      "contentHash": "ad09485613ca59121cf2dd3cc2bacd00de85f23c45b8775bdec377f02a2d169b",
+      "functions": [
+        {
+          "name": "TestSuites",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 17
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestSuites"
+      ],
+      "totalLines": 24,
+      "hasStructuralAnalysis": true
+    },
+    "acceptance/testdata/script/foundation/foundation.txtar": {
+      "filePath": "acceptance/testdata/script/foundation/foundation.txtar",
+      "contentHash": "7f14938f3e18b29dbbd1ca33d42db07b4b8f181fa705c8d5dd359c7701dc6301",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 61,
+      "hasStructuralAnalysis": false
+    },
+    "acceptance/testdata/script/package/package.txtar": {
+      "filePath": "acceptance/testdata/script/package/package.txtar",
+      "contentHash": "44ca4d1edbbae64f9fa81a47d83aabfa69975fa7c87a5a586b81f8fa0bafde52",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 477,
+      "hasStructuralAnalysis": false
+    },
+    "acceptance/testdata/script/source/source.txtar": {
+      "filePath": "acceptance/testdata/script/source/source.txtar",
+      "contentHash": "d097592db838e5b7b5864163de4cb17d23033e49d828965f1a930ca9138e87e2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 163,
+      "hasStructuralAnalysis": false
+    },
+    "AGENTS.md": {
+      "filePath": "AGENTS.md",
+      "contentHash": "66d4ce1199129f71f37ebcb2f29ba6b7feea9763979b22b8dd8b2e70157dba3c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 53,
+      "hasStructuralAnalysis": true
+    },
+    "cmd/errgen/internal/errgen/generate_test.go": {
+      "filePath": "cmd/errgen/internal/errgen/generate_test.go",
+      "contentHash": "aeee84e33919c80033f7fb922948f02b8f7b0ec230335efb28641383db3c3522",
+      "functions": [
+        {
+          "name": "TestGeneratePackageLevelHelpers",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "TestGenerateReportsConstraintUnsupported",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "TestGenerateOutputFile",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "TestGenerateCompilesAndPreservesErrorBehavior",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 87
+        },
+        {
+          "name": "TestGenerateReportsMissingTypeFlag",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestGenerateReportsCommaSeparatedType",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "TestGenerateReportsMissingType",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestGenerateReportsNonStringType",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "TestGenerateReportsNoTypedConstants",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "writePackage",
+          "params": [
+            "t",
+            "files"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "assertContains",
+          "params": [
+            "t",
+            "haystack"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "assertNotContains",
+          "params": [
+            "t",
+            "haystack"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "repoRoot",
+          "params": [
+            "t"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "os/exec",
+          "specifiers": [
+            "exec"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "runtime",
+          "specifiers": [
+            "runtime"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestGeneratePackageLevelHelpers",
+        "TestGenerateReportsConstraintUnsupported",
+        "TestGenerateOutputFile",
+        "TestGenerateCompilesAndPreservesErrorBehavior",
+        "TestGenerateReportsMissingTypeFlag",
+        "TestGenerateReportsCommaSeparatedType",
+        "TestGenerateReportsMissingType",
+        "TestGenerateReportsNonStringType",
+        "TestGenerateReportsNoTypedConstants"
+      ],
+      "totalLines": 319,
+      "hasStructuralAnalysis": true
+    },
+    "cmd/errgen/internal/errgen/generate.go": {
+      "filePath": "cmd/errgen/internal/errgen/generate.go",
+      "contentHash": "bfc2ec0ce3beff919d736763dc047af382ade4dac8e88ae873bcbd81730542a8",
+      "functions": [
+        {
+          "name": "Generate",
+          "params": [
+            "options"
+          ],
+          "returnType": "([]byte, error)",
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "normalizeTypeName",
+          "params": [
+            "typeName"
+          ],
+          "returnType": "(string, error)",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "inspectPackage",
+          "params": [
+            "dir",
+            "sentinelType"
+          ],
+          "returnType": "(packageInfo, error)",
+          "exported": false,
+          "lineCount": 78
+        },
+        {
+          "name": "parseFiles",
+          "params": [
+            "dir"
+          ],
+          "returnType": "([]*ast.File, error)",
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "isGenerated",
+          "params": [
+            "path"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "identName",
+          "params": [
+            "expr"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "render",
+          "params": [
+            "packageName",
+            "typeName"
+          ],
+          "returnType": "([]byte, error)",
+          "exported": false,
+          "lineCount": 26
+        }
+      ],
+      "classes": [
+        {
+          "name": "Options",
+          "methods": [],
+          "properties": [
+            "TypeName",
+            "ConstraintName",
+            "Dir",
+            "Output"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "packageInfo",
+          "methods": [],
+          "properties": [
+            "PackageName"
+          ],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "imports": [
+        {
+          "source": "bytes",
+          "specifiers": [
+            "bytes"
+          ]
+        },
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "go/ast",
+          "specifiers": [
+            "ast"
+          ]
+        },
+        {
+          "source": "go/format",
+          "specifiers": [
+            "format"
+          ]
+        },
+        {
+          "source": "go/parser",
+          "specifiers": [
+            "parser"
+          ]
+        },
+        {
+          "source": "go/token",
+          "specifiers": [
+            "token"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        }
+      ],
+      "exports": [
+        "Options",
+        "Generate"
+      ],
+      "totalLines": 232,
+      "hasStructuralAnalysis": true
+    },
+    "cmd/errgen/main.go": {
+      "filePath": "cmd/errgen/main.go",
+      "contentHash": "c1242aa2bab24730e7ec5df95c8e72d82f974e387ea6d8079b2bfce6a10884a6",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": false,
+          "lineCount": 20
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "flag",
+          "specifiers": [
+            "flag"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/cmd/errgen/internal/errgen",
+          "specifiers": [
+            "errgen"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "docs/backlog.md": {
+      "filePath": "docs/backlog.md",
+      "contentHash": "4c8514bb11fa5ca077b19a13e8ffb0fdbcec5d90ce8c45514be40bafb040437a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 146,
+      "hasStructuralAnalysis": true
+    },
+    "docs/cli-spec.md": {
+      "filePath": "docs/cli-spec.md",
+      "contentHash": "6750de3d1011e06e751c33532283d229637a282d0e567f9d28df5f678aa7d684",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1401,
+      "hasStructuralAnalysis": true
+    },
+    "docs/specs/m11-m20-green-package-use.md": {
+      "filePath": "docs/specs/m11-m20-green-package-use.md",
+      "contentHash": "65d6bed0bc8b09b091c3a3c23886bdbf4f0aa3620d2bfb6984f8d7dd47034420",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 362,
+      "hasStructuralAnalysis": true
+    },
+    "docs/specs/m21-m22-green-status.md": {
+      "filePath": "docs/specs/m21-m22-green-status.md",
+      "contentHash": "2b596d25867a2f4bd05082840c743a9cff028b0d94983157091ce566f69fcb5c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 229,
+      "hasStructuralAnalysis": true
+    },
+    "docs/specs/m3-green-manifest.md": {
+      "filePath": "docs/specs/m3-green-manifest.md",
+      "contentHash": "b8fdb53184b7e412b8ad26d82df75aa771c3398b0e5d00ca3415fc9b4e519ea7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 112,
+      "hasStructuralAnalysis": true
+    },
+    "docs/specs/m4-m6-green-state-resolve.md": {
+      "filePath": "docs/specs/m4-m6-green-state-resolve.md",
+      "contentHash": "95896f9be9b95987f7c4bb98a754bd183c1cd032066e4ecb3b996e4373114bb6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 203,
+      "hasStructuralAnalysis": true
+    },
+    "docs/specs/m7-m10-green-source-commands.md": {
+      "filePath": "docs/specs/m7-m10-green-source-commands.md",
+      "contentHash": "f80e38a9e009b54ef20d9cb27f1508c16826f12833c43a48c902ba5a1438ff6a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 486,
+      "hasStructuralAnalysis": true
+    },
+    "docs/testing-strategy.md": {
+      "filePath": "docs/testing-strategy.md",
+      "contentHash": "9f4e51bd4490b988094dc97b43ab69c2b6c8d340cbbaccecc53be8051a9e4661",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 426,
+      "hasStructuralAnalysis": true
+    },
+    "go.mod": {
+      "filePath": "go.mod",
+      "contentHash": "20eda6f47c1ba0739739778b5195a978f1e8ff6162ab4e82b2dbc8d910728036",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 15,
+      "hasStructuralAnalysis": false
+    },
+    "go.sum": {
+      "filePath": "go.sum",
+      "contentHash": "f6a9eddd2630d69c2a24ca0b8965bd5aa2ca8e889ef8366b07d9cac6b23682f9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 19,
+      "hasStructuralAnalysis": false
+    },
+    "internal/app/app.go": {
+      "filePath": "internal/app/app.go",
+      "contentHash": "441a2a2a1163818b26876534ac8a33569661e6919713f91ce373616eb3e50d3d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/args.go": {
+      "filePath": "internal/app/args.go",
+      "contentHash": "cac74421a109f1f696e9e787cf3cd8e6f594c0f1534987a9afde79d7374f70d9",
+      "functions": [
+        {
+          "name": "requiredStringArgs",
+          "params": [
+            "name",
+            "usage"
+          ],
+          "returnType": "*cli.StringArgs",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "optionalStringArgs",
+          "params": [
+            "name",
+            "usage"
+          ],
+          "returnType": "*cli.StringArgs",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "variadicStringArgs",
+          "params": [
+            "name",
+            "usage",
+            "min"
+          ],
+          "returnType": "*cli.StringArgs",
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 30,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/exit.go": {
+      "filePath": "internal/app/exit.go",
+      "contentHash": "50d423759dd8c619db7f01fc82f72e2dfa2392cd312ef6ea163899e390dcfe31",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/file_commands.go": {
+      "filePath": "internal/app/file_commands.go",
+      "contentHash": "a86e2fed66e24f92072f865711f08c21dd7767fa44724f04aef1c83715a910fe",
+      "functions": [
+        {
+          "name": "adoptCommand",
+          "params": [],
+          "returnType": "*cli.Command",
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "ejectCommand",
+          "params": [],
+          "returnType": "*cli.Command",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "statusCommand",
+          "params": [],
+          "returnType": "*cli.Command",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "adoptAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "ejectAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "statusAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 14
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "context",
+          "specifiers": [
+            "context"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/plan",
+          "specifiers": [
+            "plan"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/status",
+          "specifiers": [
+            "statuspkg"
+          ]
+        },
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 133,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/flags.go": {
+      "filePath": "internal/app/flags.go",
+      "contentHash": "17adf90d75e0517cbdcd34dfdb03f0e19e5c4f92ce68be65e5b7a03094c97262",
+      "functions": [
+        {
+          "name": "domainFlags",
+          "params": [],
+          "returnType": "[]cli.Flag",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "mutatingDomainFlags",
+          "params": [],
+          "returnType": "[]cli.Flag",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "contextFromFlag",
+          "params": [
+            "cmd"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/main.go": {
+      "filePath": "internal/app/main.go",
+      "contentHash": "450d61b97bb40d165fc12892d649776d36437df91ebbddba070e39e586e0e27a",
+      "functions": [
+        {
+          "name": "Main",
+          "params": [],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "runMetaJSON",
+          "params": [
+            "args",
+            "out"
+          ],
+          "returnType": "(bool, error)",
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "writeJSON",
+          "params": [
+            "out",
+            "value"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "hasAnyArg",
+          "params": [
+            "args"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "hasArg",
+          "params": [
+            "args",
+            "want"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "hasNonFlag",
+          "params": [
+            "args"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 12
+        }
+      ],
+      "classes": [
+        {
+          "name": "versionData",
+          "methods": [],
+          "properties": [
+            "Version"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "helpData",
+          "methods": [],
+          "properties": [
+            "Name",
+            "Usage",
+            "Commands",
+            "Flags"
+          ],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "commandData",
+          "methods": [],
+          "properties": [
+            "Name",
+            "Aliases",
+            "Usage"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "flagData",
+          "methods": [],
+          "properties": [
+            "Name",
+            "Aliases",
+            "Usage"
+          ],
+          "exported": false,
+          "lineCount": 5
+        }
+      ],
+      "imports": [
+        {
+          "source": "context",
+          "specifiers": [
+            "context"
+          ]
+        },
+        {
+          "source": "encoding/json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "io",
+          "specifiers": [
+            "io"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "slices",
+          "specifiers": [
+            "slices"
+          ]
+        }
+      ],
+      "exports": [
+        "Main"
+      ],
+      "totalLines": 105,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/output_test.go": {
+      "filePath": "internal/app/output_test.go",
+      "contentHash": "29a7727d09ec76142b0a80be0ad271ae0d1e85371b2fa99b1e91962261127485",
+      "functions": [
+        {
+          "name": "TestClassifyError",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 63
+        },
+        {
+          "name": "TestClassifyErrorPreservesDetailMessages",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 83
+        },
+        {
+          "name": "TestRunMetaJSONUsesSharedEnvelope",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "TestBuildSourcesData",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 28
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "bytes",
+          "specifiers": [
+            "bytes"
+          ]
+        },
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/apperr",
+          "specifiers": [
+            "apperr"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/manifest",
+          "specifiers": [
+            "manifest"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pkgref",
+          "specifiers": [
+            "pkgref"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/plan",
+          "specifiers": [
+            "plan"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/resolve",
+          "specifiers": [
+            "resolve"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        }
+      ],
+      "exports": [
+        "TestClassifyError",
+        "TestClassifyErrorPreservesDetailMessages",
+        "TestRunMetaJSONUsesSharedEnvelope",
+        "TestBuildSourcesData"
+      ],
+      "totalLines": 210,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/output.go": {
+      "filePath": "internal/app/output.go",
+      "contentHash": "fbecd8d41bec482c08adc26098da989f4357f77fca6348954c62bba597a865c9",
+      "functions": [
+        {
+          "name": "newRenderer",
+          "params": [
+            "cmd"
+          ],
+          "returnType": "renderer",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "colorEnabled",
+          "params": [
+            "cmd",
+            "jsonOutput"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "writeEnvelope",
+          "params": [
+            "out",
+            "command",
+            "context",
+            "kind",
+            "data",
+            "exitCode"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "writeEnvelope",
+          "params": [
+            "command",
+            "context",
+            "kind",
+            "data",
+            "exitCode"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "renderSourcesJSON",
+          "params": [
+            "command",
+            "registry"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "renderPackageList",
+          "params": [
+            "cmd",
+            "listing"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "packageNoun",
+          "params": [
+            "count"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "renderUsePlan",
+          "params": [
+            "cmd",
+            "usePlan"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "renderPlan",
+          "params": [
+            "cmd",
+            "usePlan"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 58
+        },
+        {
+          "name": "renderPlanError",
+          "params": [
+            "cmd",
+            "usePlan",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "renderStatus",
+          "params": [
+            "cmd",
+            "result"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 29
+        },
+        {
+          "name": "entryNoun",
+          "params": [
+            "count"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "packageNames",
+          "params": [
+            "identities"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "buildSourcesData",
+          "params": [
+            "registry"
+          ],
+          "returnType": "sourcesData",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "renderSourceAdd",
+          "params": [
+            "cmd",
+            "registry",
+            "source"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "renderSourceList",
+          "params": [
+            "cmd",
+            "registry"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 25
+        },
+        {
+          "name": "renderError",
+          "params": [
+            "cmd",
+            "command",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "renderError",
+          "params": [
+            "command",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "renderErrorContext",
+          "params": [
+            "command",
+            "context",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "isPrivilegeRequired",
+          "params": [
+            "err"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "classifyError",
+          "params": [
+            "err"
+          ],
+          "returnType": "errorRecord",
+          "exported": false,
+          "lineCount": 76
+        },
+        {
+          "name": "detailMessage",
+          "params": [
+            "err",
+            "fallback"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 22
+        }
+      ],
+      "classes": [
+        {
+          "name": "envelope",
+          "methods": [],
+          "properties": [
+            "SchemaVersion",
+            "Command",
+            "Context",
+            "Kind",
+            "Data",
+            "ExitCode"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "sourcesData",
+          "methods": [],
+          "properties": [
+            "Sources"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "packageListData",
+          "methods": [],
+          "properties": [
+            "Source",
+            "Packages"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "sourceRecord",
+          "methods": [],
+          "properties": [
+            "ID",
+            "Path",
+            "Enabled",
+            "Default",
+            "Description"
+          ],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "errorData",
+          "methods": [],
+          "properties": [
+            "Error"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "errorRecord",
+          "methods": [],
+          "properties": [
+            "Code",
+            "Message",
+            "Hint"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "renderer",
+          "methods": [
+            "writeEnvelope",
+            "renderSourcesJSON",
+            "renderError",
+            "renderErrorContext"
+          ],
+          "properties": [
+            "out",
+            "err",
+            "json",
+            "color"
+          ],
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "io",
+          "specifiers": [
+            "io"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/manifest",
+          "specifiers": [
+            "manifest"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pkgref",
+          "specifiers": [
+            "pkgref"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/plan",
+          "specifiers": [
+            "plan"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/resolve",
+          "specifiers": [
+            "resolve"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/status",
+          "specifiers": [
+            "statuspkg"
+          ]
+        },
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 430,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/package_commands.go": {
+      "filePath": "internal/app/package_commands.go",
+      "contentHash": "c80f245bafe91dec34ce92c2b930b13808ee829ac098faeffbefb5c6d76694e6",
+      "functions": [
+        {
+          "name": "packageCommand",
+          "params": [],
+          "returnType": "*cli.Command",
+          "exported": false,
+          "lineCount": 78
+        },
+        {
+          "name": "packageUseAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "packageDropAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "packageListAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "packageStatusAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "packageShowAction",
+          "params": [
+            "ctx",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "context",
+          "specifiers": [
+            "context"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/plan",
+          "specifiers": [
+            "plan"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/status",
+          "specifiers": [
+            "statuspkg"
+          ]
+        },
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 170,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/root.go": {
+      "filePath": "internal/app/root.go",
+      "contentHash": "71fe5fd8238e253a468aefb11b43cc63ab814432f09ff6d04c3b7a7967fe2b9e",
+      "functions": [
+        {
+          "name": "commandNotFound",
+          "params": [
+            "_",
+            "cmd",
+            "name"
+          ],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "commandUsageError",
+          "params": [
+            "_",
+            "cmd",
+            "err",
+            "_"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "rootCommand",
+          "params": [],
+          "returnType": "*cli.Command",
+          "exported": false,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "context",
+          "specifiers": [
+            "context"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 48,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/source_commands.go": {
+      "filePath": "internal/app/source_commands.go",
+      "contentHash": "3703d464c9ec163055d61d4a984aa6195d4a13c4be2595d7b9bdc564fab92c80",
+      "functions": [
+        {
+          "name": "sourceCommand",
+          "params": [],
+          "returnType": "*cli.Command",
+          "exported": false,
+          "lineCount": 55
+        },
+        {
+          "name": "sourceAddAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "sourceListAction",
+          "params": [
+            "_",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "sourceRmAction",
+          "params": [
+            "ctx",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "sourceDefaultAction",
+          "params": [
+            "ctx",
+            "cmd"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "context",
+          "specifiers": [
+            "context"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        },
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 107,
+      "hasStructuralAnalysis": true
+    },
+    "internal/app/stubs.go": {
+      "filePath": "internal/app/stubs.go",
+      "contentHash": "78e1f54c27bdf3adea7e1935ea5809aa1fe7343d4915cf40bdd9c0ddc2ca82e7",
+      "functions": [
+        {
+          "name": "notImplemented",
+          "params": [
+            "name"
+          ],
+          "returnType": "cli.ActionFunc",
+          "exported": false,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "context",
+          "specifiers": [
+            "context"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "github.com/urfave/cli/v3",
+          "specifiers": [
+            "v3"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 15,
+      "hasStructuralAnalysis": true
+    },
+    "internal/apperr/apperr_test.go": {
+      "filePath": "internal/apperr/apperr_test.go",
+      "contentHash": "c9e98a72cee573a97e4549ae50475d630b925418d5923c7dff0a15380e952580",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "TestAppErrMsgReturnsSentinelWithoutContext",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "TestAppErrWrapfSupportsErrorsIsForSentinelAndCause",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestAppErrMsgfSupportsErrorsAsAndSentinel",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "TestAppErrMsgfSupportsErrorsAsTypeAndSentinel",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "TestAppErrWrapUsesCauseWithoutMessage",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "TestErrorStringIncludesSentinelMessageAndCause",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "TestNestedAppErrUsesStandardErrorTraversal",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "TestNestedAppErrAsReturnsOutermostAppError",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "TestNilErrorReceiver",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "TestAppErrMsgReturnsSentinelWithoutContext",
+        "TestAppErrWrapfSupportsErrorsIsForSentinelAndCause",
+        "TestAppErrMsgfSupportsErrorsAsAndSentinel",
+        "TestAppErrMsgfSupportsErrorsAsTypeAndSentinel",
+        "TestAppErrWrapUsesCauseWithoutMessage",
+        "TestErrorStringIncludesSentinelMessageAndCause",
+        "TestNestedAppErrUsesStandardErrorTraversal",
+        "TestNestedAppErrAsReturnsOutermostAppError",
+        "TestNilErrorReceiver"
+      ],
+      "totalLines": 128,
+      "hasStructuralAnalysis": true
+    },
+    "internal/apperr/apperr.go": {
+      "filePath": "internal/apperr/apperr.go",
+      "contentHash": "0ab7f832736c39f0f8bbb8209c72244c0f782c8a1f38b7ad43d3f574c2562eb9",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "Unwrap",
+          "params": [],
+          "returnType": "[]error",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "Sentinel",
+          "params": [],
+          "returnType": "S",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "AppErrMsg",
+          "params": [
+            "sentinel",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrMsgf",
+          "params": [
+            "sentinel",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrap",
+          "params": [
+            "sentinel",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrapf",
+          "params": [
+            "sentinel",
+            "err",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "appErr",
+          "params": [
+            "sentinel",
+            "cause",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 11
+        }
+      ],
+      "classes": [
+        {
+          "name": "sentinel",
+          "methods": [],
+          "properties": [],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "Error",
+          "methods": [],
+          "properties": [
+            "sentinel",
+            "msg",
+            "err"
+          ],
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "imports": [
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "Error",
+        "Unwrap",
+        "Sentinel",
+        "AppErrMsg",
+        "AppErrMsgf",
+        "AppErrWrap",
+        "AppErrWrapf"
+      ],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "internal/domain/domain_test.go": {
+      "filePath": "internal/domain/domain_test.go",
+      "contentHash": "f8671d4df64dbd69622e3351a924393873755ac46076c4c351ced485064f6806",
+      "functions": [
+        {
+          "name": "TestTargetRoot",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 34
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestTargetRoot"
+      ],
+      "totalLines": 42,
+      "hasStructuralAnalysis": true
+    },
+    "internal/domain/domain.go": {
+      "filePath": "internal/domain/domain.go",
+      "contentHash": "043c11fde49cf0d91875139244a6dec564a0120f2e3fdb1d6cadaf4d0d65bec7",
+      "functions": [
+        {
+          "name": "ActiveSource",
+          "params": [
+            "sourceID"
+          ],
+          "returnType": "(state.Source, error)",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "TargetRoot",
+          "params": [
+            "explicit",
+            "requireHome"
+          ],
+          "returnType": "(string, error)",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "NewTargetScope",
+          "params": [
+            "context",
+            "explicit",
+            "requireHome"
+          ],
+          "returnType": "(TargetScope, error)",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "PhysicalPath",
+          "params": [
+            "logicalPath"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 14
+        }
+      ],
+      "classes": [
+        {
+          "name": "TargetScope",
+          "methods": [
+            "PhysicalPath"
+          ],
+          "properties": [
+            "Context",
+            "LogicalRoot",
+            "PhysicalRoot"
+          ],
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/resolve",
+          "specifiers": [
+            "resolve"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        }
+      ],
+      "exports": [
+        "TargetScope",
+        "ActiveSource",
+        "TargetRoot",
+        "NewTargetScope",
+        "PhysicalPath"
+      ],
+      "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "internal/domain/root_physical_notesthooks.go": {
+      "filePath": "internal/domain/root_physical_notesthooks.go",
+      "contentHash": "5b8ec943d2ef99bc5956a2a5488a96185ec8755c2678c2f863a3869205334aa9",
+      "functions": [
+        {
+          "name": "rootPhysicalRoot",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    "internal/domain/root_physical_testhooks.go": {
+      "filePath": "internal/domain/root_physical_testhooks.go",
+      "contentHash": "7ed3cf65e1e7fe315be9bd8833964c9041d6ee078905d0e989a23a037766aa16",
+      "functions": [
+        {
+          "name": "rootPhysicalRoot",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "internal/manifest/apperr_gen.go": {
+      "filePath": "internal/manifest/apperr_gen.go",
+      "contentHash": "80e0c0ef1a70a0e2a2a7c4a7a1e21e18d7940ec5c7860d828b2715e6b9e143fc",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "AppErrMsg",
+          "params": [
+            "sentinel",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrMsgf",
+          "params": [
+            "sentinel",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrap",
+          "params": [
+            "sentinel",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrapf",
+          "params": [
+            "sentinel",
+            "err",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/apperr",
+          "specifiers": [
+            "apperr"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "AppErrMsg",
+        "AppErrMsgf",
+        "AppErrWrap",
+        "AppErrWrapf"
+      ],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "internal/manifest/manifest_test.go": {
+      "filePath": "internal/manifest/manifest_test.go",
+      "contentHash": "b0efd85a436ce373b83bad0e8d8dd8806cf76f33c791758e393c3d6a6fc4cdc6",
+      "functions": [
+        {
+          "name": "TestLoad",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 45
+        },
+        {
+          "name": "TestLoadErrors",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 70
+        },
+        {
+          "name": "TestGeneratedErrorAliasSupportsTypedInspection",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "writeManifest",
+          "params": [
+            "t",
+            "contents"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestLoad",
+        "TestLoadErrors",
+        "TestGeneratedErrorAliasSupportsTypedInspection"
+      ],
+      "totalLines": 148,
+      "hasStructuralAnalysis": true
+    },
+    "internal/manifest/manifest.go": {
+      "filePath": "internal/manifest/manifest.go",
+      "contentHash": "75b948db5b53ea5025e5ce4db3786c5b4c9ebb69f39195d9ffd7403cac97a7c4",
+      "functions": [
+        {
+          "name": "Load",
+          "params": [
+            "repoRoot"
+          ],
+          "returnType": "(Manifest, error)",
+          "exported": true,
+          "lineCount": 25
+        }
+      ],
+      "classes": [
+        {
+          "name": "Manifest",
+          "methods": [],
+          "properties": [
+            "Name",
+            "Description"
+          ],
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "github.com/pelletier/go-toml/v2",
+          "specifiers": [
+            "v2"
+          ]
+        }
+      ],
+      "exports": [
+        "Manifest",
+        "Load"
+      ],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "internal/packages/apperr_gen.go": {
+      "filePath": "internal/packages/apperr_gen.go",
+      "contentHash": "7f6baae340a8f65d856b218c5ab33c29d644e539b2e21454ae20a906b59a8ab6",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "AppErrMsg",
+          "params": [
+            "sentinel",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrMsgf",
+          "params": [
+            "sentinel",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrap",
+          "params": [
+            "sentinel",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrapf",
+          "params": [
+            "sentinel",
+            "err",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/apperr",
+          "specifiers": [
+            "apperr"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "AppErrMsg",
+        "AppErrMsgf",
+        "AppErrWrap",
+        "AppErrWrapf"
+      ],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "internal/packages/packages_test.go": {
+      "filePath": "internal/packages/packages_test.go",
+      "contentHash": "cff54cc1720e32963c2cdfcc56d0ffe5bd12a045df03b431c3ab8f9de4361e6c",
+      "functions": [
+        {
+          "name": "TestDiscoverSkipsDotPrefixedDirectories",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "TestDirectoriesReturnsOnlyDirectoriesWithoutChildDirectories",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "TestDirectoriesKeepsSiblingPrefixDirectoriesIndependent",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestResolveForAdoptDoesNotRequireExistingPackage",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestResolveForAdoptValidatesPackageRef",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "directoryRels",
+          "params": [
+            "entries"
+          ],
+          "returnType": "[]string",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "slices",
+          "specifiers": [
+            "slices"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pkgref",
+          "specifiers": [
+            "pkgref"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        }
+      ],
+      "exports": [
+        "TestDiscoverSkipsDotPrefixedDirectories",
+        "TestDirectoriesReturnsOnlyDirectoriesWithoutChildDirectories",
+        "TestDirectoriesKeepsSiblingPrefixDirectoriesIndependent",
+        "TestResolveForAdoptDoesNotRequireExistingPackage",
+        "TestResolveForAdoptValidatesPackageRef"
+      ],
+      "totalLines": 101,
+      "hasStructuralAnalysis": true
+    },
+    "internal/packages/packages.go": {
+      "filePath": "internal/packages/packages.go",
+      "contentHash": "4d26271c754f0c9663edc07aa7ec71d8f8205b72b3449b72cb830c3c0ce44db2",
+      "functions": [
+        {
+          "name": "String",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "List",
+          "params": [
+            "options"
+          ],
+          "returnType": "(Listing, error)",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "Base",
+          "params": [
+            "source",
+            "context"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Resolve",
+          "params": [
+            "source",
+            "context",
+            "refs",
+            "all"
+          ],
+          "returnType": "([]Resolved, error)",
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "ResolveOne",
+          "params": [
+            "source",
+            "context",
+            "name"
+          ],
+          "returnType": "(Resolved, error)",
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "ResolveForAdopt",
+          "params": [
+            "source",
+            "context",
+            "rawRef"
+          ],
+          "returnType": "(Identity, error)",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "Discover",
+          "params": [
+            "base"
+          ],
+          "returnType": "([]string, error)",
+          "exported": true,
+          "lineCount": 18
+        }
+      ],
+      "classes": [
+        {
+          "name": "Identity",
+          "methods": [
+            "String"
+          ],
+          "properties": [
+            "Source",
+            "Context",
+            "Name",
+            "Root"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Entry",
+          "methods": [],
+          "properties": [
+            "Path",
+            "Rel",
+            "Dir"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "Resolved",
+          "methods": [],
+          "properties": [
+            "Identity",
+            "Entries"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "ListOptions",
+          "methods": [],
+          "properties": [
+            "SourceID",
+            "Context"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "Listing",
+          "methods": [],
+          "properties": [
+            "Source",
+            "Context",
+            "Packages"
+          ],
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "io/fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "sort",
+          "specifiers": [
+            "sort"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/domain",
+          "specifiers": [
+            "domain"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pkgref",
+          "specifiers": [
+            "pkgref"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        }
+      ],
+      "exports": [
+        "Identity",
+        "String",
+        "Entry",
+        "Resolved",
+        "ListOptions",
+        "Listing",
+        "List",
+        "Base",
+        "Resolve",
+        "ResolveOne",
+        "ResolveForAdopt",
+        "Discover"
+      ],
+      "totalLines": 170,
+      "hasStructuralAnalysis": true
+    },
+    "internal/packages/walk.go": {
+      "filePath": "internal/packages/walk.go",
+      "contentHash": "e6aa54f2f790c91b49a90cc967562eb9d9cced425c6afa1b0b19d66f8706b288",
+      "functions": [
+        {
+          "name": "Enumerate",
+          "params": [
+            "root"
+          ],
+          "returnType": "([]Entry, error)",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "Directories",
+          "params": [
+            "entries"
+          ],
+          "returnType": "[]Entry",
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "Leaves",
+          "params": [
+            "entries"
+          ],
+          "returnType": "[]Entry",
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "io/fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "sort",
+          "specifiers": [
+            "sort"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pathutil",
+          "specifiers": [
+            "pathutil"
+          ]
+        }
+      ],
+      "exports": [
+        "Enumerate",
+        "Directories",
+        "Leaves"
+      ],
+      "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "internal/pathutil/doc.go": {
+      "filePath": "internal/pathutil/doc.go",
+      "contentHash": "9292cc867596886b61c55ad5a0a5421d962a6e8e5697cbd2d2afc296194aca71",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "internal/pathutil/pathutil_test.go": {
+      "filePath": "internal/pathutil/pathutil_test.go",
+      "contentHash": "3e59cf2a4804622feb4285f66325aceb0c447f05ac51c9faa4a6465e93544e7b",
+      "functions": [
+        {
+          "name": "TestInsideIsPathSegmentAware",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "TestPackageToTarget",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "TestSymlinkPayload",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "TestExpandInput",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 29
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestInsideIsPathSegmentAware",
+        "TestPackageToTarget",
+        "TestSymlinkPayload",
+        "TestExpandInput"
+      ],
+      "totalLines": 66,
+      "hasStructuralAnalysis": true
+    },
+    "internal/pathutil/pathutil.go": {
+      "filePath": "internal/pathutil/pathutil.go",
+      "contentHash": "c1615aabcd006bae8b4e79c0872a2bf90ebb1f0ec9c3f4e1ddef6bacad86e33f",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "Inside",
+          "params": [
+            "child",
+            "root"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "RelInside",
+          "params": [
+            "root",
+            "child"
+          ],
+          "returnType": "(string, error)",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "PackageToTarget",
+          "params": [
+            "packageRoot",
+            "entryPath",
+            "targetRoot"
+          ],
+          "returnType": "(string, string, error)",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "TargetToPackage",
+          "params": [
+            "targetRoot",
+            "targetPath",
+            "packageRoot"
+          ],
+          "returnType": "(string, string, error)",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "SymlinkPayload",
+          "params": [
+            "linkPath",
+            "targetPath"
+          ],
+          "returnType": "(string, error)",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "ExpandInput",
+          "params": [
+            "raw"
+          ],
+          "returnType": "(string, error)",
+          "exported": true,
+          "lineCount": 24
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "Inside",
+        "RelInside",
+        "PackageToTarget",
+        "TargetToPackage",
+        "SymlinkPayload",
+        "ExpandInput"
+      ],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "internal/pkgref/apperr_gen.go": {
+      "filePath": "internal/pkgref/apperr_gen.go",
+      "contentHash": "8ecffc1759fda286fc6b15e3df07290bf4b8e39d957d6ae67327ddd758c3e74e",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "AppErrMsg",
+          "params": [
+            "sentinel",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrMsgf",
+          "params": [
+            "sentinel",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrap",
+          "params": [
+            "sentinel",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrapf",
+          "params": [
+            "sentinel",
+            "err",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/apperr",
+          "specifiers": [
+            "apperr"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "AppErrMsg",
+        "AppErrMsgf",
+        "AppErrWrap",
+        "AppErrWrapf"
+      ],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "internal/pkgref/pkgref_test.go": {
+      "filePath": "internal/pkgref/pkgref_test.go",
+      "contentHash": "48f1a7668e1e0a841d6466df2f9e579eb09ed0ad4b5fc7c0f936b242824662c9",
+      "functions": [
+        {
+          "name": "TestParse",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 38
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestParse"
+      ],
+      "totalLines": 46,
+      "hasStructuralAnalysis": true
+    },
+    "internal/pkgref/pkgref.go": {
+      "filePath": "internal/pkgref/pkgref.go",
+      "contentHash": "580086d3b72c7af4e64f813814a9e89349d3986af8024e38c8cb79532c7aa186",
+      "functions": [
+        {
+          "name": "Parse",
+          "params": [
+            "raw"
+          ],
+          "returnType": "(Ref, error)",
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [
+        {
+          "name": "Ref",
+          "methods": [],
+          "properties": [
+            "Name"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "imports": [
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "slices",
+          "specifiers": [
+            "slices"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        }
+      ],
+      "exports": [
+        "Ref",
+        "Parse"
+      ],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/adopt.go": {
+      "filePath": "internal/plan/adopt.go",
+      "contentHash": "7ae89812a9321e399c8e1bf6731d03ba36f4bbb92c831a0789ced2c1b9299a67",
+      "functions": [
+        {
+          "name": "BuildAdopt",
+          "params": [
+            "options"
+          ],
+          "returnType": "(UsePlan, error)",
+          "exported": true,
+          "lineCount": 92
+        },
+        {
+          "name": "adoptConflictCode",
+          "params": [
+            "class"
+          ],
+          "returnType": "target.ConflictCode",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "adoptConflictMessage",
+          "params": [
+            "class"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        }
+      ],
+      "classes": [
+        {
+          "name": "AdoptOptions",
+          "methods": [],
+          "properties": [
+            "File",
+            "Ref",
+            "SourceID",
+            "Context",
+            "TargetRoot",
+            "Apply"
+          ],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "io/fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/domain",
+          "specifiers": [
+            "domain"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pathutil",
+          "specifiers": [
+            "pathutil"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/resolve",
+          "specifiers": [
+            "resolve"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/target",
+          "specifiers": [
+            "target"
+          ]
+        }
+      ],
+      "exports": [
+        "AdoptOptions",
+        "BuildAdopt"
+      ],
+      "totalLines": 135,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/apperr_gen.go": {
+      "filePath": "internal/plan/apperr_gen.go",
+      "contentHash": "18aa061b1fc9c3f5386cddc6312b58ab449765f0e91ecb4a63b9679fcf3d351e",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "AppErrMsg",
+          "params": [
+            "sentinel",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrMsgf",
+          "params": [
+            "sentinel",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrap",
+          "params": [
+            "sentinel",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrapf",
+          "params": [
+            "sentinel",
+            "err",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/apperr",
+          "specifiers": [
+            "apperr"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "AppErrMsg",
+        "AppErrMsgf",
+        "AppErrWrap",
+        "AppErrWrapf"
+      ],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/apply.go": {
+      "filePath": "internal/plan/apply.go",
+      "contentHash": "5cc4f9e480c6b90a68aa330890bf6c312b4bf9c4bd882fb6915df127c7606861",
+      "functions": [
+        {
+          "name": "Apply",
+          "params": [
+            "usePlan"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 59
+        },
+        {
+          "name": "preflightApply",
+          "params": [
+            "usePlan"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "validate",
+          "params": [
+            "action"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "record",
+          "params": [
+            "action"
+          ],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "validateMkdir",
+          "params": [
+            "path",
+            "displayPath"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "validateRmdir",
+          "params": [
+            "path",
+            "displayPath"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 21
+        },
+        {
+          "name": "validateSymlink",
+          "params": [
+            "action"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "validateRemoveSymlink",
+          "params": [
+            "path",
+            "displayPath"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "validateMove",
+          "params": [
+            "action"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "validateExistingDirectory",
+          "params": [
+            "path",
+            "displayPath"
+          ],
+          "returnType": "error",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "fsPath",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "fsLinkPath",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "fsSrc",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "fsDst",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "directoryState",
+          "params": [
+            "path"
+          ],
+          "returnType": "(bool, bool, error)",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "pathKind",
+          "params": [
+            "path"
+          ],
+          "returnType": "(preflightPathKind, bool, error)",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "recordMkdir",
+          "params": [
+            "path"
+          ],
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "emptyDirectoryAfterPlannedRemovals",
+          "params": [
+            "path"
+          ],
+          "returnType": "(bool, error)",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "hasPlannedExistingChild",
+          "params": [
+            "path"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "hasRemovedAncestor",
+          "params": [
+            "path"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [
+        {
+          "name": "applyPreflight",
+          "methods": [
+            "validate",
+            "record",
+            "validateMkdir",
+            "validateRmdir",
+            "validateSymlink",
+            "validateRemoveSymlink",
+            "validateMove",
+            "validateExistingDirectory",
+            "directoryState",
+            "pathKind",
+            "recordMkdir",
+            "emptyDirectoryAfterPlannedRemovals",
+            "hasPlannedExistingChild",
+            "hasRemovedAncestor"
+          ],
+          "properties": [
+            "paths"
+          ],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        }
+      ],
+      "exports": [
+        "Apply"
+      ],
+      "totalLines": 385,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/eject_test.go": {
+      "filePath": "internal/plan/eject_test.go",
+      "contentHash": "c712370c07435565ef3725b0f66f72f79a33660603ad1c82ee0c793a06dac6d0",
+      "functions": [
+        {
+          "name": "TestPruneAfterEjectPlansEmptyParentsBelowPackageRoot",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "TestPruneAfterEjectLeavesPackageRoot",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "TestPruneAfterEjectStopsAtSiblingLeaf",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "TestPruneAfterEjectStopsAtExtraDirectory",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "writeTestFile",
+          "params": [
+            "t",
+            "path"
+          ],
+          "exported": false,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "slices",
+          "specifiers": [
+            "slices"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestPruneAfterEjectPlansEmptyParentsBelowPackageRoot",
+        "TestPruneAfterEjectLeavesPackageRoot",
+        "TestPruneAfterEjectStopsAtSiblingLeaf",
+        "TestPruneAfterEjectStopsAtExtraDirectory"
+      ],
+      "totalLines": 84,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/eject.go": {
+      "filePath": "internal/plan/eject.go",
+      "contentHash": "962669be7983920fe74f5b32034dee862637c30190144fe547931e8851f30ece",
+      "functions": [
+        {
+          "name": "BuildEject",
+          "params": [
+            "options"
+          ],
+          "returnType": "(UsePlan, error)",
+          "exported": true,
+          "lineCount": 86
+        },
+        {
+          "name": "notManagedMessage",
+          "params": [
+            "class"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "pruneAfterEject",
+          "params": [
+            "packageRoot",
+            "packagePath"
+          ],
+          "returnType": "([]string, error)",
+          "exported": false,
+          "lineCount": 33
+        }
+      ],
+      "classes": [
+        {
+          "name": "EjectOptions",
+          "methods": [],
+          "properties": [
+            "File",
+            "SourceID",
+            "Context",
+            "TargetRoot",
+            "Apply"
+          ],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "io/fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/domain",
+          "specifiers": [
+            "domain"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pathutil",
+          "specifiers": [
+            "pathutil"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/resolve",
+          "specifiers": [
+            "resolve"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/target",
+          "specifiers": [
+            "target"
+          ]
+        }
+      ],
+      "exports": [
+        "EjectOptions",
+        "BuildEject"
+      ],
+      "totalLines": 151,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/privilege_notesthooks.go": {
+      "filePath": "internal/plan/privilege_notesthooks.go",
+      "contentHash": "c271db2db7099912837c67f8cef8ddeb1d663e1b51798f6f23637043291d307a",
+      "functions": [
+        {
+          "name": "hasRootPrivilege",
+          "params": [],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/privilege_testhooks.go": {
+      "filePath": "internal/plan/privilege_testhooks.go",
+      "contentHash": "e1f2b98843075bef799412de22681dcb9c9f957e818721fa8e4964206cce08bb",
+      "functions": [
+        {
+          "name": "hasRootPrivilege",
+          "params": [],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/use_test.go": {
+      "filePath": "internal/plan/use_test.go",
+      "contentHash": "a90fd0f18284f77df088031d9d7a1e0d6fbfdf3de98ac9c633fb7d09156aafe6",
+      "functions": [
+        {
+          "name": "TestActionTypeJSONPreservesStringValues",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "TestConflictCodeJSONPreservesStringValues",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestTargetConflictCodeValues",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "TestApplyCreatesRelativeSymlink",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "TestApplyMovesFile",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "TestApplyRemovesEmptyDirectory",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestApplyRmdirReportsNonEmptyDirectory",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestApplyMoveReportsErrors",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "TestApplyRejectsUnknownActionType",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "TestApplyPreflightsBeforeMutating",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "TestApplyPreflightAccountsForPlannedState",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 42
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "encoding/json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/target",
+          "specifiers": [
+            "target"
+          ]
+        }
+      ],
+      "exports": [
+        "TestActionTypeJSONPreservesStringValues",
+        "TestConflictCodeJSONPreservesStringValues",
+        "TestTargetConflictCodeValues",
+        "TestApplyCreatesRelativeSymlink",
+        "TestApplyMovesFile",
+        "TestApplyRemovesEmptyDirectory",
+        "TestApplyRmdirReportsNonEmptyDirectory",
+        "TestApplyMoveReportsErrors",
+        "TestApplyRejectsUnknownActionType",
+        "TestApplyPreflightsBeforeMutating",
+        "TestApplyPreflightAccountsForPlannedState"
+      ],
+      "totalLines": 256,
+      "hasStructuralAnalysis": true
+    },
+    "internal/plan/use.go": {
+      "filePath": "internal/plan/use.go",
+      "contentHash": "80b9684c5991e7838d126c357e6ffc3a2bbc09b75e94692cc39b953eda4fe63e",
+      "functions": [
+        {
+          "name": "BuildUse",
+          "params": [
+            "options"
+          ],
+          "returnType": "(UsePlan, error)",
+          "exported": true,
+          "lineCount": 101
+        },
+        {
+          "name": "BuildDrop",
+          "params": [
+            "options"
+          ],
+          "returnType": "(UsePlan, error)",
+          "exported": true,
+          "lineCount": 68
+        },
+        {
+          "name": "selectedContext",
+          "params": [
+            "context"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "markPrivilege",
+          "params": [
+            "usePlan"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "privilegeDenied",
+          "params": [
+            "usePlan"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "blockedByDirectoryConflict",
+          "params": [
+            "rel",
+            "blockedPrefixes"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "conflict",
+          "params": [
+            "code",
+            "path",
+            "pkg",
+            "message"
+          ],
+          "returnType": "Conflict",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "UseOptions",
+          "methods": [],
+          "properties": [
+            "Refs",
+            "All",
+            "SourceID",
+            "Context",
+            "TargetRoot",
+            "Apply"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "DropOptions",
+          "methods": [],
+          "properties": [
+            "Refs",
+            "SourceID",
+            "Context",
+            "TargetRoot",
+            "Apply"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "Action",
+          "methods": [],
+          "properties": [
+            "Type",
+            "Path",
+            "LinkPath",
+            "Payload",
+            "Target",
+            "Src",
+            "Dst",
+            "physicalPath",
+            "physicalLinkPath",
+            "physicalSrc",
+            "physicalDst"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "Conflict",
+          "methods": [],
+          "properties": [
+            "Code",
+            "Path",
+            "Message",
+            "Package"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Privilege",
+          "methods": [],
+          "properties": [
+            "Required",
+            "Satisfied",
+            "Reason"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "UsePlan",
+          "methods": [],
+          "properties": [
+            "Command",
+            "Context",
+            "DryRun",
+            "Applied",
+            "Packages",
+            "Privilege",
+            "Actions",
+            "Conflicts"
+          ],
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "imports": [
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/domain",
+          "specifiers": [
+            "domain"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pathutil",
+          "specifiers": [
+            "pathutil"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/target",
+          "specifiers": [
+            "target"
+          ]
+        }
+      ],
+      "exports": [
+        "UseOptions",
+        "DropOptions",
+        "Action",
+        "Conflict",
+        "Privilege",
+        "UsePlan",
+        "BuildUse",
+        "BuildDrop"
+      ],
+      "totalLines": 293,
+      "hasStructuralAnalysis": true
+    },
+    "internal/resolve/apperr_gen.go": {
+      "filePath": "internal/resolve/apperr_gen.go",
+      "contentHash": "83b54096aed90766852542a5a42475bda4bd8bb7c41dd83086e28a149a0210ac",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "AppErrMsg",
+          "params": [
+            "sentinel",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrMsgf",
+          "params": [
+            "sentinel",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrap",
+          "params": [
+            "sentinel",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrapf",
+          "params": [
+            "sentinel",
+            "err",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/apperr",
+          "specifiers": [
+            "apperr"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "AppErrMsg",
+        "AppErrMsgf",
+        "AppErrWrap",
+        "AppErrWrapf"
+      ],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "internal/resolve/resolve_test.go": {
+      "filePath": "internal/resolve/resolve_test.go",
+      "contentHash": "9e355e522e0e94878e3d9b254f7d84c3329caed311c35f74b557ed78588a541f",
+      "functions": [
+        {
+          "name": "TestActiveSource",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 85
+        },
+        {
+          "name": "TestActiveSourceErrorKindsStayDistinct",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "source",
+          "params": [
+            "id",
+            "enabled"
+          ],
+          "returnType": "state.Source",
+          "exported": false,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        }
+      ],
+      "exports": [
+        "TestActiveSource",
+        "TestActiveSourceErrorKindsStayDistinct"
+      ],
+      "totalLines": 110,
+      "hasStructuralAnalysis": true
+    },
+    "internal/resolve/resolve.go": {
+      "filePath": "internal/resolve/resolve.go",
+      "contentHash": "22a1d0511905824d52d6e7b1e463bda3ca63d27a00c5863e7a2faa2277b8e326",
+      "functions": [
+        {
+          "name": "ActiveSource",
+          "params": [
+            "registry",
+            "explicitID"
+          ],
+          "returnType": "(state.Source, error)",
+          "exported": true,
+          "lineCount": 27
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        }
+      ],
+      "exports": [
+        "ActiveSource"
+      ],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/apperr_gen.go": {
+      "filePath": "internal/state/apperr_gen.go",
+      "contentHash": "b0d8477472de68aae48457b8841c796088d9089331cd4f4ad0752a0d8e348e04",
+      "functions": [
+        {
+          "name": "Error",
+          "params": [],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "AppErrMsg",
+          "params": [
+            "sentinel",
+            "msg"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrMsgf",
+          "params": [
+            "sentinel",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrap",
+          "params": [
+            "sentinel",
+            "err"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AppErrWrapf",
+          "params": [
+            "sentinel",
+            "err",
+            "format"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/apperr",
+          "specifiers": [
+            "apperr"
+          ]
+        }
+      ],
+      "exports": [
+        "Error",
+        "AppErrMsg",
+        "AppErrMsgf",
+        "AppErrWrap",
+        "AppErrWrapf"
+      ],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/machine_paths_notesthooks.go": {
+      "filePath": "internal/state/machine_paths_notesthooks.go",
+      "contentHash": "24d5b02171dd93f4add5e778cc2cfd8371ca60b6f3eca95a1b1160ba4195e998",
+      "functions": [
+        {
+          "name": "testStateHomeOverride",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/machine_paths_testhooks.go": {
+      "filePath": "internal/state/machine_paths_testhooks.go",
+      "contentHash": "29a56d33fd1e26da796695f0064c691e1a3258900f23a7d911c921e2da112edd",
+      "functions": [
+        {
+          "name": "testStateHomeOverride",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/machine_paths.go": {
+      "filePath": "internal/state/machine_paths.go",
+      "contentHash": "aa5b40ae75c1eb428ee6f6310d7de5159af36ec27aa4406765560935ff95d199",
+      "functions": [
+        {
+          "name": "stateHome",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "tuckStateDir",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "sourcesFile",
+          "params": [],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 29,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/marshal.go": {
+      "filePath": "internal/state/marshal.go",
+      "contentHash": "160af8bd4add2d0f52b0cd590c1c4d312117dca2060139df7620529f7078c2d5",
+      "functions": [
+        {
+          "name": "marshalRegistry",
+          "params": [
+            "registry"
+          ],
+          "returnType": "[]byte",
+          "exported": false,
+          "lineCount": 27
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "bytes",
+          "specifiers": [
+            "bytes"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "strconv",
+          "specifiers": [
+            "strconv"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 36,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/paths.go": {
+      "filePath": "internal/state/paths.go",
+      "contentHash": "7d5ebfdb7354d02fbc7fdaa19563bc6e46f0af9479030a9515aa5db2d9eda5c0",
+      "functions": [
+        {
+          "name": "canonicalRoot",
+          "params": [
+            "path"
+          ],
+          "returnType": "(string, error)",
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "rootsOverlap",
+          "params": [
+            "a",
+            "b"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "isWithinRoot",
+          "params": [
+            "root",
+            "child"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 60,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/state_test.go": {
+      "filePath": "internal/state/state_test.go",
+      "contentHash": "58136a6fbb8a2b9059af763eba931b50d7227a41e9a31b59d5b7e9221ca8c7bb",
+      "functions": [
+        {
+          "name": "TestLoadAbsentState",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestLoadSources",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "TestLoadAllowsSiblingPrefixPaths",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "TestLoadValidationErrors",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 114
+        },
+        {
+          "name": "TestLoadDisabledEntriesDoNotParticipateInEnabledOnlyValidation",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "withStateHome",
+          "params": [
+            "t"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "writeSources",
+          "params": [
+            "t",
+            "stateRoot",
+            "contents"
+          ],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "writeSourceRepo",
+          "params": [
+            "t",
+            "name",
+            "description"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "writeSourceRepoAt",
+          "params": [
+            "t",
+            "path",
+            "name",
+            "description"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "writeFile",
+          "params": [
+            "t",
+            "path",
+            "contents"
+          ],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "stateFile",
+          "params": [
+            "defaultID",
+            "sources"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "sourceBlock",
+          "params": [
+            "id",
+            "path",
+            "enabled"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 14
+        },
+        {
+          "name": "requireSource",
+          "params": [
+            "t",
+            "registry",
+            "id"
+          ],
+          "returnType": "Source",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "canonical",
+          "params": [
+            "t",
+            "path"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "fmt",
+          "specifiers": [
+            "fmt"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strconv",
+          "specifiers": [
+            "strconv"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/manifest",
+          "specifiers": [
+            "manifest"
+          ]
+        }
+      ],
+      "exports": [
+        "TestLoadAbsentState",
+        "TestLoadSources",
+        "TestLoadAllowsSiblingPrefixPaths",
+        "TestLoadValidationErrors",
+        "TestLoadDisabledEntriesDoNotParticipateInEnabledOnlyValidation"
+      ],
+      "totalLines": 330,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/state_testhooks_test.go": {
+      "filePath": "internal/state/state_testhooks_test.go",
+      "contentHash": "fc435ab69fd27294014c7d55398f3d34768d0ca8281e8065f9061d9a23855c36",
+      "functions": [
+        {
+          "name": "TestLoadUsesTestStateDirOverride",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 18
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestLoadUsesTestStateDirOverride"
+      ],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/state.go": {
+      "filePath": "internal/state/state.go",
+      "contentHash": "06208d4a31c69e2c4cd901d2ede385c8fff0c24b33209aab0161dd245e31e7a4",
+      "functions": [
+        {
+          "name": "EnabledSources",
+          "params": [],
+          "returnType": "[]Source",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "Load",
+          "params": [],
+          "returnType": "(Registry, error)",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "Save",
+          "params": [
+            "registry"
+          ],
+          "returnType": "error",
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "AddSource",
+          "params": [
+            "path",
+            "makeDefault"
+          ],
+          "returnType": "(Registry, Source, error)",
+          "exported": true,
+          "lineCount": 54
+        },
+        {
+          "name": "findSource",
+          "params": [
+            "registry",
+            "id"
+          ],
+          "returnType": "Source",
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "classes": [
+        {
+          "name": "Source",
+          "methods": [],
+          "properties": [
+            "ID",
+            "Path",
+            "Enabled",
+            "Manifest"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Registry",
+          "methods": [
+            "EnabledSources"
+          ],
+          "properties": [
+            "Sources",
+            "Default"
+          ],
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "github.com/pelletier/go-toml/v2",
+          "specifiers": [
+            "v2"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/manifest",
+          "specifiers": [
+            "manifest"
+          ]
+        }
+      ],
+      "exports": [
+        "Source",
+        "Registry",
+        "EnabledSources",
+        "Load",
+        "Save",
+        "AddSource"
+      ],
+      "totalLines": 186,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/validate.go": {
+      "filePath": "internal/state/validate.go",
+      "contentHash": "10fe9cd6d462f1da6589e8c122d7009b5dfffe0a0ab34b220071313252ea6f91",
+      "functions": [
+        {
+          "name": "normalizeRegistry",
+          "params": [
+            "registry"
+          ],
+          "returnType": "(Registry, error)",
+          "exported": false,
+          "lineCount": 50
+        },
+        {
+          "name": "validID",
+          "params": [
+            "id"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "slices",
+          "specifiers": [
+            "slices"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/manifest",
+          "specifiers": [
+            "manifest"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 64,
+      "hasStructuralAnalysis": true
+    },
+    "internal/state/write_test.go": {
+      "filePath": "internal/state/write_test.go",
+      "contentHash": "1cd340d2495a57fa76d9831ce40814cad69f146c2ff56391e8202726001aa920",
+      "functions": [
+        {
+          "name": "TestSaveWritesNormalizedState",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "TestSaveDoesNotReplaceExistingStateOnValidationFailure",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "TestAddSourceAddsDefaultSource",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "TestAddSourceIsIdempotentForSameIDAndPath",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "TestAddSourceReenablesDisabledEntryWithSameIDAndPath",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "TestAddSourceRejectsSameIDWithDifferentPathWithoutChangingState",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "TestAddSourceClassifiesSourceRootAndManifestErrors",
+          "params": [
+            "t"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "readSourcesFile",
+          "params": [
+            "t",
+            "stateRoot"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "quote",
+          "params": [
+            "s"
+          ],
+          "returnType": "string",
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "errors",
+          "specifiers": [
+            "errors"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "path/filepath",
+          "specifiers": [
+            "filepath"
+          ]
+        },
+        {
+          "source": "strconv",
+          "specifiers": [
+            "strconv"
+          ]
+        },
+        {
+          "source": "strings",
+          "specifiers": [
+            "strings"
+          ]
+        },
+        {
+          "source": "testing",
+          "specifiers": [
+            "testing"
+          ]
+        }
+      ],
+      "exports": [
+        "TestSaveWritesNormalizedState",
+        "TestSaveDoesNotReplaceExistingStateOnValidationFailure",
+        "TestAddSourceAddsDefaultSource",
+        "TestAddSourceIsIdempotentForSameIDAndPath",
+        "TestAddSourceReenablesDisabledEntryWithSameIDAndPath",
+        "TestAddSourceRejectsSameIDWithDifferentPathWithoutChangingState",
+        "TestAddSourceClassifiesSourceRootAndManifestErrors"
+      ],
+      "totalLines": 178,
+      "hasStructuralAnalysis": true
+    },
+    "internal/status/scope.go": {
+      "filePath": "internal/status/scope.go",
+      "contentHash": "beb62c3dc71e26a8d52996e64916adda14bb2c4b3228d909cd5130d093b2499d",
+      "functions": [
+        {
+          "name": "active",
+          "params": [
+            "options"
+          ],
+          "returnType": "(state.Source, domain.TargetScope, error)",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "expandPath",
+          "params": [
+            "raw"
+          ],
+          "returnType": "(string, error)",
+          "exported": false,
+          "lineCount": 1
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/domain",
+          "specifiers": [
+            "domain"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pathutil",
+          "specifiers": [
+            "pathutil"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/state",
+          "specifiers": [
+            "state"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "internal/status/status.go": {
+      "filePath": "internal/status/status.go",
+      "contentHash": "bd75bc65816b6e7e34ef938ef46cc0991b8ff974ec25628d0c5f35197249a484",
+      "functions": [
+        {
+          "name": "File",
+          "params": [
+            "path",
+            "options"
+          ],
+          "returnType": "(Result, error)",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "Package",
+          "params": [
+            "ref",
+            "options"
+          ],
+          "returnType": "(Result, error)",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "entryFromClass",
+          "params": [
+            "targetPath",
+            "selectedPackage",
+            "selectedEntry",
+            "class",
+            "selected"
+          ],
+          "returnType": "Entry",
+          "exported": false,
+          "lineCount": 43
+        }
+      ],
+      "classes": [
+        {
+          "name": "Options",
+          "methods": [],
+          "properties": [
+            "SourceID",
+            "Context",
+            "TargetRoot"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "Entry",
+          "methods": [],
+          "properties": [
+            "TargetPath",
+            "State",
+            "Package",
+            "Entry",
+            "Code",
+            "Message",
+            "Owner",
+            "ExpectedTarget"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "Result",
+          "methods": [],
+          "properties": [
+            "Command",
+            "Context",
+            "Source",
+            "Entries"
+          ],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "imports": [
+        {
+          "source": "github.com/trippwill/tuck/internal/packages",
+          "specifiers": [
+            "packages"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pathutil",
+          "specifiers": [
+            "pathutil"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/pkgref",
+          "specifiers": [
+            "pkgref"
+          ]
+        },
+        {
+          "source": "github.com/trippwill/tuck/internal/target",
+          "specifiers": [
+            "target"
+          ]
+        }
+      ],
+      "exports": [
+        "Options",
+        "Entry",
+        "Result",
+        "File",
+        "Package"
+      ],
+      "totalLines": 155,
+      "hasStructuralAnalysis": true
+    }
+  }
+}
