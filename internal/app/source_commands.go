@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 
+	"github.com/trippwill/tuck/internal/manifest"
+	"github.com/trippwill/tuck/internal/resolve"
 	"github.com/trippwill/tuck/internal/state"
 	"github.com/urfave/cli/v3"
 )
@@ -30,8 +32,25 @@ func sourceCommand() *cli.Command {
 				OnUsageError: commandUsageError,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{Name: "default", Usage: "make this the default source"},
+					&cli.BoolFlag{Name: "init", Usage: "create a missing source manifest before registering"},
+					&cli.StringFlag{Name: "name", Usage: "manifest source id to write with --init"},
+					&cli.StringFlag{Name: "description", Usage: "manifest description to write with --init"},
 				},
 				Action: sourceAddAction,
+			},
+			{
+				Name:      "init",
+				Usage:     "create a source manifest without registering it",
+				ArgsUsage: "<path>",
+				Arguments: []cli.Argument{
+					requiredStringArgs("path", "<path>"),
+				},
+				OnUsageError: commandUsageError,
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "name", Usage: "manifest source id to write"},
+					&cli.StringFlag{Name: "description", Usage: "manifest description to write"},
+				},
+				Action: sourceInitAction,
 			},
 			{
 				Name:      "rm",
@@ -67,14 +86,47 @@ func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
 		return cli.Exit("error: source add accepts exactly one <path>", ExitFail)
 	}
+	if !cmd.Bool("init") && cmd.String("name") != "" {
+		return cli.Exit("error: --name requires --init", ExitFail)
+	}
+	if !cmd.Bool("init") && cmd.String("description") != "" {
+		return cli.Exit("error: --description requires --init", ExitFail)
+	}
 	path := cmd.StringArgs("path")[0]
 
-	registry, source, err := state.AddSource(path, cmd.Bool("default"))
+	var (
+		registry state.Registry
+		source   state.Source
+		err      error
+	)
+	if cmd.Bool("init") {
+		registry, source, err = state.AddSourceWithInit(path, cmd.Bool("default"), manifest.InitOptions{
+			Name:        cmd.String("name"),
+			Description: cmd.String("description"),
+		})
+	} else {
+		registry, source, err = state.AddSource(path, cmd.Bool("default"))
+	}
 	if err != nil {
 		return renderError(cmd, "source add", err)
 	}
 
 	return renderSourceAdd(cmd, registry, source)
+}
+
+func sourceInitAction(_ context.Context, cmd *cli.Command) error {
+	if cmd.Args().Present() {
+		return cli.Exit("error: source init accepts exactly one <path>", ExitFail)
+	}
+	path := cmd.StringArgs("path")[0]
+	initialized, err := manifest.Init(path, manifest.InitOptions{
+		Name:        cmd.String("name"),
+		Description: cmd.String("description"),
+	})
+	if err != nil {
+		return renderError(cmd, "source init", err)
+	}
+	return renderSourceInit(cmd, initialized)
 }
 
 func sourceListAction(_ context.Context, cmd *cli.Command) error {
@@ -89,12 +141,19 @@ func sourceListAction(_ context.Context, cmd *cli.Command) error {
 	return renderSourceList(cmd, registry)
 }
 
-func sourceRmAction(ctx context.Context, cmd *cli.Command) error {
+func sourceRmAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
 		return cli.Exit("error: source rm accepts exactly one <id>", ExitFail)
 	}
-	_ = cmd.StringArgs("id")[0]
-	return notImplemented("source rm")(ctx, cmd)
+	id := cmd.StringArgs("id")[0]
+	registry, removed, ok, err := state.RemoveSource(id)
+	if err != nil {
+		return renderError(cmd, "source rm", err)
+	}
+	if !ok {
+		return renderError(cmd, "source rm", resolve.ErrUnknownSource)
+	}
+	return renderSourceRm(cmd, registry, removed)
 }
 
 func sourceDefaultAction(ctx context.Context, cmd *cli.Command) error {

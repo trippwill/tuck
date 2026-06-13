@@ -124,6 +124,77 @@ func TestLoadErrors(t *testing.T) {
 	}
 }
 
+func TestInitCreatesManifestWithDefaultName(t *testing.T) {
+	repoRoot := filepath.Join(t.TempDir(), "dotfiles")
+
+	got, err := Init(repoRoot, InitOptions{})
+	if err != nil {
+		t.Fatalf("Init() error = %v, want nil", err)
+	}
+	if got.Root != repoRoot {
+		t.Fatalf("Init() root = %q, want %q", got.Root, repoRoot)
+	}
+	if got.Path != filepath.Join(repoRoot, "tuck.toml") {
+		t.Fatalf("Init() path = %q, want tuck.toml under repo root", got.Path)
+	}
+	if got.Manifest != (Manifest{Name: "dotfiles"}) {
+		t.Fatalf("Init() manifest = %#v, want default basename name", got.Manifest)
+	}
+	loaded, err := Load(repoRoot)
+	if err != nil {
+		t.Fatalf("Load() after Init() error = %v", err)
+	}
+	if loaded != got.Manifest {
+		t.Fatalf("Load() after Init() = %#v, want %#v", loaded, got.Manifest)
+	}
+}
+
+func TestInitWritesExplicitNameAndDescriptionDeterministically(t *testing.T) {
+	repoRoot := filepath.Join(t.TempDir(), "repo")
+
+	got, err := Init(repoRoot, InitOptions{Name: "public", Description: "public dotfiles"})
+	if err != nil {
+		t.Fatalf("Init() error = %v, want nil", err)
+	}
+	if got.Manifest != (Manifest{Name: "public", Description: "public dotfiles"}) {
+		t.Fatalf("Init() manifest = %#v, want explicit fields", got.Manifest)
+	}
+	contents, err := os.ReadFile(filepath.Join(repoRoot, "tuck.toml"))
+	if err != nil {
+		t.Fatalf("ReadFile(tuck.toml) error = %v", err)
+	}
+	want := "name = \"public\"\ndescription = \"public dotfiles\"\n"
+	if string(contents) != want {
+		t.Fatalf("tuck.toml = %q, want %q", contents, want)
+	}
+}
+
+func TestInitRejectsInvalidNameAndExistingManifest(t *testing.T) {
+	repoRoot := filepath.Join(t.TempDir(), "repo")
+	if _, err := Init(repoRoot, InitOptions{Name: "bad/name"}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("Init() invalid name error = %v, want ErrInvalid", err)
+	}
+	if _, err := os.Stat(filepath.Join(repoRoot, "tuck.toml")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("Init() invalid name wrote manifest, stat err = %v", err)
+	}
+
+	repoRoot = writeManifest(t, "name = \"public\"\n")
+	before, err := os.ReadFile(filepath.Join(repoRoot, "tuck.toml"))
+	if err != nil {
+		t.Fatalf("ReadFile(tuck.toml) error = %v", err)
+	}
+	if _, err := Init(repoRoot, InitOptions{Name: "other"}); !errors.Is(err, ErrExists) {
+		t.Fatalf("Init() existing manifest error = %v, want ErrExists", err)
+	}
+	after, err := os.ReadFile(filepath.Join(repoRoot, "tuck.toml"))
+	if err != nil {
+		t.Fatalf("ReadFile(tuck.toml) after existing error = %v", err)
+	}
+	if string(after) != string(before) {
+		t.Fatalf("existing tuck.toml changed:\nbefore: %s\nafter: %s", before, after)
+	}
+}
+
 func TestGeneratedErrorAliasSupportsTypedInspection(t *testing.T) {
 	err := AppErrMsgf(ErrInvalid, "invalid manifest name %q", "bad/name")
 

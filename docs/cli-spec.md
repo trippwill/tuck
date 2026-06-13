@@ -70,6 +70,8 @@ tuck package status  [package-ref]
 
 # Source operations
 tuck source add     <path> [--default]
+tuck source add     <path> --init [--name <id>] [--description <text>] [--default]
+tuck source init    <path> [--name <id>] [--description <text>]
 tuck source rm      <id>
 tuck source list
 tuck source default <id>
@@ -101,6 +103,7 @@ Semantics:
 - `package status` -- report managed/conflicting/absent state for package
   entries; without a package, summarize all packages in the active source.
 - `source add` -- register and enable a dotfiles repository on this machine.
+- `source init` -- create a repository manifest without registering the source.
 - `source rm` -- remove a source from machine-local state.
 - `source list` -- list sources recorded on this machine.
 - `source default` -- set the machine-local default active source.
@@ -179,6 +182,9 @@ No flag is global unless it is meaningful for every command.
 | `--root` | | domain commands | Select the root context. |
 | `--apply` | | mutating target-tree commands | Execute the plan. Without it, print the plan only. |
 | `--default` | | `source add` | Make the added source the machine-local default. |
+| `--init` | | `source add` | Create a missing `tuck.toml` before registering the source. |
+| `--name <id>` | | `source init`, `source add --init` | Manifest source id to write. Defaults to the path basename. |
+| `--description <text>` | | `source init`, `source add --init` | Optional manifest description to write. |
 | `--all` | | `package use` | Use every package in the active source/context. |
 
 Domain commands are `adopt`, `eject`, `status`, and all `package` subcommands.
@@ -510,6 +516,7 @@ tuck [--json] package status [--source <id>] [--root] [package-ref]
 
 ```text
 tuck [--json] source add <path> [--default]
+tuck [--json] source add <path> --init [--name <id>] [--description <text>] [--default]
 ```
 
 - **Arguments:** one repository path.
@@ -517,8 +524,25 @@ tuck [--json] source add <path> [--default]
   machine-local state with canonical path, manifest id, `enabled = true`, and
   top-level default per `--default`. Validate the complete write; on validation
   failure, write nothing.
+- **With `--init`:** if `<path>/tuck.toml` is missing, create the manifest first
+  using `--name` or the path basename and optional `--description`, then register
+  the source as above. Existing valid manifests are registered normally. Existing
+  invalid manifests still fail. `--name` and `--description` are valid only with
+  `--init`.
 
-### 7.11 `source rm`
+### 7.11 `source init`
+
+```text
+tuck [--json] source init <path> [--name <id>] [--description <text>]
+```
+
+- **Arguments:** one repository path.
+- **Behavior:** create `<path>` if needed and write a new `<path>/tuck.toml`
+  manifest. The manifest name defaults to the path basename. Existing manifests
+  are not overwritten. The command does not register the source in machine-local
+  state.
+
+### 7.12 `source rm`
 
 ```text
 tuck [--json] source rm <id>
@@ -528,7 +552,7 @@ tuck [--json] source rm <id>
 - **Behavior:** remove the entry from machine-local state. If it was the default,
   clear the default. Removing a missing source is an error (`unknown_source`).
 
-### 7.12 `source list`
+### 7.13 `source list`
 
 ```text
 tuck [--json] source list
@@ -539,7 +563,7 @@ tuck [--json] source list
   `0`.
 - **Aliases:** `source ls`.
 
-### 7.13 `source default`
+### 7.14 `source default`
 
 ```text
 tuck [--json] source default <id>
@@ -776,7 +800,8 @@ Emitted by `status` and `package status`:
 
 #### 9.2.5 `kind: "sources"`
 
-Emitted by `source list`, `source add`, `source rm`, and `source default`:
+Emitted by `source list`, `source add`, `source init`, `source rm`, and
+`source default`:
 
 ```json
 {
@@ -854,6 +879,7 @@ Detailed failure classification is carried by stderr and, with `--json`, by
 Stable error codes include:
 
 - configuration/state: `manifest_missing`, `manifest_invalid`,
+  `manifest_exists`,
   `state_invalid`, `source_root_missing`, `no_source`, `unknown_source`;
 - references/resolution: `invalid_ref`, `package_not_found`;
 - target classification/conflicts: `real_file`, `real_directory`,

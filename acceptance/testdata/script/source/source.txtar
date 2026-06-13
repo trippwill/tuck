@@ -85,6 +85,101 @@ stdout 'USAGE'
 ! exec tuck source add one two --no-color
 stderr 'source add accepts exactly one <path>'
 
+# source init creates a manifest without registering machine state
+phase init-default-name
+exec tuck source init $WORK/new-dotfiles --no-color
+stdout 'initialized source new-dotfiles'
+stdout 'path: .*new-dotfiles/tuck.toml'
+exists $WORK/new-dotfiles/tuck.toml
+exec cat $WORK/new-dotfiles/tuck.toml
+stdout 'name = "new-dotfiles"'
+! exists $WORK/state/init-default-name/tuck/sources.toml
+! stderr .
+
+# source init accepts explicit manifest fields and emits a sources JSON envelope
+phase init-explicit-json
+exec tuck --json source init $WORK/src --name public --description 'public dotfiles'
+stdout '"command":"source init"'
+stdout '"kind":"sources"'
+stdout '"id":"public"'
+stdout '"path":"'$WORK'/src"'
+stdout '"enabled":false'
+stdout '"default":false'
+stdout '"description":"public dotfiles"'
+stdout '"exitCode":0'
+exec cat $WORK/src/tuck.toml
+stdout 'name = "public"'
+stdout 'description = "public dotfiles"'
+! stderr .
+
+# source init rejects invalid names and existing manifests without overwriting
+phase init-errors fixtures/source/public-described
+! exec tuck source init $WORK/invalid --name bad/ref --no-color
+stderr 'invalid manifest name'
+! exists $WORK/invalid/tuck.toml
+! exec tuck source init $WORK/src --name other --no-color
+stderr 'manifest already exists'
+exec cat $WORK/src/tuck.toml
+stdout 'name = "public"'
+! stdout 'other'
+
+# source init usage errors are command-specific
+phase init-usage
+! exec tuck source init --no-color
+stderr 'Incorrect Usage'
+stderr 'sufficient count of arg path not provided'
+! exec tuck source init one two --no-color
+stderr 'source init accepts exactly one <path>'
+
+# source add --init creates a missing manifest and registers the source
+phase add-init-registers
+exec tuck source add $WORK/bootstrap --init --name public --description 'public dotfiles' --default --no-color
+stdout 'added source public'
+stdout 'default: yes'
+exec cat $WORK/bootstrap/tuck.toml
+stdout 'name = "public"'
+stdout 'description = "public dotfiles"'
+exec cat $WORK/state/add-init-registers/tuck/sources.toml
+stdout 'default = "public"'
+stdout 'id = "public"'
+! stderr .
+
+# source add --init registers existing valid manifests normally
+phase add-init-existing-valid fixtures/source/public-described
+exec tuck source add $WORK/src --init --no-color
+stdout 'added source public'
+exec cat $WORK/src/tuck.toml
+stdout 'name = "public"'
+stdout 'description = "public dotfiles"'
+! stderr .
+
+# source add --init emits the existing sources JSON envelope
+phase add-init-json
+exec tuck --json source add $WORK/json-src --init --name json
+stdout '"command":"source add"'
+stdout '"kind":"sources"'
+stdout '"id":"json"'
+stdout '"path":"'$WORK'/json-src"'
+stdout '"enabled":true'
+stdout '"exitCode":0'
+exec cat $WORK/json-src/tuck.toml
+stdout 'name = "json"'
+! stderr .
+
+# source add --init does not hide invalid existing manifests
+phase add-init-invalid-existing fixtures/source/add-invalid-manifest
+! exec tuck source add $WORK/src --init --name public --no-color
+stderr 'manifest'
+! stdout .
+! exists $WORK/state/add-init-invalid-existing/tuck/sources.toml
+
+# source add --name and --description require --init
+phase add-init-flag-usage fixtures/source/public-described
+! exec tuck source add $WORK/src --name public --no-color
+stderr '--name requires --init'
+! exec tuck source add $WORK/src --description 'public dotfiles' --no-color
+stderr '--description requires --init'
+
 # source list includes disabled entries in human and JSON forms
 phase list-disabled fixtures/source/public-described
 wantstate public public $WORK/src true disabled $WORK/missing-disabled false
@@ -135,6 +230,45 @@ stdout '"code":"state_invalid"'
 stdout '"exitCode":1'
 ! stderr .
 
+# source rm removes the default source and clears the default marker
+phase rm-default fixtures/source/public-described
+wantstate public public $WORK/src true private $WORK/fixtures/source/private-described true
+exec tuck source rm public --no-color
+stdout 'removed source public'
+stdout 'path: .*src'
+! stderr .
+exec cat $WORK/state/rm-default/tuck/sources.toml
+! stdout 'default ='
+! stdout 'id = "public"'
+stdout 'id = "private"'
+exec tuck source list --no-color
+stdout 'private +no +yes +.*private-described'
+! stdout 'public'
+
+# source rm preserves another default and can remove disabled entries
+phase rm-disabled fixtures/source/public-described
+wantstate public public $WORK/src true disabled $WORK/missing-disabled false
+exec tuck source rm disabled --no-color
+stdout 'removed source disabled'
+exec cat $WORK/state/rm-disabled/tuck/sources.toml
+stdout 'default = "public"'
+stdout 'id = "public"'
+! stdout 'id = "disabled"'
+! stderr .
+
+# source rm reports unknown ids in human and JSON forms
+phase rm-unknown fixtures/source/public-described
+wantstate public public $WORK/src true
+! exec tuck source rm missing --no-color
+stderr 'source is not enabled'
+! stdout .
+! exec tuck --json source rm missing
+stdout '"command":"source rm"'
+stdout '"kind":"error"'
+stdout '"code":"unknown_source"'
+stdout '"exitCode":1'
+! stderr .
+
 # source rm/default declare required id arguments before their implementation
 phase source-stub-argument-usage fixtures/source/public-described
 ! exec tuck source rm --no-color
@@ -151,6 +285,9 @@ stderr 'source default accepts exactly one <id>'
 -- fixtures/source/public-described/tuck.toml --
 name = "public"
 description = "public dotfiles"
+-- fixtures/source/private-described/tuck.toml --
+name = "private"
+description = "private dotfiles"
 -- src-a/tuck.toml --
 name = "public"
 -- src-b/tuck.toml --

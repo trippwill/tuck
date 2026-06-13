@@ -295,6 +295,36 @@ func renderSourceAdd(cmd *cli.Command, registry state.Registry, source state.Sou
 	return nil
 }
 
+func renderSourceRm(cmd *cli.Command, registry state.Registry, source state.Source) error {
+	r := newRenderer(cmd)
+	if r.json {
+		return r.renderSourcesJSON("source rm", registry)
+	}
+
+	fmt.Fprintf(r.out, "removed source %s\n", source.ID)
+	fmt.Fprintf(r.out, "path: %s\n", source.Path)
+	return nil
+}
+
+func renderSourceInit(cmd *cli.Command, initialized manifest.Initialized) error {
+	r := newRenderer(cmd)
+	if r.json {
+		return r.renderSourcesJSON("source init", state.Registry{Sources: []state.Source{{
+			ID:       initialized.Manifest.Name,
+			Path:     initialized.Root,
+			Enabled:  false,
+			Manifest: initialized.Manifest,
+		}}})
+	}
+
+	fmt.Fprintf(r.out, "initialized source %s\n", initialized.Manifest.Name)
+	fmt.Fprintf(r.out, "path: %s\n", initialized.Path)
+	if initialized.Manifest.Description != "" {
+		fmt.Fprintf(r.out, "description: %s\n", initialized.Manifest.Description)
+	}
+	return nil
+}
+
 func renderSourceList(cmd *cli.Command, registry state.Registry) error {
 	r := newRenderer(cmd)
 	if r.json {
@@ -372,6 +402,12 @@ func classifyError(err error) errorRecord {
 			Code:    "manifest_missing",
 			Message: detailMessage(err, "source manifest is missing", manifest.ErrMissing),
 			Hint:    "create tuck.toml in the source repository with a valid name",
+		}
+	case errors.Is(err, manifest.ErrExists):
+		return errorRecord{
+			Code:    "manifest_exists",
+			Message: detailMessage(err, "source manifest already exists", manifest.ErrExists),
+			Hint:    "remove the existing tuck.toml or choose a different source path",
 		}
 	case errors.Is(err, manifest.ErrInvalid):
 		return errorRecord{

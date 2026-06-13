@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/trippwill/tuck/internal/manifest"
 )
 
 func TestSaveWritesNormalizedState(t *testing.T) {
@@ -159,6 +161,127 @@ func TestAddSourceClassifiesSourceRootAndManifestErrors(t *testing.T) {
 	_, _, err = AddSource(t.TempDir(), false)
 	if err == nil {
 		t.Fatalf("AddSource() missing manifest error = nil, want error")
+	}
+}
+
+func TestAddSourceWithInitCreatesManifestAndRegistersSource(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := filepath.Join(t.TempDir(), "dotfiles")
+
+	registry, source, err := AddSourceWithInit(repo, true, manifest.InitOptions{
+		Name:        "public",
+		Description: "public dotfiles",
+	})
+	if err != nil {
+		t.Fatalf("AddSourceWithInit() error = %v, want nil", err)
+	}
+	if source.ID != "public" || !source.Enabled || source.Manifest.Description != "public dotfiles" {
+		t.Fatalf("AddSourceWithInit() source = %#v, want enabled public with description", source)
+	}
+	if registry.Default != "public" {
+		t.Fatalf("AddSourceWithInit() default = %q, want public", registry.Default)
+	}
+	loaded, err := manifest.Load(repo)
+	if err != nil {
+		t.Fatalf("manifest.Load() after AddSourceWithInit() error = %v", err)
+	}
+	if loaded != (manifest.Manifest{Name: "public", Description: "public dotfiles"}) {
+		t.Fatalf("manifest.Load() after AddSourceWithInit() = %#v", loaded)
+	}
+	got := readSourcesFile(t, stateRoot)
+	if !strings.Contains(got, "id = \"public\"") || !strings.Contains(got, "default = \"public\"") {
+		t.Fatalf("sources.toml after AddSourceWithInit() =\n%s\nwant registered default public", got)
+	}
+}
+
+func TestAddSourceWithInitDoesNotHideInvalidExistingManifest(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := t.TempDir()
+	writeFile(t, filepath.Join(repo, "tuck.toml"), "description = \"missing name\"\n")
+
+	_, _, err := AddSourceWithInit(repo, true, manifest.InitOptions{Name: "public"})
+	if !errors.Is(err, manifest.ErrInvalid) {
+		t.Fatalf("AddSourceWithInit() error = %v, want manifest.ErrInvalid", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(stateRoot, "tuck", "sources.toml")); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("sources.toml exists after invalid manifest, stat err = %v", statErr)
+	}
+}
+
+func TestRemoveSourceRemovesEntryAndClearsDefault(t *testing.T) {
+	stateRoot := withStateHome(t)
+	publicRepo := writeSourceRepo(t, "public", "")
+	privateRepo := writeSourceRepo(t, "private", "")
+	writeSources(t, stateRoot, stateFile("public",
+		sourceBlock("public", publicRepo, nil)+
+			sourceBlock("private", privateRepo, nil)+
+			sourceBlock("disabled", filepath.Join(t.TempDir(), "disabled"), new(false)),
+	))
+
+	registry, removed, ok, err := RemoveSource("public")
+	if err != nil {
+		t.Fatalf("RemoveSource() error = %v, want nil", err)
+	}
+	if !ok {
+		t.Fatal("RemoveSource() ok = false, want true")
+	}
+	if removed.ID != "public" {
+		t.Fatalf("RemoveSource() removed = %#v, want public", removed)
+	}
+	if registry.Default != "" {
+		t.Fatalf("RemoveSource() default = %q, want cleared", registry.Default)
+	}
+	if len(registry.Sources) != 2 {
+		t.Fatalf("RemoveSource() sources = %#v, want private and disabled", registry.Sources)
+	}
+	got := readSourcesFile(t, stateRoot)
+	if strings.Contains(got, "id = \"public\"") || strings.Contains(got, "default =") {
+		t.Fatalf("sources.toml after RemoveSource(public) =\n%s\nwant public/default removed", got)
+	}
+	if !strings.Contains(got, "id = \"private\"") || !strings.Contains(got, "id = \"disabled\"") {
+		t.Fatalf("sources.toml after RemoveSource(public) =\n%s\nwant remaining sources preserved", got)
+	}
+}
+
+func TestRemoveSourcePreservesOtherDefault(t *testing.T) {
+	stateRoot := withStateHome(t)
+	publicRepo := writeSourceRepo(t, "public", "")
+	privateRepo := writeSourceRepo(t, "private", "")
+	writeSources(t, stateRoot, stateFile("private",
+		sourceBlock("public", publicRepo, nil)+
+			sourceBlock("private", privateRepo, nil),
+	))
+
+	registry, _, ok, err := RemoveSource("public")
+	if err != nil {
+		t.Fatalf("RemoveSource() error = %v, want nil", err)
+	}
+	if !ok {
+		t.Fatal("RemoveSource() ok = false, want true")
+	}
+	if registry.Default != "private" {
+		t.Fatalf("RemoveSource() default = %q, want private", registry.Default)
+	}
+	if strings.Contains(readSourcesFile(t, stateRoot), "id = \"public\"") {
+		t.Fatalf("sources.toml after RemoveSource(public) still contains public:\n%s", readSourcesFile(t, stateRoot))
+	}
+}
+
+func TestRemoveSourceUnknownLeavesStateUnchanged(t *testing.T) {
+	stateRoot := withStateHome(t)
+	publicRepo := writeSourceRepo(t, "public", "")
+	writeSources(t, stateRoot, stateFile("public", sourceBlock("public", publicRepo, nil)))
+	before := readSourcesFile(t, stateRoot)
+
+	_, _, ok, err := RemoveSource("missing")
+	if err != nil {
+		t.Fatalf("RemoveSource() error = %v, want nil unknown result", err)
+	}
+	if ok {
+		t.Fatal("RemoveSource() ok = true, want false")
+	}
+	if after := readSourcesFile(t, stateRoot); after != before {
+		t.Fatalf("sources.toml changed after unknown remove:\nbefore:\n%s\nafter:\n%s", before, after)
 	}
 }
 

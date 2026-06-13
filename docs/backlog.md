@@ -95,31 +95,30 @@ distributed builds, and docs._
 1. [x] **R1** `package refresh` a package (refresh + normalize link payloads) `[cmd]`
 2. [x] **R2** List packages in the active source (`package list`) `[cmd]`
 3. [x] **R3** Show a package's file tree in the active source (`package show`) `[cmd]`
-4. [ ] **R4** `source rm <id>` — remove a source from machine state `[cmd]`
-5. [ ] **R5** `source init <path> [--name <id>] [--description <text>]` — scaffold a repo `tuck.toml` manifest without registering it `[cmd]`
-6. [ ] **R6** `source add <path> --init [--name <id>] [--description <text>]` — explicitly create a missing manifest, then register the source `[cmd]`
-7. [ ] **R7** Interactive first-run init on `no_source`: prompt for a repo path and run `source add --init` when needed (TTY only; non-interactive still errors) `[cmd]`
-8. [ ] **R8** Print global and per-command help/usage text `[output]`
-9. [ ] **R9** Generate structured JSON help/usage metadata for root and per-command `--help --json` `[output]`
-10. [ ] **R10** Expose the error classification system (`error.code` in JSON envelope and stderr) `[output]`
-11. [ ] **R11** Report `multiple_providers` / `mismatch` / `owned_by_other` in `package status` `[cmd]`
-12. [ ] **R12** Emit stable, versioned JSON for every command, including `source` (`--json`) `[output]`
-13. [ ] **R13** JSON golden tests for every envelope `kind` (plan/packages/tree/status/sources/help/version/error) `[test]`
-14. [ ] **R14** Parse repo-level package/file metadata in `tuck.toml` (`[package.<name>]`, `[[package.<name>.file]]`, `deploy`, `mode`) `[engine]`
-15. [ ] **R15** Support `deploy = "copy"` package leaves: plan/apply copy actions, preserve explicit modes, and reject unsafe overwrites `[engine]`
-16. [ ] **R16** Track copied-file deployments in machine-local state and report copy drift in `status` / `package status` `[engine]`
-17. [ ] **R17** Validate text machine state with a generated checksum sidecar and report `state_checksum_mismatch` with repair guidance `[engine]`
-18. [ ] **R18** Add JSON and human output coverage for copy actions, copy drift, explicit modes, and state checksum failures `[test]`
-19. [ ] **R19** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
-20. [ ] **R20** Acceptance coverage for each error code and each conflict rule `[test]`
-21. [ ] **R21** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
-22. [ ] **R22** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
-23. [ ] **R23** Enforce lint/format gates in CI `[build]`
-24. [ ] **R24** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
-25. [ ] **R25** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
-26. [ ] **R26** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
-27. [ ] **R27** Write a README with installation and quickstart `[docs]`
-28. [ ] **R28** Publish a documentation website (spec, guides, worked examples) `[docs]`
+4. [x] **R4** `source rm <id>` — remove a source from machine state `[cmd]`
+5. [x] **R5** `source init <path> [--name <id>] [--description <text>]` — scaffold a repo `tuck.toml` manifest without registering it `[cmd]`
+6. [x] **R6** `source add <path> --init [--name <id>] [--description <text>]` — explicitly create a missing manifest, then register the source `[cmd]`
+7. [ ] **R8** Print global and per-command help/usage text `[output]`
+8. [ ] **R9** Generate structured JSON help/usage metadata for root and per-command `--help --json` `[output]`
+9. [ ] **R10** Expose the error classification system (`error.code` in JSON envelope and stderr) `[output]`
+10. [ ] **R11** Report `multiple_providers` / `mismatch` / `owned_by_other` in `package status` `[cmd]`
+11. [ ] **R12** Emit stable, versioned JSON for every command, including `source` (`--json`) `[output]`
+12. [ ] **R13** JSON golden tests for every envelope `kind` (plan/packages/tree/status/sources/help/version/error) `[test]`
+13. [ ] **R14** Parse repo-level package/file metadata in `tuck.toml` (`[package.<name>]`, `[[package.<name>.file]]`, `deploy`, `mode`) `[engine]`
+14. [ ] **R15** Support `deploy = "copy"` package leaves: plan/apply copy actions, preserve explicit modes, and reject unsafe overwrites `[engine]`
+15. [ ] **R16** Track copied-file deployments in machine-local state and report copy drift in `status` / `package status` `[engine]`
+16. [ ] **R17** Validate text machine state with a generated checksum sidecar and report `state_checksum_mismatch` with repair guidance `[engine]`
+17. [ ] **R18** Add JSON and human output coverage for copy actions, copy drift, explicit modes, and state checksum failures `[test]`
+18. [ ] **R19** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
+19. [ ] **R20** Acceptance coverage for each error code and each conflict rule `[test]`
+20. [ ] **R21** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
+21. [ ] **R22** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
+22. [ ] **R23** Enforce lint/format gates in CI `[build]`
+23. [ ] **R24** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
+24. [ ] **R25** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
+25. [ ] **R26** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
+26. [ ] **R27** Write a README with installation and quickstart `[docs]`
+27. [ ] **R28** Publish a documentation website (spec, guides, worked examples) `[docs]`
 
 <!-- ================= FIRST RELEASE CUTOFF ================= -->
 
@@ -143,3 +142,4 @@ _Unordered idea bucket; IDs are for reference only._
 12. [ ] **P12** Optionally prune now-empty intermediate directories left behind after `package drop` `[cmd]`
 13. [ ] **P13** Explore a boilerplate generator tool for const sentinel errors `[eng]`
 14. [ ] **P14** Explore per-file hardlink deployment for symlink-hostile files on the same filesystem `[engine]`
+15. [ ] **P15** Add interactive first-run init on `no_source`: prompt for a repo path and run `source add --init` when needed (TTY only; non-interactive still errors) `[cmd]`

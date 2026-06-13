@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -173,6 +174,55 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 		return Registry{}, Source{}, err
 	}
 	return normalized, findSource(normalized, added.ID), nil
+}
+
+func AddSourceWithInit(path string, makeDefault bool, initOptions manifest.InitOptions) (Registry, Source, error) {
+	registry, source, err := AddSource(path, makeDefault)
+	if err == nil {
+		return registry, source, nil
+	}
+	if !errors.Is(err, manifest.ErrMissing) && !errors.Is(err, ErrSourceRoot) {
+		return Registry{}, Source{}, err
+	}
+	initialized, initErr := manifest.Init(path, initOptions)
+	if initErr != nil {
+		return Registry{}, Source{}, initErr
+	}
+	return AddSource(initialized.Root, makeDefault)
+}
+
+func RemoveSource(id string) (Registry, Source, bool, error) {
+	registry, err := Load()
+	if err != nil {
+		return Registry{}, Source{}, false, err
+	}
+
+	removedIndex := -1
+	var removed Source
+	for i, source := range registry.Sources {
+		if source.ID != id {
+			continue
+		}
+		removedIndex = i
+		removed = source
+		break
+	}
+	if removedIndex == -1 {
+		return registry, Source{}, false, nil
+	}
+
+	registry.Sources = append(registry.Sources[:removedIndex], registry.Sources[removedIndex+1:]...)
+	if registry.Default == id {
+		registry.Default = ""
+	}
+	if err := Save(registry); err != nil {
+		return Registry{}, Source{}, false, err
+	}
+	normalized, err := Load()
+	if err != nil {
+		return Registry{}, Source{}, false, err
+	}
+	return normalized, removed, true, nil
 }
 
 func findSource(registry Registry, id string) Source {
