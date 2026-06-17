@@ -240,7 +240,7 @@ stdout 'git'
 ! stdout '.root'
 ! stdout '\.hidden'
 ! stdout 'README'
-! stdout 'tuck.toml.bak'
+! stdout '.tuck.toml.bak'
 stdout '1 package'
 ! stderr .
 
@@ -589,7 +589,7 @@ stderr 'error: package "missing" not found in source "public"'
 stderr 'error: package "zsh" not found in source "public"'
 ! stdout .
 
--- fixtures/package/common/public-only/tuck.toml --
+-- fixtures/package/common/public-only/.tuck.toml --
 name = "public"
 -- fixtures/package/common/zsh-config/zsh/.config/zsh/.zshrc --
 # zshrc
@@ -608,15 +608,15 @@ existing
 -- fixtures/package/use/all/git/.gitconfig --
 [user]
 	name = Test
--- fixtures/package/use/all/tuck.toml.bak --
+-- fixtures/package/use/all/.tuck.toml.bak --
 ignore
 -- fixtures/package/use/conflicts/zsh/.config/zsh/dirfile/nested --
 nested
 -- fixtures/package/list/skips/README --
 note
--- fixtures/package/list/skips/tuck.toml.bak --
+-- fixtures/package/list/skips/.tuck.toml.bak --
 note
--- fixtures/package/list/private-source/tuck.toml --
+-- fixtures/package/list/private-source/.tuck.toml --
 name = "private"
 -- fixtures/package/list/private-source/ssh/config --
 Host *

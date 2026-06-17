@@ -167,7 +167,7 @@ path = ` + strconv.Quote(repo) + "\n"
 			name: "invalid enabled source manifest",
 			sources: func(t *testing.T) string {
 				repo := t.TempDir()
-				writeFile(t, filepath.Join(repo, "tuck.toml"), "description = \"missing name\"\n")
+				writeFile(t, filepath.Join(repo, manifest.ManifestFilename), "description = \"missing name\"\n")
 				return sourceBlock("public", repo, nil)
 			},
 		},
@@ -207,7 +207,7 @@ func TestLoadDisabledEntriesDoNotParticipateInEnabledOnlyValidation(t *testing.T
 	stateRoot := withStateHome(t)
 	enabledRepo := writeSourceRepo(t, "public", "")
 	invalidManifestRepo := t.TempDir()
-	writeFile(t, filepath.Join(invalidManifestRepo, "tuck.toml"), "description = \"missing name\"\n")
+	writeFile(t, filepath.Join(invalidManifestRepo, manifest.ManifestFilename), "description = \"missing name\"\n")
 	missingRepo := filepath.Join(t.TempDir(), "missing")
 	writeSources(t, stateRoot, stateFile("public",
 		sourceBlock("public", enabledRepo, nil)+
@@ -314,17 +314,17 @@ func writeSourceRepoAt(t *testing.T, path, name, description string) string {
 		t.Fatalf("mkdir source repo: %v", err)
 	}
 
-	var manifest strings.Builder
-	manifest.WriteString("name = ")
-	manifest.WriteString(strconv.Quote(name))
-	manifest.WriteString("\n")
+	var manifestContents strings.Builder
+	manifestContents.WriteString("name = ")
+	manifestContents.WriteString(strconv.Quote(name))
+	manifestContents.WriteString("\n")
 
 	if description != "" {
-		manifest.WriteString("description = ")
-		manifest.WriteString(strconv.Quote(description))
-		manifest.WriteString("\n")
+		manifestContents.WriteString("description = ")
+		manifestContents.WriteString(strconv.Quote(description))
+		manifestContents.WriteString("\n")
 	}
-	writeFile(t, filepath.Join(path, "tuck.toml"), manifest.String())
+	writeFile(t, filepath.Join(path, manifest.ManifestFilename), manifestContents.String())
 	return path
 }
 

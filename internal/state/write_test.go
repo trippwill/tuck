@@ -197,7 +197,7 @@ func TestAddSourceWithInitCreatesManifestAndRegistersSource(t *testing.T) {
 func TestAddSourceWithInitDoesNotHideInvalidExistingManifest(t *testing.T) {
 	stateRoot := withStateHome(t)
 	repo := t.TempDir()
-	writeFile(t, filepath.Join(repo, "tuck.toml"), "description = \"missing name\"\n")
+	writeFile(t, filepath.Join(repo, manifest.ManifestFilename), "description = \"missing name\"\n")
 
 	_, _, err := AddSourceWithInit(repo, true, manifest.InitOptions{Name: "public"})
 	if !errors.Is(err, manifest.ErrInvalid) {

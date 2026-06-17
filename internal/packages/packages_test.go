@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/pkgref"
 	"github.com/trippwill/tuck/internal/state"
 )
@@ -18,7 +19,7 @@ func TestDiscoverSkipsDotPrefixedDirectories(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, file := range []string{"README", "tuck.toml"} {
+	for _, file := range []string{"README", manifest.ManifestFilename} {
 		if err := os.WriteFile(filepath.Join(root, file), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}

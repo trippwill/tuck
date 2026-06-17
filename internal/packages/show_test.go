@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/state"
 )
 
@@ -63,7 +64,7 @@ func setupShowSource(t *testing.T) string {
 	if err := os.MkdirAll(source, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writeShowFile(t, filepath.Join(source, "tuck.toml"), `name = "public"`+"\n")
+	writeShowFile(t, filepath.Join(source, manifest.ManifestFilename), "name = \"public\"\n")
 	t.Setenv("XDG_STATE_HOME", filepath.Join(root, "state"))
 	if err := state.Save(state.Registry{
 		Default: "public",

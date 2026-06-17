@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/state"
 )
 
@@ -74,7 +75,7 @@ func setupRefreshSource(t *testing.T) (home string, source string) {
 	if err := os.MkdirAll(source, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writeRefreshFile(t, filepath.Join(source, "tuck.toml"), `name = "public"`+"\n")
+	writeRefreshFile(t, filepath.Join(source, manifest.ManifestFilename), "name = \"public\"\n")
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_STATE_HOME", filepath.Join(root, "state"))
 	if err := state.Save(state.Registry{

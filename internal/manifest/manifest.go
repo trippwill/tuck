@@ -18,6 +18,8 @@ const (
 	ErrMissing ErrManifest = "missing manifest"
 )
 
+const ManifestFilename = ".tuck.toml"
+
 type Manifest struct {
 	Name        string
 	Description string
@@ -39,7 +41,7 @@ func Init(repoRoot string, options InitOptions) (Initialized, error) {
 	if err != nil {
 		return Initialized{}, err
 	}
-	manifestPath := filepath.Join(root, "tuck.toml")
+	manifestPath := filepath.Join(root, ManifestFilename)
 	name := options.Name
 	if name == "" {
 		name = filepath.Base(root)
@@ -69,7 +71,7 @@ func Init(repoRoot string, options InitOptions) (Initialized, error) {
 }
 
 func Load(repoRoot string) (Manifest, error) {
-	manifestPath := filepath.Join(repoRoot, "tuck.toml")
+	manifestPath := filepath.Join(repoRoot, ManifestFilename)
 	contents, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return Manifest{}, AppErrWrapf(ErrMissing, err, "could not read manifest %q", manifestPath)
@@ -138,7 +140,7 @@ func marshal(manifest Manifest) []byte {
 
 func writeNewManifest(manifestPath string, contents []byte) error {
 	dir := filepath.Dir(manifestPath)
-	tempFile, err := os.CreateTemp(dir, ".tuck.toml.*")
+	tempFile, err := os.CreateTemp(dir, ManifestFilename+".*")
 	if err != nil {
 		return AppErrWrapf(ErrInvalid, err, "could not create temporary manifest in %q", dir)
 	}

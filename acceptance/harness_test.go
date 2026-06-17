@@ -13,6 +13,7 @@ import (
 
 	"github.com/rogpeppe/go-internal/testscript"
 	"github.com/trippwill/tuck/internal/app"
+	"github.com/trippwill/tuck/internal/manifest"
 )
 
 func TestMain(m *testing.M) {
@@ -201,7 +202,7 @@ func cmdWantHome(ts *testscript.TestScript, neg bool, args []string) {
 	if err := os.MkdirAll(sourcePath, 0o755); err != nil {
 		ts.Fatalf("mkdir source repo: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(sourcePath, "tuck.toml"), []byte("name = \"public\"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(sourcePath, manifest.ManifestFilename), []byte("name = \"public\"\n"), 0o644); err != nil {
 		ts.Fatalf("write source manifest: %v", err)
 	}
 

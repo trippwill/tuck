@@ -89,9 +89,9 @@ stderr 'source add accepts exactly one <path>'
 phase init-default-name
 exec tuck source init $WORK/new-dotfiles --no-color
 stdout 'initialized source new-dotfiles'
-stdout 'path: .*new-dotfiles/tuck.toml'
-exists $WORK/new-dotfiles/tuck.toml
-exec cat $WORK/new-dotfiles/tuck.toml
+stdout 'path: .*new-dotfiles/.tuck.toml'
+exists $WORK/new-dotfiles/.tuck.toml
+exec cat $WORK/new-dotfiles/.tuck.toml
 stdout 'name = "new-dotfiles"'
 ! exists $WORK/state/init-default-name/tuck/sources.toml
 ! stderr .
@@ -107,7 +107,7 @@ stdout '"enabled":false'
 stdout '"default":false'
 stdout '"description":"public dotfiles"'
 stdout '"exitCode":0'
-exec cat $WORK/src/tuck.toml
+exec cat $WORK/src/.tuck.toml
 stdout 'name = "public"'
 stdout 'description = "public dotfiles"'
 ! stderr .
@@ -116,10 +116,10 @@ stdout 'description = "public dotfiles"'
 phase init-errors fixtures/source/public-described
 ! exec tuck source init $WORK/invalid --name bad/ref --no-color
 stderr 'invalid manifest name'
-! exists $WORK/invalid/tuck.toml
+! exists $WORK/invalid/.tuck.toml
 ! exec tuck source init $WORK/src --name other --no-color
 stderr 'manifest already exists'
-exec cat $WORK/src/tuck.toml
+exec cat $WORK/src/.tuck.toml
 stdout 'name = "public"'
 ! stdout 'other'
 
@@ -136,7 +136,7 @@ phase add-init-registers
 exec tuck source add $WORK/bootstrap --init --name public --description 'public dotfiles' --default --no-color
 stdout 'added source public'
 stdout 'default: yes'
-exec cat $WORK/bootstrap/tuck.toml
+exec cat $WORK/bootstrap/.tuck.toml
 stdout 'name = "public"'
 stdout 'description = "public dotfiles"'
 exec cat $WORK/state/add-init-registers/tuck/sources.toml
@@ -148,7 +148,7 @@ stdout 'id = "public"'
 phase add-init-existing-valid fixtures/source/public-described
 exec tuck source add $WORK/src --init --no-color
 stdout 'added source public'
-exec cat $WORK/src/tuck.toml
+exec cat $WORK/src/.tuck.toml
 stdout 'name = "public"'
 stdout 'description = "public dotfiles"'
 ! stderr .
@@ -162,7 +162,7 @@ stdout '"id":"json"'
 stdout '"path":"'$WORK'/json-src"'
 stdout '"enabled":true'
 stdout '"exitCode":0'
-exec cat $WORK/json-src/tuck.toml
+exec cat $WORK/json-src/.tuck.toml
 stdout 'name = "json"'
 ! stderr .
 
@@ -282,18 +282,18 @@ stderr 'sufficient count of arg id not provided'
 ! exec tuck source default public extra --no-color
 stderr 'source default accepts exactly one <id>'
 
--- fixtures/source/public-described/tuck.toml --
+-- fixtures/source/public-described/.tuck.toml --
 name = "public"
 description = "public dotfiles"
--- fixtures/source/private-described/tuck.toml --
+-- fixtures/source/private-described/.tuck.toml --
 name = "private"
 description = "private dotfiles"
--- src-a/tuck.toml --
+-- src-a/.tuck.toml --
 name = "public"
--- src-b/tuck.toml --
+-- src-b/.tuck.toml --
 name = "public"
 description = "other checkout"
--- fixtures/source/add-invalid-manifest/tuck.toml --
+-- fixtures/source/add-invalid-manifest/.tuck.toml --
 description = "missing name"
 -- fixtures/source/list-invalid-state/sources.toml --
 [[source]

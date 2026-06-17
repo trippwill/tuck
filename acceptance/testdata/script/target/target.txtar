@@ -346,7 +346,7 @@ stderr 'Incorrect Usage'
 ! exec tuck eject one two --no-color
 stderr 'eject accepts exactly one <file>'
 
--- fixtures/target/status/common/tuck.toml --
+-- fixtures/target/status/common/.tuck.toml --
 name = "public"
 -- fixtures/target/status/common/zsh/.config/zsh/.zshrc --
 # zshrc
@@ -358,7 +358,7 @@ root=true
 # zprofile
 -- fixtures/target/root/common/.root/sshd/etc/ssh/sshd_config --
 # sshd
--- fixtures/target/eject/private-source/tuck.toml --
+-- fixtures/target/eject/private-source/.tuck.toml --
 name = "private"
 -- fixtures/target/eject/private-source/zsh/.config/zsh/.zshrc --
 # private zshrc

@@ -401,19 +401,19 @@ func classifyError(err error) errorRecord {
 		return errorRecord{
 			Code:    "manifest_missing",
 			Message: detailMessage(err, "source manifest is missing", manifest.ErrMissing),
-			Hint:    "create tuck.toml in the source repository with a valid name",
+			Hint:    "create " + manifest.ManifestFilename + " in the source repository with a valid name",
 		}
 	case errors.Is(err, manifest.ErrExists):
 		return errorRecord{
 			Code:    "manifest_exists",
 			Message: detailMessage(err, "source manifest already exists", manifest.ErrExists),
-			Hint:    "remove the existing tuck.toml or choose a different source path",
+			Hint:    "remove the existing " + manifest.ManifestFilename + " or choose a different source path",
 		}
 	case errors.Is(err, manifest.ErrInvalid):
 		return errorRecord{
 			Code:    "manifest_invalid",
 			Message: detailMessage(err, "source manifest is invalid", manifest.ErrInvalid),
-			Hint:    "fix tuck.toml in the source repository",
+			Hint:    "fix " + manifest.ManifestFilename + " in the source repository",
 		}
 	case errors.Is(err, pkgref.ErrInvalidRef):
 		return errorRecord{

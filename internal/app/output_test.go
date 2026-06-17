@@ -114,12 +114,12 @@ func TestClassifyErrorPreservesDetailMessages(t *testing.T) {
 			name: "manifest missing context",
 			err: apperr.AppErrWrapf(
 				manifest.ErrMissing,
-				errors.New("open /repo/tuck.toml: no such file or directory"),
+				errors.New("open /repo/"+manifest.ManifestFilename+": no such file or directory"),
 				"could not read manifest %q",
-				"/repo/tuck.toml",
+				"/repo/"+manifest.ManifestFilename,
 			),
 			code:       "manifest_missing",
-			contains:   []string{"could not read manifest", "/repo/tuck.toml", "no such file or directory"},
+			contains:   []string{"could not read manifest", "/repo/" + manifest.ManifestFilename, "no such file or directory"},
 			notContain: "source manifest is missing",
 		},
 		{
