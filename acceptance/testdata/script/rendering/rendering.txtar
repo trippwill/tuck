@@ -1,0 +1,122 @@
+# package list human output is stable
+phase package-list-human fixtures/rendering/public-only fixtures/rendering/zsh-config fixtures/rendering/git-home
+wantstate public public $WORK/src true
+exec tuck pkg list --no-color
+cp stdout package-list.got
+cmp package-list.got package-list.want
+! stderr .
+
+# package use dry-run human plan output is stable
+phase package-use-dry-run-human fixtures/rendering/public-only fixtures/rendering/zsh-config
+wantstate public public $WORK/src true
+exec tuck pkg use zsh --no-color
+cp stdout package-use-dry-run.got
+cmpenv package-use-dry-run.got package-use-dry-run.want
+! stderr .
+! exists $WORK/home/.config/zsh/.zshrc
+
+# package use conflict human plan output is stable
+phase package-use-conflict-human fixtures/rendering/public-only fixtures/rendering/zsh-config
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+cp fixtures/rendering/existing-file $WORK/home/.config/zsh/.zshrc
+! exec tuck pkg use zsh --no-color
+cp stdout package-use-conflict.got
+cmpenv package-use-conflict.got package-use-conflict.want
+! stderr .
+
+# status human output is stable
+phase status-human fixtures/rendering/public-only fixtures/rendering/zsh-config
+wantstate public public $WORK/src true
+exec tuck pkg use zsh --apply --no-color
+! stderr .
+exec tuck status $WORK/home/.config/zsh/.zshrc --no-color
+cp stdout status.got
+cmpenv status.got status.want
+! stderr .
+
+# source add and source list human output are stable
+phase source-human fixtures/rendering/public-described
+exec tuck source add $WORK/src --default --no-color
+cp stdout source-add.got
+cmpenv source-add.got source-add.want
+! stderr .
+exec tuck source list --no-color
+cp stdout source-list.got
+cmpenv source-list.got source-list.want
+! stderr .
+
+# command-rendered human errors are stable
+phase error-human fixtures/rendering/public-only
+wantstate public public $WORK/src true
+! exec tuck pkg use bad/ref --no-color
+cp stderr error-invalid-ref.got
+cmp error-invalid-ref.got error-invalid-ref.want
+! stdout .
+! exec tuck pkg use --no-color
+cp stderr error-invalid-args.got
+cmp error-invalid-args.got error-invalid-args.want
+! stdout .
+
+-- package-list.want --
+tuck package list   (context: home, source: public)
+
+git
+zsh
+
+2 packages
+-- package-use-dry-run.want --
+tuck package use zsh   (context: home, dry-run)
+
+packages: public:home:zsh
+
+plan:
+  + mkdir  $WORK/home/.config/zsh
+  + link   $WORK/home/.config/zsh/.zshrc -> $WORK/src/zsh/.config/zsh/.zshrc
+
+2 actions, 0 conflicts
+re-run with --apply to execute
+-- package-use-conflict.want --
+tuck package use zsh   (context: home, dry-run)
+
+packages: public:home:zsh
+
+plan:
+
+conflicts:
+  ! real_file $WORK/home/.config/zsh/.zshrc (target is a real file)
+
+0 actions, 1 conflicts
+-- status.want --
+tuck status   (context: home, source: public)
+
+deployed       $WORK/home/.config/zsh/.zshrc package=public:home:zsh entry=$WORK/src/zsh/.config/zsh/.zshrc
+
+1 entry
+-- source-add.want --
+added source public
+path: $WORK/src
+default: yes
+-- source-list.want --
+ID       DEFAULT  ENABLED  PATH
+public   yes      yes      $WORK/src
+-- error-invalid-ref.want --
+error: invalid package ref "bad/ref"
+code: invalid_ref
+hint: pass a plain package name that does not start with '.' and does not contain '/', '..', ':', or a source prefix
+-- error-invalid-args.want --
+error: package use requires one or more package refs or --all
+code: invalid_args
+hint: pass one or more package names, or use --all
+-- fixtures/rendering/public-only/.tuck.toml --
+name = "public"
+-- fixtures/rendering/public-described/.tuck.toml --
+name = "public"
+description = "public dotfiles"
+-- fixtures/rendering/zsh-config/zsh/.config/zsh/.zshrc --
+# zshrc
+-- fixtures/rendering/git-home/git/.gitconfig --
+[user]
+-- fixtures/rendering/existing-file --
+existing
