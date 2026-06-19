@@ -1,0 +1,88 @@
+# help JSON golden
+phase help-json
+exec tuck --json --help
+cp stdout help.got
+cmp help.got help.want
+! stderr .
+
+# version JSON golden
+phase version-json
+exec tuck --version --json
+cp stdout version.got
+cmp version.got version.want
+! stderr .
+
+# sources JSON golden
+phase sources-json
+exec tuck --json source list
+cp stdout sources.got
+cmp sources.got sources.want
+! stderr .
+
+# error JSON golden
+phase error-json
+! exec tuck --json pkg list
+cp stdout error.got
+cmp error.got error.want
+! stderr .
+
+# packages and tree JSON goldens
+phase package-json fixtures/json/public
+wantstate public public $WORK/src true
+exec tuck --json pkg list
+cp stdout packages.got
+cmp packages.got packages.want
+! stderr .
+exec tuck --json pkg show git
+cp stdout tree.got
+cmpenv tree.got tree.want
+! stderr .
+
+# status JSON golden
+phase status-json fixtures/json/public
+wantstate public public $WORK/src true
+exec tuck --json status /definitely/not/tuck-json-missing
+cp stdout status.got
+cmp status.got status.want
+! stderr .
+
+# plan JSON golden
+phase plan-json fixtures/json/public fixtures/json/root-sshd
+wantstate public public $WORK/src true
+mkdir $WORK/root
+mkdir $WORK/root/etc
+mkdir $WORK/root/etc/ssh
+cp fixtures/json/existing-file $WORK/root/etc/ssh/sshd_config
+env TUCK_TEST_ROOT_DIR=$WORK/root
+! exec tuck --json pkg use sshd --root
+cp stdout plan.got
+cmp plan.got plan.want
+! stderr .
+
+-- help.want --
+{"schemaVersion":1,"command":"tuck","kind":"help","data":{"name":"tuck","usage":"manage dotfiles by linking package leaves into a target tree","usageText":"tuck [global-flags] <command> [args]","commands":[{"name":"adopt","usage":"move a real file into a package, then link it back"},{"name":"eject","usage":"remove a managed link, restoring the real file"},{"name":"status","usage":"classify a target path (managed/conflict/absent)"},{"name":"package","aliases":["pkg"],"usage":"manage package symlinks"},{"name":"source","usage":"manage enabled dotfiles sources"}],"flags":[{"name":"json","usage":"machine-readable output"},{"name":"no-color","usage":"disable colored output (implied by --json)"},{"name":"help","aliases":["h"],"usage":"show help"},{"name":"version","aliases":["v"],"usage":"print the version"}]},"exitCode":0}
+-- version.want --
+{"schemaVersion":1,"command":"version","kind":"version","data":{"version":"dev"},"exitCode":0}
+-- sources.want --
+{"schemaVersion":1,"command":"source list","kind":"sources","data":{"sources":[]},"exitCode":0}
+-- error.want --
+{"schemaVersion":1,"command":"package list","kind":"error","data":{"error":{"code":"no_source","message":"no active source is available","hint":"run tuck source add <path> --default or pass --source <id>"}},"exitCode":1}
+-- packages.want --
+{"schemaVersion":1,"command":"package list","context":"home","kind":"packages","data":{"source":"public","packages":["git","zsh"]},"exitCode":0}
+-- tree.want --
+{"schemaVersion":1,"command":"package show","context":"home","kind":"tree","data":{"package":{"identity":"public:home:git","root":"$WORK/src/git","entries":[{"rel":".gitconfig","type":"leaf"}]}},"exitCode":0}
+-- status.want --
+{"schemaVersion":1,"command":"status","context":"home","kind":"status","data":{"source":"public","entries":[{"targetPath":"/definitely/not/tuck-json-missing","state":"absent"}]},"exitCode":0}
+-- plan.want --
+{"schemaVersion":1,"command":"package use","context":"root","kind":"plan","data":{"dryRun":true,"applied":false,"packages":["public:root:sshd"],"privilege":{"required":false},"actions":[],"conflicts":[{"code":"real_file","path":"/etc/ssh/sshd_config","message":"target is a real file","package":"public:root:sshd"}]},"exitCode":1}
+-- fixtures/json/public/.tuck.toml --
+name = "public"
+-- fixtures/json/public/git/.gitconfig --
+[user]
+	name = Test
+-- fixtures/json/public/zsh/.zshrc --
+# zshrc
+-- fixtures/json/root-sshd/.root/sshd/etc/ssh/sshd_config --
+# sshd
+-- fixtures/json/existing-file --
+existing

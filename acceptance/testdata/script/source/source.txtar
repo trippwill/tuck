@@ -269,7 +269,43 @@ stdout '"code":"unknown_source"'
 stdout '"exitCode":1'
 ! stderr .
 
-# source rm/default declare required id arguments before their implementation
+# source default sets the machine-local default and emits sources JSON
+phase default-source fixtures/source/public-described
+wantstate public public $WORK/src true private $WORK/fixtures/source/private-described true
+exec tuck source default private --no-color
+stdout 'default source private'
+stdout 'path: .*private-described'
+! stderr .
+exec cat $WORK/state/default-source/tuck/sources.toml
+stdout 'default = "private"'
+
+exec tuck --json source default public
+stdout '"command":"source default"'
+stdout '"kind":"sources"'
+stdout '"id":"public"'
+stdout '"default":true'
+stdout '"id":"private"'
+stdout '"default":false'
+stdout '"exitCode":0'
+! stderr .
+
+# source default reports unknown or disabled ids without changing state
+phase default-errors fixtures/source/public-described
+wantstate public public $WORK/src true disabled $WORK/missing-disabled false
+! exec tuck source default missing --no-color
+stderr 'source is not enabled'
+stderr 'code: unknown_source'
+! stdout .
+! exec tuck --json source default disabled
+stdout '"command":"source default"'
+stdout '"kind":"error"'
+stdout '"code":"unknown_source"'
+stdout '"exitCode":1'
+! stderr .
+exec cat $WORK/state/default-errors/tuck/sources.toml
+stdout 'default = "public"'
+
+# source rm/default declare required id arguments and reject extras
 phase source-stub-argument-usage fixtures/source/public-described
 ! exec tuck source rm --no-color
 stderr 'Incorrect Usage'
@@ -281,6 +317,7 @@ stderr 'Incorrect Usage'
 stderr 'sufficient count of arg id not provided'
 ! exec tuck source default public extra --no-color
 stderr 'source default accepts exactly one <id>'
+stderr 'code: invalid_args'
 
 -- fixtures/source/public-described/.tuck.toml --
 name = "public"

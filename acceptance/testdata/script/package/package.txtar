@@ -474,6 +474,35 @@ stdout 'owned_by_other'
 stdout 'public:home:zsh'
 stdout 'public:home:zsh-alt'
 ! stderr .
+exec tuck --json pkg status zsh-alt
+stdout '"command":"package status"'
+stdout '"kind":"status"'
+stdout '"state":"owned_by_other"'
+stdout '"code":"owned_by_other"'
+stdout '"owner":"public:home:zsh"'
+stdout '"exitCode":0'
+! stderr .
+
+# package status reports mismatched managed symlinks
+phase package-status-mismatch fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/status/mixed
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+symlink $WORK/home/.config/zsh/.zshrc -> ../../../src/zsh/.config/zsh/.zprofile
+exec tuck pkg status zsh --no-color
+stdout 'mismatch'
+stdout 'path_mismatch'
+stdout 'public:home:zsh'
+stdout '.config/zsh/.zshrc'
+! stderr .
+exec tuck --json pkg status zsh
+stdout '"command":"package status"'
+stdout '"kind":"status"'
+stdout '"state":"mismatch"'
+stdout '"code":"path_mismatch"'
+stdout '"expectedTarget":"'$WORK'/home/.config/zsh/.zprofile"'
+stdout '"exitCode":0'
+! stderr .
 
 # package status with no ref summarizes all packages
 phase package-status-summary fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home fixtures/package/common/hidden-root

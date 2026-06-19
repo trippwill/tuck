@@ -84,13 +84,13 @@ func sourceCommand() *cli.Command {
 
 func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
-		return cli.Exit("error: source add accepts exactly one <path>", ExitFail)
+		return renderInvalidArgs(cmd, "source add", "source add accepts exactly one <path>", "pass exactly one source repository path")
 	}
 	if !cmd.Bool("init") && cmd.String("name") != "" {
-		return cli.Exit("error: --name requires --init", ExitFail)
+		return renderInvalidArgs(cmd, "source add", "--name requires --init", "add --init when writing a new source manifest")
 	}
 	if !cmd.Bool("init") && cmd.String("description") != "" {
-		return cli.Exit("error: --description requires --init", ExitFail)
+		return renderInvalidArgs(cmd, "source add", "--description requires --init", "add --init when writing a new source manifest")
 	}
 	path := cmd.StringArgs("path")[0]
 
@@ -116,7 +116,7 @@ func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 
 func sourceInitAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
-		return cli.Exit("error: source init accepts exactly one <path>", ExitFail)
+		return renderInvalidArgs(cmd, "source init", "source init accepts exactly one <path>", "pass exactly one source repository path")
 	}
 	path := cmd.StringArgs("path")[0]
 	initialized, err := manifest.Init(path, manifest.InitOptions{
@@ -131,7 +131,7 @@ func sourceInitAction(_ context.Context, cmd *cli.Command) error {
 
 func sourceListAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
-		return cli.Exit("error: source list accepts no arguments", ExitFail)
+		return renderInvalidArgs(cmd, "source list", "source list accepts no arguments", "remove the extra argument and retry")
 	}
 	registry, err := state.Load()
 	if err != nil {
@@ -143,7 +143,7 @@ func sourceListAction(_ context.Context, cmd *cli.Command) error {
 
 func sourceRmAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
-		return cli.Exit("error: source rm accepts exactly one <id>", ExitFail)
+		return renderInvalidArgs(cmd, "source rm", "source rm accepts exactly one <id>", "pass exactly one enabled source id")
 	}
 	id := cmd.StringArgs("id")[0]
 	registry, removed, ok, err := state.RemoveSource(id)
@@ -156,10 +156,17 @@ func sourceRmAction(_ context.Context, cmd *cli.Command) error {
 	return renderSourceRm(cmd, registry, removed)
 }
 
-func sourceDefaultAction(ctx context.Context, cmd *cli.Command) error {
+func sourceDefaultAction(_ context.Context, cmd *cli.Command) error {
 	if cmd.Args().Present() {
-		return cli.Exit("error: source default accepts exactly one <id>", ExitFail)
+		return renderInvalidArgs(cmd, "source default", "source default accepts exactly one <id>", "pass exactly one enabled source id")
 	}
-	_ = cmd.StringArgs("id")[0]
-	return notImplemented("source default")(ctx, cmd)
+	id := cmd.StringArgs("id")[0]
+	registry, source, ok, err := state.SetDefault(id)
+	if err != nil {
+		return renderError(cmd, "source default", err)
+	}
+	if !ok {
+		return renderError(cmd, "source default", resolve.ErrUnknownSource)
+	}
+	return renderSourceDefault(cmd, registry, source)
 }

@@ -723,6 +723,7 @@ Error format:
 
 ```text
 error: <message>
+code: <stable error code>
 hint: <actionable suggestion>
 ```
 
@@ -873,18 +874,34 @@ Emitted by `source list`, `source add`, `source init`, `source rm`, and
 
 #### 9.2.6 `kind: "help"` and `kind: "version"`
 
-`tuck --help --json` emits command metadata. `tuck --version --json` emits
-version metadata. There is no `help` command:
+`tuck --help --json` and per-command `--help --json` emit command metadata.
+`tuck --version --json` emits version metadata. There is no `help` command:
 
 ```json
 {
   "schemaVersion": 1,
   "command": "tuck",
   "kind": "help",
-  "data": { "...": "..." },
+  "data": {
+    "name": "tuck",
+    "usage": "manage dotfiles by linking package leaves into a target tree",
+    "usageText": "tuck [global-flags] <command> [args]",
+    "commands": [
+      { "name": "package", "aliases": ["pkg"], "usage": "manage package symlinks" }
+    ],
+    "flags": [
+      { "name": "json", "usage": "machine-readable output" },
+      { "name": "help", "aliases": ["h"], "usage": "show help" }
+    ]
+  },
   "exitCode": 0
 }
 ```
+
+For command groups and leaf commands, `data.name` is the display name including
+`tuck`, while envelope `command` is the canonical command path without aliases
+(for example, `command: "package use"`). Leaf-command metadata may include
+`argsUsage`, `aliases`, command-local `flags`, and root `globalFlags`.
 
 ```json
 {
@@ -908,8 +925,7 @@ version metadata. There is no `help` command:
     "error": {
       "code": "package_not_found",
       "message": "package \"ssh\" not found in source \"public\"",
-      "hint": "pass --source private if it lives there, or check `tuck pkg list`",
-      "details": { "ref": "ssh", "source": "public", "context": "home" }
+      "hint": "run tuck pkg list to see packages in the active source"
     }
   },
   "exitCode": 1
@@ -936,6 +952,7 @@ Stable error codes include:
   `manifest_exists`,
   `state_invalid`, `source_root_missing`, `no_source`, `unknown_source`;
 - references/resolution: `invalid_ref`, `package_not_found`;
+- command validation: `invalid_args`;
 - target classification/conflicts: `real_file`, `real_directory`,
   `special_file`, `unmanaged_symlink`, `owned_by_other`, `path_mismatch`,
   `multiple_providers`, `outside_target_root`, `inside_source_repo`,

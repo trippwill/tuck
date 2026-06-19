@@ -58,12 +58,9 @@ working:
   organized by command hierarchy and driven by a single table-driven
   `TestSuites` wrapper. Run one with
   `go test -tags tuck_testhooks -run TestSuites/package ./acceptance/...`.
-  Implemented suites are currently `foundation`, `source`, `package`
-  (`package list`/`package use`/`package status`), and `target` (top-level
-  target operations, starting with `status`). Planned coverage includes
-  `package drop`/`package refresh`, metadata, copy/copy-drift, state integrity,
-  `adopt`/`eject`, root context + privilege (using `TUCK_TEST_ROOT_DIR` /
-  `TUCK_TEST_PRIVILEGE` hooks), and cross-cutting stable error-code coverage.
+  Implemented suites are currently `foundation`, `json`, `source`, `package`,
+  and `target`. Planned coverage includes metadata, copy/copy-drift, state
+  integrity, and broader cross-cutting stable error-code coverage.
 
 [`mise`](https://mise.jdx.dev) tasks expose the common groupings: `mise run test`
 (unit + command-package + acceptance), `mise run test:unit`, `mise run test:cmd`,
@@ -348,14 +345,15 @@ Coverage is organized by **suite** (§2.1); each suite owns the slice of the
 contract below. The first group is implemented; the remaining suites are planned
 as the corresponding product slices land.
 
-- **`source`** — `source add`/`source list`; state validation (unique enabled
-  ids, ≤1 default, no overlapping roots); active-source resolution and
-  `no_source`; `sources` JSON kind.
-- **`package`** — `package list`, `package use`, and `package status`; planned
-  to grow with `package show`, `package drop`, and `package refresh`.
-- **`target`** — top-level target-tree operations, starting with `status` and
-  planned to grow with `adopt`, `eject`, root-context behavior, and privilege
-  coverage.
+- **`source`** — `source add`/`source init`/`source rm`/`source default`/`source
+  list`; state validation (unique enabled ids, ≤1 default, no overlapping
+  roots); active-source resolution and `no_source`; `sources` JSON kind.
+- **`package`** — `package list`, `package show`, `package use`,
+  `package drop`, `package refresh`, and `package status`.
+- **`target`** — top-level target-tree operations (`status`, `adopt`, and
+  `eject`), root-context behavior, and privilege coverage.
+- **`json`** — golden JSON documents for one representative of each envelope kind
+  (`plan`/`packages`/`tree`/`status`/`sources`/`help`/`version`/`error`).
 - **`metadata`** — package-local `<package-root>/.tuck.toml` metadata parsing:
   `[[file]]`, `deploy`, and explicit `mode`; unknown metadata remains
   additive/forward-compatible, and package-local `.tuck.toml` is never deployed.

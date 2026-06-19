@@ -285,6 +285,54 @@ func TestRemoveSourceUnknownLeavesStateUnchanged(t *testing.T) {
 	}
 }
 
+func TestSetDefaultUpdatesEnabledSource(t *testing.T) {
+	stateRoot := withStateHome(t)
+	publicRepo := writeSourceRepo(t, "public", "")
+	privateRepo := writeSourceRepo(t, "private", "")
+	writeSources(t, stateRoot, stateFile("public",
+		sourceBlock("public", publicRepo, nil)+
+			sourceBlock("private", privateRepo, nil),
+	))
+
+	registry, source, ok, err := SetDefault("private")
+	if err != nil {
+		t.Fatalf("SetDefault() error = %v, want nil", err)
+	}
+	if !ok {
+		t.Fatal("SetDefault() ok = false, want true")
+	}
+	if source.ID != "private" || !source.Enabled {
+		t.Fatalf("SetDefault() source = %#v, want enabled private", source)
+	}
+	if registry.Default != "private" {
+		t.Fatalf("SetDefault() default = %q, want private", registry.Default)
+	}
+	if !strings.Contains(readSourcesFile(t, stateRoot), "default = \"private\"\n") {
+		t.Fatalf("sources.toml after SetDefault(private) =\n%s\nwant private default", readSourcesFile(t, stateRoot))
+	}
+}
+
+func TestSetDefaultUnknownOrDisabledLeavesStateUnchanged(t *testing.T) {
+	stateRoot := withStateHome(t)
+	publicRepo := writeSourceRepo(t, "public", "")
+	writeSources(t, stateRoot, stateFile("public",
+		sourceBlock("public", publicRepo, nil)+
+			sourceBlock("disabled", filepath.Join(t.TempDir(), "disabled"), new(false)),
+	))
+	before := readSourcesFile(t, stateRoot)
+
+	for _, id := range []string{"missing", "disabled"} {
+		if _, _, ok, err := SetDefault(id); err != nil {
+			t.Fatalf("SetDefault(%q) error = %v, want nil", id, err)
+		} else if ok {
+			t.Fatalf("SetDefault(%q) ok = true, want false", id)
+		}
+		if after := readSourcesFile(t, stateRoot); after != before {
+			t.Fatalf("sources.toml changed after SetDefault(%q):\nbefore:\n%s\nafter:\n%s", id, before, after)
+		}
+	}
+}
+
 func readSourcesFile(t *testing.T, stateRoot string) string {
 	t.Helper()
 

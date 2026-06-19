@@ -225,6 +225,37 @@ func RemoveSource(id string) (Registry, Source, bool, error) {
 	return normalized, removed, true, nil
 }
 
+func SetDefault(id string) (Registry, Source, bool, error) {
+	registry, err := Load()
+	if err != nil {
+		return Registry{}, Source{}, false, err
+	}
+
+	selectedIndex := -1
+	var selected Source
+	for i, source := range registry.Sources {
+		if source.ID != id || !source.Enabled {
+			continue
+		}
+		selectedIndex = i
+		selected = source
+		break
+	}
+	if selectedIndex == -1 {
+		return registry, Source{}, false, nil
+	}
+
+	registry.Default = id
+	if err := Save(registry); err != nil {
+		return Registry{}, Source{}, false, err
+	}
+	normalized, err := Load()
+	if err != nil {
+		return Registry{}, Source{}, false, err
+	}
+	return normalized, findSource(normalized, selected.ID), true, nil
+}
+
 func findSource(registry Registry, id string) Source {
 	for _, source := range registry.Sources {
 		if source.ID == id {

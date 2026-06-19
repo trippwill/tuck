@@ -211,6 +211,7 @@ func renderPlanError(cmd *cli.Command, usePlan plan.UsePlan, err error) error {
 	}
 	appErr := classifyError(err)
 	fmt.Fprintf(r.err, "error: %s\n", appErr.Message)
+	fmt.Fprintf(r.err, "code: %s\n", appErr.Code)
 	fmt.Fprintf(r.err, "hint: %s\n", appErr.Hint)
 	return cli.Exit("", ExitFail)
 }
@@ -306,6 +307,17 @@ func renderSourceRm(cmd *cli.Command, registry state.Registry, source state.Sour
 	return nil
 }
 
+func renderSourceDefault(cmd *cli.Command, registry state.Registry, source state.Source) error {
+	r := newRenderer(cmd)
+	if r.json {
+		return r.renderSourcesJSON("source default", registry)
+	}
+
+	fmt.Fprintf(r.out, "default source %s\n", source.ID)
+	fmt.Fprintf(r.out, "path: %s\n", source.Path)
+	return nil
+}
+
 func renderSourceInit(cmd *cli.Command, initialized manifest.Initialized) error {
 	r := newRenderer(cmd)
 	if r.json {
@@ -355,12 +367,23 @@ func renderError(cmd *cli.Command, command string, err error) error {
 	return newRenderer(cmd).renderError(command, err)
 }
 
+func renderInvalidArgs(cmd *cli.Command, command string, message string, hint string) error {
+	return newRenderer(cmd).renderErrorRecord(command, "", errorRecord{
+		Code:    "invalid_args",
+		Message: message,
+		Hint:    hint,
+	})
+}
+
 func (r renderer) renderError(command string, err error) error {
 	return r.renderErrorContext(command, "", err)
 }
 
 func (r renderer) renderErrorContext(command string, context string, err error) error {
-	appErr := classifyError(err)
+	return r.renderErrorRecord(command, context, classifyError(err))
+}
+
+func (r renderer) renderErrorRecord(command string, context string, appErr errorRecord) error {
 	if r.json {
 		if err := r.writeEnvelope(command, context, "error", errorData{Error: appErr}, ExitFail); err != nil {
 			return err
@@ -369,6 +392,7 @@ func (r renderer) renderErrorContext(command string, context string, err error) 
 	}
 
 	fmt.Fprintf(r.err, "error: %s\n", appErr.Message)
+	fmt.Fprintf(r.err, "code: %s\n", appErr.Code)
 	fmt.Fprintf(r.err, "hint: %s\n", appErr.Hint)
 	return cli.Exit("", ExitFail)
 }
