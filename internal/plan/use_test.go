@@ -74,7 +74,7 @@ func TestApplyCreatesRelativeSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	plan := UsePlan{Actions: []Action{
+	plan := Plan{Actions: []Action{
 		{Type: ActionMkdir, Path: filepath.Dir(target)},
 		{Type: ActionSymlink, LinkPath: target, Payload: "../../../src/zsh/.config/zsh/.zshrc", Target: source},
 	}}
@@ -104,7 +104,7 @@ func TestApplyMovesFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	plan := UsePlan{Actions: []Action{{Type: ActionMove, Src: src, Dst: dst}}}
+	plan := Plan{Actions: []Action{{Type: ActionMove, Src: src, Dst: dst}}}
 	if err := Apply(plan); err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
@@ -127,7 +127,7 @@ func TestApplyRemovesEmptyDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Apply(UsePlan{Actions: []Action{{Type: ActionRmdir, Path: dir}}}); err != nil {
+	if err := Apply(Plan{Actions: []Action{{Type: ActionRmdir, Path: dir}}}); err != nil {
 		t.Fatalf("Apply() error = %v", err)
 	}
 	if _, err := os.Lstat(dir); !os.IsNotExist(err) {
@@ -145,14 +145,14 @@ func TestApplyRmdirReportsNonEmptyDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Apply(UsePlan{Actions: []Action{{Type: ActionRmdir, Path: dir}}}); err == nil {
+	if err := Apply(Plan{Actions: []Action{{Type: ActionRmdir, Path: dir}}}); err == nil {
 		t.Fatal("Apply() error = nil, want error")
 	}
 }
 
 func TestApplyMoveReportsErrors(t *testing.T) {
 	root := t.TempDir()
-	err := Apply(UsePlan{Actions: []Action{{
+	err := Apply(Plan{Actions: []Action{{
 		Type: ActionMove,
 		Src:  filepath.Join(root, "missing"),
 		Dst:  filepath.Join(root, "dst"),
@@ -163,7 +163,7 @@ func TestApplyMoveReportsErrors(t *testing.T) {
 }
 
 func TestApplyRejectsUnknownActionType(t *testing.T) {
-	err := Apply(UsePlan{Actions: []Action{{Type: ActionType("bogus")}}})
+	err := Apply(Plan{Actions: []Action{{Type: ActionType("bogus")}}})
 	if err == nil {
 		t.Fatal("Apply() error = nil, want error")
 	}
@@ -193,7 +193,7 @@ func TestApplyPreflightsBeforeMutating(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err := Apply(UsePlan{Actions: []Action{
+	err := Apply(Plan{Actions: []Action{
 		{Type: ActionMove, Src: src, Dst: dst},
 		{Type: ActionSymlink, LinkPath: filepath.Join(blockingFile, "link"), Payload: "payload"},
 	}})
@@ -230,7 +230,7 @@ func TestApplyPreflightAccountsForPlannedState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err := Apply(UsePlan{Actions: []Action{
+	err := Apply(Plan{Actions: []Action{
 		{Type: ActionRemoveSymlink, Path: target},
 		{Type: ActionMove, Src: packagePath, Dst: target},
 		{Type: ActionRmdir, Path: packageDir},

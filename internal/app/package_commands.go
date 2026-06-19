@@ -109,7 +109,7 @@ func packageUseAction(_ context.Context, cmd *cli.Command) error {
 		}
 		return renderError(cmd, "package use", err)
 	}
-	return renderUsePlan(cmd, usePlan)
+	return renderPlan(cmd, usePlan)
 }
 
 func packageDropAction(_ context.Context, cmd *cli.Command) error {

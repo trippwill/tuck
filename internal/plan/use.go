@@ -80,7 +80,7 @@ type Privilege struct {
 	Reason    string `json:"reason,omitempty"`
 }
 
-type UsePlan struct {
+type Plan struct {
 	Command   string     `json:"-"`
 	Context   string     `json:"-"`
 	DryRun    bool       `json:"dryRun"`
@@ -91,7 +91,7 @@ type UsePlan struct {
 	Conflicts []Conflict `json:"conflicts"`
 }
 
-func BuildUse(options UseOptions) (UsePlan, error) {
+func BuildUse(options UseOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
 		Command:    "package use",
 		Context:    options.Context,
@@ -100,12 +100,12 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 		Apply:      options.Apply,
 	})
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 
 	resolvedPackages, err := op.resolvePackages(options.Refs, options.All)
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 
 	plannedTargets := make(map[string]string)
@@ -163,7 +163,7 @@ func BuildUse(options UseOptions) (UsePlan, error) {
 	return op.finalize()
 }
 
-func BuildDrop(options DropOptions) (UsePlan, error) {
+func BuildDrop(options DropOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
 		Command:    "package drop",
 		Context:    options.Context,
@@ -172,12 +172,12 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 		Apply:      options.Apply,
 	})
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 
 	resolvedPackages, err := op.resolvePackages(options.Refs, false)
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 
 	for _, pkg := range resolvedPackages {
@@ -202,7 +202,7 @@ func BuildDrop(options DropOptions) (UsePlan, error) {
 	return op.finalize()
 }
 
-func BuildRefresh(options RefreshOptions) (UsePlan, error) {
+func BuildRefresh(options RefreshOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
 		Command:    "package refresh",
 		Context:    options.Context,
@@ -211,12 +211,12 @@ func BuildRefresh(options RefreshOptions) (UsePlan, error) {
 		Apply:      options.Apply,
 	})
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 
 	resolvedPackages, err := op.resolvePackages(options.Refs, false)
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 
 	removeActions := make([]Action, 0)
@@ -283,10 +283,10 @@ func BuildRefresh(options RefreshOptions) (UsePlan, error) {
 	return op.finalize()
 }
 
-func symlinkAction(targetPath string, physicalTargetPath string, entryPath string, packageID string, usePlan *UsePlan) (Action, bool) {
+func symlinkAction(targetPath string, physicalTargetPath string, entryPath string, packageID string, planned *Plan) (Action, bool) {
 	payload, err := pathutil.SymlinkPayload(physicalTargetPath, entryPath)
 	if err != nil {
-		usePlan.Conflicts = append(usePlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, packageID, err.Error()))
+		planned.Conflicts = append(planned.Conflicts, conflict(target.ConflictPathMismatch, targetPath, packageID, err.Error()))
 		return Action{}, false
 	}
 	return Action{Type: ActionSymlink, LinkPath: targetPath, physicalLinkPath: physicalTargetPath, Payload: payload, Target: entryPath}, true

@@ -70,25 +70,25 @@ func TestDirectoriesKeepsSiblingPrefixDirectoriesIndependent(t *testing.T) {
 	}
 }
 
-func TestResolveForAdoptDoesNotRequireExistingPackage(t *testing.T) {
+func TestResolveIdentityDoesNotRequireExistingPackage(t *testing.T) {
 	source := state.Source{ID: "public", Path: "/src"}
 
-	got, err := ResolveForAdopt(source, ContextHome, "nvim")
+	got, err := ResolveIdentity(source, ContextHome, "nvim")
 	if err != nil {
-		t.Fatalf("ResolveForAdopt() error = %v", err)
+		t.Fatalf("ResolveIdentity() error = %v", err)
 	}
 	if got.String() != "public:home:nvim" {
-		t.Fatalf("ResolveForAdopt().String() = %q", got.String())
+		t.Fatalf("ResolveIdentity().String() = %q", got.String())
 	}
 	if got.Root != filepath.Join("/src", "nvim") {
-		t.Fatalf("ResolveForAdopt().Root = %q", got.Root)
+		t.Fatalf("ResolveIdentity().Root = %q", got.Root)
 	}
 }
 
-func TestResolveForAdoptValidatesPackageRef(t *testing.T) {
-	_, err := ResolveForAdopt(state.Source{ID: "public", Path: "/src"}, ContextHome, "bad/ref")
+func TestResolveIdentityValidatesPackageRef(t *testing.T) {
+	_, err := ResolveIdentity(state.Source{ID: "public", Path: "/src"}, ContextHome, "bad/ref")
 	if !errors.Is(err, pkgref.ErrInvalidRef) {
-		t.Fatalf("ResolveForAdopt() error = %v, want ErrInvalidRef", err)
+		t.Fatalf("ResolveIdentity() error = %v, want ErrInvalidRef", err)
 	}
 }
 

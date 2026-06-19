@@ -18,7 +18,7 @@ type EjectOptions struct {
 	Apply      bool
 }
 
-func BuildEject(options EjectOptions) (UsePlan, error) {
+func BuildEject(options EjectOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
 		Command:    "eject",
 		Context:    options.Context,
@@ -27,11 +27,11 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 		Apply:      options.Apply,
 	})
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 	targetPath, err := pathutil.ExpandInput(options.File)
 	if err != nil {
-		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
+		return Plan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
 	}
 
 	physicalTargetPath := op.scope.PhysicalPath(targetPath)
@@ -60,7 +60,7 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 			op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package file does not exist"))
 			return op.finalize()
 		}
-		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
+		return Plan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if info.IsDir() {
 		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package path is a directory"))
@@ -73,7 +73,7 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 	)
 	pruneDirs, err := pruneAfterEject(owner.Identity.Root, packagePath)
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 	for _, dir := range pruneDirs {
 		op.plan.Actions = append(op.plan.Actions, Action{Type: ActionRmdir, Path: dir})

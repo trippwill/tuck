@@ -5,17 +5,17 @@ import (
 	"path/filepath"
 )
 
-func Apply(usePlan UsePlan) error {
-	if len(usePlan.Conflicts) > 0 {
+func Apply(plan Plan) error {
+	if len(plan.Conflicts) > 0 {
 		return AppErrMsg(ErrApply, "cannot apply a plan with conflicts")
 	}
 	// Preflight catches predictable failures before the first mutation. The
 	// execution switch still checks every action because the filesystem can
 	// change between validation and mutation.
-	if err := preflightApply(usePlan); err != nil {
+	if err := preflightApply(plan); err != nil {
 		return err
 	}
-	for _, action := range usePlan.Actions {
+	for _, action := range plan.Actions {
 		switch action.Type {
 		case ActionMkdir:
 			path := action.fsPath()
@@ -89,9 +89,9 @@ type applyPreflight struct {
 // such as mkdir-then-symlink, remove_symlink-then-move, and move-then-rmdir from
 // being rejected just because the initial filesystem state does not yet match
 // the later action's requirements.
-func preflightApply(usePlan UsePlan) error {
+func preflightApply(plan Plan) error {
 	preflight := applyPreflight{paths: make(map[string]preflightPathKind)}
-	for _, action := range usePlan.Actions {
+	for _, action := range plan.Actions {
 		if err := preflight.validate(action); err != nil {
 			return err
 		}

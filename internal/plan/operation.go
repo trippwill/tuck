@@ -21,7 +21,7 @@ type operation struct {
 	scope    domain.TargetScope
 	registry state.Registry
 	apply    bool
-	plan     UsePlan
+	plan     Plan
 }
 
 func newOperation(options operationOptions) (operation, error) {
@@ -42,12 +42,12 @@ func newOperation(options operationOptions) (operation, error) {
 		scope:    selection.Scope,
 		registry: selection.Registry,
 		apply:    options.Apply,
-		plan:     newUsePlan(options.Command, selection.Scope.Context, options.Apply),
+		plan:     newPlan(options.Command, selection.Scope.Context, options.Apply),
 	}, nil
 }
 
-func newUsePlan(command string, context string, apply bool) UsePlan {
-	return UsePlan{
+func newPlan(command string, context string, apply bool) Plan {
+	return Plan{
 		Command:   command,
 		Context:   context,
 		DryRun:    !apply,
@@ -73,7 +73,7 @@ func (op *operation) addPackages(resolvedPackages []packages.Resolved) {
 	}
 }
 
-func (op *operation) finalize() (UsePlan, error) {
+func (op *operation) finalize() (Plan, error) {
 	if len(op.plan.Conflicts) > 0 {
 		op.plan.Actions = []Action{}
 		return op.plan, nil
@@ -92,18 +92,18 @@ func (op *operation) finalize() (UsePlan, error) {
 	return op.plan, nil
 }
 
-func markPrivilege(usePlan *UsePlan) {
-	if usePlan.Context != domain.ContextRoot || len(usePlan.Actions) == 0 {
+func markPrivilege(plan *Plan) {
+	if plan.Context != domain.ContextRoot || len(plan.Actions) == 0 {
 		return
 	}
 	satisfied := hasRootPrivilege()
-	usePlan.Privilege = Privilege{
+	plan.Privilege = Privilege{
 		Required:  true,
 		Satisfied: &satisfied,
 		Reason:    "root-context write",
 	}
 }
 
-func privilegeDenied(usePlan UsePlan) bool {
-	return usePlan.Privilege.Required && usePlan.Privilege.Satisfied != nil && !*usePlan.Privilege.Satisfied
+func privilegeDenied(plan Plan) bool {
+	return plan.Privilege.Required && plan.Privilege.Satisfied != nil && !*plan.Privilege.Satisfied
 }

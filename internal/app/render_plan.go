@@ -8,18 +8,14 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func renderUsePlan(cmd *cli.Command, usePlan plan.UsePlan) error {
-	return renderPlan(cmd, usePlan)
-}
-
-func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
+func renderPlan(cmd *cli.Command, planned plan.Plan) error {
 	r := newRenderer(cmd)
 	exitCode := ExitOK
-	if len(usePlan.Conflicts) > 0 {
+	if len(planned.Conflicts) > 0 {
 		exitCode = ExitFail
 	}
 	if r.json {
-		if err := r.writeEnvelope(usePlan.Command, usePlan.Context, "plan", usePlan, exitCode); err != nil {
+		if err := r.writeEnvelope(planned.Command, planned.Context, "plan", planned, exitCode); err != nil {
 			return err
 		}
 		if exitCode != ExitOK {
@@ -29,15 +25,15 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 	}
 
 	mode := "dry-run"
-	if !usePlan.DryRun {
+	if !planned.DryRun {
 		mode = "apply"
 	}
-	fmt.Fprintf(r.out, "tuck %s %s   (context: %s, %s)\n\n", usePlan.Command, packageNames(usePlan.Packages), usePlan.Context, mode)
-	if len(usePlan.Packages) > 0 {
-		fmt.Fprintf(r.out, "packages: %s\n\n", strings.Join(usePlan.Packages, " "))
+	fmt.Fprintf(r.out, "tuck %s %s   (context: %s, %s)\n\n", planned.Command, packageNames(planned.Packages), planned.Context, mode)
+	if len(planned.Packages) > 0 {
+		fmt.Fprintf(r.out, "packages: %s\n\n", strings.Join(planned.Packages, " "))
 	}
 	fmt.Fprintln(r.out, "plan:")
-	for _, action := range usePlan.Actions {
+	for _, action := range planned.Actions {
 		switch action.Type {
 		case plan.ActionMkdir:
 			fmt.Fprintf(r.out, "  + mkdir  %s\n", action.Path)
@@ -51,9 +47,9 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 			fmt.Fprintf(r.out, "  + move   %s -> %s\n", action.Src, action.Dst)
 		}
 	}
-	if len(usePlan.Conflicts) > 0 {
+	if len(planned.Conflicts) > 0 {
 		fmt.Fprintln(r.out, "\nconflicts:")
-		for _, conflict := range usePlan.Conflicts {
+		for _, conflict := range planned.Conflicts {
 			fmt.Fprintf(r.out, "  ! %s %s", conflict.Code, conflict.Path)
 			if conflict.Message != "" {
 				fmt.Fprintf(r.out, " (%s)", conflict.Message)
@@ -61,8 +57,8 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 			fmt.Fprintln(r.out)
 		}
 	}
-	fmt.Fprintf(r.out, "\n%d actions, %d conflicts\n", len(usePlan.Actions), len(usePlan.Conflicts))
-	if usePlan.DryRun && len(usePlan.Conflicts) == 0 {
+	fmt.Fprintf(r.out, "\n%d actions, %d conflicts\n", len(planned.Actions), len(planned.Conflicts))
+	if planned.DryRun && len(planned.Conflicts) == 0 {
 		fmt.Fprintln(r.out, "re-run with --apply to execute")
 	}
 	if exitCode != ExitOK {
@@ -71,12 +67,12 @@ func renderPlan(cmd *cli.Command, usePlan plan.UsePlan) error {
 	return nil
 }
 
-func renderPlanError(cmd *cli.Command, usePlan plan.UsePlan, err error) error {
+func renderPlanError(cmd *cli.Command, planned plan.Plan, err error) error {
 	r := newRenderer(cmd)
 	if r.json {
-		return r.renderErrorContext(usePlan.Command, usePlan.Context, err)
+		return r.renderErrorContext(planned.Command, planned.Context, err)
 	}
-	if renderErr := renderPlan(cmd, usePlan); renderErr != nil {
+	if renderErr := renderPlan(cmd, planned); renderErr != nil {
 		return renderErr
 	}
 	appErr := classifyError(err)

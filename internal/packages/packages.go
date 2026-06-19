@@ -191,7 +191,7 @@ func ResolveOne(source state.Source, context string, name string) (Resolved, err
 	}, nil
 }
 
-func ResolveForAdopt(source state.Source, context string, rawRef string) (Identity, error) {
+func ResolveIdentity(source state.Source, context string, rawRef string) (Identity, error) {
 	ref, err := pkgref.Parse(rawRef)
 	if err != nil {
 		return Identity{}, err

@@ -20,7 +20,7 @@ type AdoptOptions struct {
 	Apply      bool
 }
 
-func BuildAdopt(options AdoptOptions) (UsePlan, error) {
+func BuildAdopt(options AdoptOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
 		Command:    "adopt",
 		Context:    options.Context,
@@ -29,17 +29,17 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 		Apply:      options.Apply,
 	})
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
-	identity, err := packages.ResolveForAdopt(op.source, op.scope.Context, options.Ref)
+	identity, err := packages.ResolveIdentity(op.source, op.scope.Context, options.Ref)
 	if err != nil {
-		return UsePlan{}, err
+		return Plan{}, err
 	}
 	op.plan.Packages = []string{identity.String()}
 
 	targetPath, err := pathutil.ExpandInput(options.File)
 	if err != nil {
-		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
+		return Plan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
 	}
 	if !pathutil.Inside(targetPath, op.scope.LogicalRoot) {
 		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictOutsideTargetRoot, targetPath, identity.String(), "target is outside the selected target root"))
@@ -68,7 +68,7 @@ func BuildAdopt(options AdoptOptions) (UsePlan, error) {
 		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
 		return op.finalize()
 	} else if !errors.Is(err, fs.ErrNotExist) {
-		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
+		return Plan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if !pathutil.Inside(packagePath, identity.Root) {
 		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
