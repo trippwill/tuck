@@ -129,7 +129,7 @@ Suggested red scripts:
      different types;
    - assert all conflicts are reported and no mutation occurs.
 7. `multiple-providers.txtar`
-   - two packages in one invocation map to the same target leaf;
+   - two packages in one `package use` invocation map to the same target leaf;
    - assert `multiple_providers` conflict and no mutation.
 8. `idempotent.txtar`
    - target already has the correct managed symlink;
@@ -152,7 +152,8 @@ Unit tests by milestone:
 - M15: target classification and symlink ownership inference, including broken
   managed symlinks and path mismatch.
 - M16/M17: complete plan building with conflict accumulation, deduped duplicate
-  refs, multiple providers, directory/leaf conflicts, idempotent managed links.
+  refs, same-invocation multiple providers, directory/leaf conflicts,
+  idempotent managed links.
 - M18: human and JSON rendering tests around the stable output shape.
 - M19: apply tests for mkdir/symlink ordering, dry-run no mutation, conflict no
   mutation.
@@ -240,7 +241,7 @@ Unit tests by milestone:
   - `unmanaged_symlink`;
   - `owned_by_other`;
   - `path_mismatch`;
-  - `multiple_providers`.
+  - `multiple_providers` for same-invocation package target collisions.
 - Directory entries:
   - absent -> mkdir action;
   - real directory -> no-op;

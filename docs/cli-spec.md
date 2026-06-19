@@ -664,8 +664,10 @@ it runs because the filesystem may change after preflight.
 Collision and deduplication rules:
 
 - Duplicate package names within one invocation are de-duplicated.
-- Two different packages producing the same leaf target are a
-  `multiple_providers` conflict.
+- Within one `package use` or `package refresh` invocation, two different
+  selected packages producing the same leaf target are a `multiple_providers`
+  planning conflict. `tuck` does not maintain a cross-source provider index, so
+  this code is not a `package status` query result.
 - Two planned actions targeting the same path with incompatible types are a
   conflict.
 - A copied target is mutable outside `tuck`. `package use` never reconciles
@@ -955,9 +957,12 @@ Stable error codes include:
 - command validation: `invalid_args`;
 - target classification/conflicts: `real_file`, `real_directory`,
   `special_file`, `unmanaged_symlink`, `owned_by_other`, `path_mismatch`,
-  `multiple_providers`, `outside_target_root`, `inside_source_repo`,
+  `outside_target_root`, `inside_source_repo`,
   `package_path_exists`, `not_a_managed_symlink`, `copy_drift`,
   `copy_source_modified`, `copy_target_modified`;
+- plan collision conflicts: `multiple_providers` when one `package use` or
+  `package refresh` invocation selects packages that would write the same leaf
+  target;
 - state validation: `state_checksum_mismatch`;
 - execution: `privilege_required`, `io_error`.
 
@@ -1285,7 +1290,7 @@ for each package:
     for each leaf entry:
         targetPath = convert package path -> target path
         if targetPath in plannedTargets with a different entry:
-            conflict multiple_providers; continue
+            conflict multiple_providers; continue  # same invocation only
         if entry.deploy == "copy":
             switch classifyCopiedTarget(targetPath, entry):
                 Absent, TrackedCopyAbsent:   plan copy entry -> targetPath
