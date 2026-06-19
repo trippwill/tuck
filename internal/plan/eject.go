@@ -6,10 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/trippwill/tuck/internal/domain"
 	"github.com/trippwill/tuck/internal/pathutil"
-	"github.com/trippwill/tuck/internal/resolve"
-	"github.com/trippwill/tuck/internal/state"
 	"github.com/trippwill/tuck/internal/target"
 )
 
@@ -22,16 +19,13 @@ type EjectOptions struct {
 }
 
 func BuildEject(options EjectOptions) (UsePlan, error) {
-	context := selectedContext(options.Context)
-	scope, err := domain.NewTargetScope(context, options.TargetRoot, true)
-	if err != nil {
-		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
-	}
-	registry, err := state.Load()
-	if err != nil {
-		return UsePlan{}, err
-	}
-	source, err := resolve.ActiveSource(registry, options.SourceID)
+	op, err := newOperation(operationOptions{
+		Command:    "eject",
+		Context:    options.Context,
+		TargetRoot: options.TargetRoot,
+		SourceID:   options.SourceID,
+		Apply:      options.Apply,
+	})
 	if err != nil {
 		return UsePlan{}, err
 	}
@@ -40,50 +34,40 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
 	}
 
-	ejectPlan := UsePlan{
-		Command:   "eject",
-		Context:   scope.Context,
-		DryRun:    !options.Apply,
-		Applied:   false,
-		Privilege: Privilege{Required: false},
-		Actions:   []Action{},
-		Conflicts: []Conflict{},
-	}
-
-	physicalTargetPath := scope.PhysicalPath(targetPath)
-	class := target.ClassifyAt(targetPath, physicalTargetPath, source, scope.Context, scope.LogicalRoot, nil, "")
+	physicalTargetPath := op.scope.PhysicalPath(targetPath)
+	class := target.ClassifyAt(targetPath, physicalTargetPath, op.source, op.scope.Context, op.scope.LogicalRoot, nil, "")
 	if class.Kind == target.PathMismatch {
-		ejectPlan.Packages = []string{class.Owner.Identity.String()}
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, class.Owner.Identity.String(), class.Message))
-		return ejectPlan, nil
+		op.plan.Packages = []string{class.Owner.Identity.String()}
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, class.Owner.Identity.String(), class.Message))
+		return op.finalize()
 	}
 	if class.Kind != target.Managed {
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictNotManagedSymlink, targetPath, "", notManagedMessage(class)))
-		return ejectPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictNotManagedSymlink, targetPath, "", notManagedMessage(class)))
+		return op.finalize()
 	}
 
 	owner := class.Owner
-	ejectPlan.Packages = []string{owner.Identity.String()}
+	op.plan.Packages = []string{owner.Identity.String()}
 	if filepath.Clean(targetPath) != filepath.Clean(owner.ExpectedTarget) {
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, owner.Identity.String(), "managed symlink path does not match package entry"))
-		return ejectPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, owner.Identity.String(), "managed symlink path does not match package entry"))
+		return op.finalize()
 	}
 
 	packagePath := owner.EntryPath
 	info, err := os.Lstat(packagePath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package file does not exist"))
-			return ejectPlan, nil
+			op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package file does not exist"))
+			return op.finalize()
 		}
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if info.IsDir() {
-		ejectPlan.Conflicts = append(ejectPlan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package path is a directory"))
-		return ejectPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package path is a directory"))
+		return op.finalize()
 	}
 
-	ejectPlan.Actions = append(ejectPlan.Actions,
+	op.plan.Actions = append(op.plan.Actions,
 		Action{Type: ActionRemoveSymlink, Path: targetPath, physicalPath: physicalTargetPath},
 		Action{Type: ActionMove, Src: packagePath, Dst: targetPath, physicalDst: physicalTargetPath},
 	)
@@ -92,20 +76,9 @@ func BuildEject(options EjectOptions) (UsePlan, error) {
 		return UsePlan{}, err
 	}
 	for _, dir := range pruneDirs {
-		ejectPlan.Actions = append(ejectPlan.Actions, Action{Type: ActionRmdir, Path: dir})
+		op.plan.Actions = append(op.plan.Actions, Action{Type: ActionRmdir, Path: dir})
 	}
-	markPrivilege(&ejectPlan)
-	if options.Apply {
-		if privilegeDenied(ejectPlan) {
-			return ejectPlan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
-		}
-		if err := Apply(ejectPlan); err != nil {
-			return ejectPlan, err
-		}
-		ejectPlan.Applied = true
-		ejectPlan.DryRun = false
-	}
-	return ejectPlan, nil
+	return op.finalize()
 }
 
 func notManagedMessage(class target.Class) string {

@@ -11,10 +11,28 @@ import (
 
 var ErrNoHome = errors.New("HOME is not set")
 
+const (
+	ContextHome = "home"
+	ContextRoot = "root"
+)
+
 type TargetScope struct {
 	Context      string
 	LogicalRoot  string
 	PhysicalRoot string
+}
+
+type SelectionOptions struct {
+	SourceID    string
+	Context     string
+	TargetRoot  string
+	RequireHome bool
+}
+
+type ActiveSelection struct {
+	Registry state.Registry
+	Source   state.Source
+	Scope    TargetScope
 }
 
 func ActiveSource(sourceID string) (state.Source, error) {
@@ -23,6 +41,33 @@ func ActiveSource(sourceID string) (state.Source, error) {
 		return state.Source{}, err
 	}
 	return resolve.ActiveSource(registry, sourceID)
+}
+
+func SelectActive(options SelectionOptions) (ActiveSelection, error) {
+	scope, err := NewTargetScope(options.Context, options.TargetRoot, options.RequireHome)
+	if err != nil {
+		return ActiveSelection{}, err
+	}
+	registry, err := state.Load()
+	if err != nil {
+		return ActiveSelection{}, err
+	}
+	source, err := resolve.ActiveSource(registry, options.SourceID)
+	if err != nil {
+		return ActiveSelection{}, err
+	}
+	return ActiveSelection{
+		Registry: registry,
+		Source:   source,
+		Scope:    scope,
+	}, nil
+}
+
+func NormalizeContext(context string) string {
+	if context == ContextRoot {
+		return ContextRoot
+	}
+	return ContextHome
 }
 
 func TargetRoot(explicit string, requireHome bool) (string, error) {
@@ -40,13 +85,14 @@ func TargetRoot(explicit string, requireHome bool) (string, error) {
 }
 
 func NewTargetScope(context string, explicit string, requireHome bool) (TargetScope, error) {
-	if context == "root" {
+	context = NormalizeContext(context)
+	if context == ContextRoot {
 		physicalRoot := explicit
 		if physicalRoot == "" {
 			physicalRoot = rootPhysicalRoot()
 		}
 		return TargetScope{
-			Context:      "root",
+			Context:      ContextRoot,
 			LogicalRoot:  string(filepath.Separator),
 			PhysicalRoot: filepath.Clean(physicalRoot),
 		}, nil
@@ -57,7 +103,7 @@ func NewTargetScope(context string, explicit string, requireHome bool) (TargetSc
 		return TargetScope{}, err
 	}
 	return TargetScope{
-		Context:      "home",
+		Context:      ContextHome,
 		LogicalRoot:  targetRoot,
 		PhysicalRoot: targetRoot,
 	}, nil

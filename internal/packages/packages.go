@@ -19,8 +19,8 @@ type ErrPackage string
 const ErrPackageNotFound ErrPackage = "package not found"
 
 const (
-	ContextHome = "home"
-	ContextRoot = "root"
+	ContextHome = domain.ContextHome
+	ContextRoot = domain.ContextRoot
 )
 
 type Identity struct {
@@ -81,10 +81,7 @@ type TreeEntry struct {
 }
 
 func List(options ListOptions) (Listing, error) {
-	context := options.Context
-	if context == "" {
-		context = ContextHome
-	}
+	context := domain.NormalizeContext(options.Context)
 	source, err := domain.ActiveSource(options.SourceID)
 	if err != nil {
 		return Listing{}, err
@@ -101,10 +98,7 @@ func List(options ListOptions) (Listing, error) {
 }
 
 func Show(options ShowOptions) (Tree, error) {
-	context := options.Context
-	if context == "" {
-		context = ContextHome
-	}
+	context := domain.NormalizeContext(options.Context)
 	source, err := domain.ActiveSource(options.SourceID)
 	if err != nil {
 		return Tree{}, err

@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/trippwill/tuck/internal/packages"
+	"github.com/trippwill/tuck/internal/domain"
 	"github.com/urfave/cli/v3"
 )
 
@@ -20,7 +20,7 @@ func mutatingDomainFlags() []cli.Flag {
 
 func contextFromFlag(cmd *cli.Command) string {
 	if cmd.Bool("root") {
-		return packages.ContextRoot
+		return domain.ContextRoot
 	}
-	return packages.ContextHome
+	return domain.ContextHome
 }

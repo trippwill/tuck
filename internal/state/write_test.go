@@ -150,6 +150,21 @@ func TestAddSourceRejectsSameIDWithDifferentPathWithoutChangingState(t *testing.
 	}
 }
 
+func TestAddSourceLeavesStateUnchangedWhenExistingEntryIsInvalid(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "")
+	writeSources(t, stateRoot, sourceBlock("public", filepath.Join(t.TempDir(), "missing"), new(false)))
+	before := readSourcesFile(t, stateRoot)
+
+	_, _, err := AddSource(repo, false)
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("AddSource() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
+	}
+	if after := readSourcesFile(t, stateRoot); after != before {
+		t.Fatalf("sources.toml changed after failed mutation:\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+}
+
 func TestAddSourceClassifiesSourceRootAndManifestErrors(t *testing.T) {
 	withStateHome(t)
 

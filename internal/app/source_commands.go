@@ -83,14 +83,14 @@ func sourceCommand() *cli.Command {
 }
 
 func sourceAddAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "source add", "source add accepts exactly one <path>", "pass exactly one source repository path")
+	if err := noExtraArgs(cmd, "source add", "source add accepts exactly one <path>", "pass exactly one source repository path"); err != nil {
+		return err
 	}
-	if !cmd.Bool("init") && cmd.String("name") != "" {
-		return renderInvalidArgs(cmd, "source add", "--name requires --init", "add --init when writing a new source manifest")
+	if err := invalidArgsIf(!cmd.Bool("init") && cmd.String("name") != "", cmd, "source add", "--name requires --init", "add --init when writing a new source manifest"); err != nil {
+		return err
 	}
-	if !cmd.Bool("init") && cmd.String("description") != "" {
-		return renderInvalidArgs(cmd, "source add", "--description requires --init", "add --init when writing a new source manifest")
+	if err := invalidArgsIf(!cmd.Bool("init") && cmd.String("description") != "", cmd, "source add", "--description requires --init", "add --init when writing a new source manifest"); err != nil {
+		return err
 	}
 	path := cmd.StringArgs("path")[0]
 
@@ -115,8 +115,8 @@ func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func sourceInitAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "source init", "source init accepts exactly one <path>", "pass exactly one source repository path")
+	if err := noExtraArgs(cmd, "source init", "source init accepts exactly one <path>", "pass exactly one source repository path"); err != nil {
+		return err
 	}
 	path := cmd.StringArgs("path")[0]
 	initialized, err := manifest.Init(path, manifest.InitOptions{
@@ -130,8 +130,8 @@ func sourceInitAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func sourceListAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "source list", "source list accepts no arguments", "remove the extra argument and retry")
+	if err := noExtraArgs(cmd, "source list", "source list accepts no arguments", "remove the extra argument and retry"); err != nil {
+		return err
 	}
 	registry, err := state.Load()
 	if err != nil {
@@ -142,8 +142,8 @@ func sourceListAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func sourceRmAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "source rm", "source rm accepts exactly one <id>", "pass exactly one enabled source id")
+	if err := noExtraArgs(cmd, "source rm", "source rm accepts exactly one <id>", "pass exactly one enabled source id"); err != nil {
+		return err
 	}
 	id := cmd.StringArgs("id")[0]
 	registry, removed, ok, err := state.RemoveSource(id)
@@ -157,8 +157,8 @@ func sourceRmAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func sourceDefaultAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "source default", "source default accepts exactly one <id>", "pass exactly one enabled source id")
+	if err := noExtraArgs(cmd, "source default", "source default accepts exactly one <id>", "pass exactly one enabled source id"); err != nil {
+		return err
 	}
 	id := cmd.StringArgs("id")[0]
 	registry, source, ok, err := state.SetDefault(id)

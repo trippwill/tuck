@@ -90,11 +90,11 @@ func packageCommand() *cli.Command {
 
 func packageUseAction(_ context.Context, cmd *cli.Command) error {
 	refs := cmd.StringArgs("package")
-	if len(refs) == 0 && !cmd.Bool("all") {
-		return renderInvalidArgs(cmd, "package use", "package use requires one or more package refs or --all", "pass one or more package names, or use --all")
+	if err := invalidArgsIf(len(refs) == 0 && !cmd.Bool("all"), cmd, "package use", "package use requires one or more package refs or --all", "pass one or more package names, or use --all"); err != nil {
+		return err
 	}
-	if len(refs) > 0 && cmd.Bool("all") {
-		return renderInvalidArgs(cmd, "package use", "package use accepts package refs or --all, not both", "choose package refs or --all")
+	if err := invalidArgsIf(len(refs) > 0 && cmd.Bool("all"), cmd, "package use", "package use accepts package refs or --all, not both", "choose package refs or --all"); err != nil {
+		return err
 	}
 	usePlan, err := plan.BuildUse(plan.UseOptions{
 		Refs:     refs,
@@ -147,8 +147,8 @@ func packageRefreshAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func packageListAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "package list", "package list accepts no arguments", "remove the extra argument and retry")
+	if err := noExtraArgs(cmd, "package list", "package list accepts no arguments", "remove the extra argument and retry"); err != nil {
+		return err
 	}
 	listing, err := packages.List(packages.ListOptions{
 		SourceID: cmd.String("source"),
@@ -161,8 +161,8 @@ func packageListAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func packageStatusAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "package status", "package status accepts at most one package ref", "remove the extra package ref and retry")
+	if err := noExtraArgs(cmd, "package status", "package status accepts at most one package ref", "remove the extra package ref and retry"); err != nil {
+		return err
 	}
 	ref := ""
 	if refs := cmd.StringArgs("package"); len(refs) > 0 {
@@ -179,8 +179,8 @@ func packageStatusAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func packageShowAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "package show", "package show accepts exactly one package ref", "pass exactly one package name")
+	if err := noExtraArgs(cmd, "package show", "package show accepts exactly one package ref", "pass exactly one package name"); err != nil {
+		return err
 	}
 	tree, err := packages.Show(packages.ShowOptions{
 		SourceID: cmd.String("source"),

@@ -2,7 +2,6 @@ package status
 
 import (
 	"github.com/trippwill/tuck/internal/packages"
-	"github.com/trippwill/tuck/internal/pathutil"
 	"github.com/trippwill/tuck/internal/pkgref"
 	"github.com/trippwill/tuck/internal/target"
 )
@@ -84,20 +83,20 @@ func Package(ref string, options Options) (Result, error) {
 	entries := make([]Entry, 0)
 	for _, pkg := range resolved {
 		for _, pkgEntry := range packages.Leaves(pkg.Entries) {
-			targetPath, _, err := pathutil.PackageToTarget(pkg.Identity.Root, pkgEntry.Path, scope.LogicalRoot)
+			targetEntry, err := target.NewPackageEntry(pkg, pkgEntry, scope.LogicalRoot, scope.PhysicalPath)
 			if err != nil {
 				entries = append(entries, Entry{
-					TargetPath: targetPath,
+					TargetPath: targetEntry.TargetPath,
 					State:      StateConflict,
-					Package:    pkg.Identity.String(),
+					Package:    targetEntry.PackageID,
 					Entry:      pkgEntry.Path,
 					Code:       target.ConflictPathMismatch,
 					Message:    err.Error(),
 				})
 				continue
 			}
-			class := target.ClassifyAt(targetPath, scope.PhysicalPath(targetPath), source, scope.Context, scope.LogicalRoot, &pkg.Identity, pkgEntry.Rel)
-			entries = append(entries, entryFromClass(targetPath, pkg.Identity.String(), pkgEntry.Path, class, true))
+			class := targetEntry.Classify(source, scope.Context, scope.LogicalRoot)
+			entries = append(entries, entryFromClass(targetEntry.TargetPath, targetEntry.PackageID, targetEntry.Entry.Path, class, true))
 		}
 	}
 

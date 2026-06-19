@@ -131,11 +131,6 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 		return Registry{}, Source{}, err
 	}
 
-	registry, err := Load()
-	if err != nil {
-		return Registry{}, Source{}, err
-	}
-
 	added := Source{
 		ID:       sourceManifest.Name,
 		Path:     rootPath,
@@ -143,33 +138,31 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 		Manifest: sourceManifest,
 	}
 
-	found := false
-	for i, existing := range registry.Sources {
-		if existing.ID != sourceManifest.Name {
-			continue
+	normalized, _, err := mutateRegistry(func(registry Registry) (Registry, bool, error) {
+		found := false
+		for i, existing := range registry.Sources {
+			if existing.ID != sourceManifest.Name {
+				continue
+			}
+			existingPath, err := canonicalRoot(existing.Path)
+			if err != nil {
+				return Registry{}, false, AppErrWrapf(ErrInvalid, err, "existing source %q has invalid path %q", existing.ID, existing.Path)
+			}
+			if existingPath != rootPath {
+				return Registry{}, false, AppErrMsgf(ErrInvalid, "source id %q already exists at %q", existing.ID, existingPath)
+			}
+			registry.Sources[i] = added
+			found = true
+			break
 		}
-		existingPath, err := canonicalRoot(existing.Path)
-		if err != nil {
-			return Registry{}, Source{}, AppErrWrapf(ErrInvalid, err, "existing source %q has invalid path %q", existing.ID, existing.Path)
+		if !found {
+			registry.Sources = append(registry.Sources, added)
 		}
-		if existingPath != rootPath {
-			return Registry{}, Source{}, AppErrMsgf(ErrInvalid, "source id %q already exists at %q", existing.ID, existingPath)
+		if makeDefault {
+			registry.Default = added.ID
 		}
-		registry.Sources[i] = added
-		found = true
-		break
-	}
-	if !found {
-		registry.Sources = append(registry.Sources, added)
-	}
-	if makeDefault {
-		registry.Default = added.ID
-	}
-
-	if err := Save(registry); err != nil {
-		return Registry{}, Source{}, err
-	}
-	normalized, err := Load()
+		return registry, true, nil
+	})
 	if err != nil {
 		return Registry{}, Source{}, err
 	}
@@ -192,68 +185,78 @@ func AddSourceWithInit(path string, makeDefault bool, initOptions manifest.InitO
 }
 
 func RemoveSource(id string) (Registry, Source, bool, error) {
-	registry, err := Load()
-	if err != nil {
-		return Registry{}, Source{}, false, err
-	}
-
-	removedIndex := -1
 	var removed Source
-	for i, source := range registry.Sources {
-		if source.ID != id {
-			continue
+	normalized, changed, err := mutateRegistry(func(registry Registry) (Registry, bool, error) {
+		removedIndex := -1
+		for i, source := range registry.Sources {
+			if source.ID != id {
+				continue
+			}
+			removedIndex = i
+			removed = source
+			break
 		}
-		removedIndex = i
-		removed = source
-		break
-	}
-	if removedIndex == -1 {
-		return registry, Source{}, false, nil
-	}
+		if removedIndex == -1 {
+			return registry, false, nil
+		}
 
-	registry.Sources = append(registry.Sources[:removedIndex], registry.Sources[removedIndex+1:]...)
-	if registry.Default == id {
-		registry.Default = ""
-	}
-	if err := Save(registry); err != nil {
-		return Registry{}, Source{}, false, err
-	}
-	normalized, err := Load()
+		registry.Sources = append(registry.Sources[:removedIndex], registry.Sources[removedIndex+1:]...)
+		if registry.Default == id {
+			registry.Default = ""
+		}
+		return registry, true, nil
+	})
 	if err != nil {
 		return Registry{}, Source{}, false, err
+	}
+	if !changed {
+		return normalized, Source{}, false, nil
 	}
 	return normalized, removed, true, nil
 }
 
 func SetDefault(id string) (Registry, Source, bool, error) {
-	registry, err := Load()
+	var selected Source
+	normalized, changed, err := mutateRegistry(func(registry Registry) (Registry, bool, error) {
+		for _, source := range registry.Sources {
+			if source.ID != id || !source.Enabled {
+				continue
+			}
+			selected = source
+			registry.Default = id
+			return registry, true, nil
+		}
+		return registry, false, nil
+	})
 	if err != nil {
 		return Registry{}, Source{}, false, err
 	}
-
-	selectedIndex := -1
-	var selected Source
-	for i, source := range registry.Sources {
-		if source.ID != id || !source.Enabled {
-			continue
-		}
-		selectedIndex = i
-		selected = source
-		break
+	if !changed {
+		return normalized, Source{}, false, nil
 	}
-	if selectedIndex == -1 {
-		return registry, Source{}, false, nil
-	}
+	return normalized, findSource(normalized, selected.ID), true, nil
+}
 
-	registry.Default = id
-	if err := Save(registry); err != nil {
-		return Registry{}, Source{}, false, err
+func mutateRegistry(mutate func(Registry) (Registry, bool, error)) (Registry, bool, error) {
+	registry, err := Load()
+	if err != nil {
+		return Registry{}, false, err
+	}
+	updated, changed, err := mutate(registry)
+	if err != nil {
+		return Registry{}, false, err
+	}
+	if !changed {
+		return registry, false, nil
+	}
+	if err := Save(updated); err != nil {
+		return Registry{}, false, err
 	}
 	normalized, err := Load()
 	if err != nil {
-		return Registry{}, Source{}, false, err
+		return Registry{}, false, err
 	}
-	return normalized, findSource(normalized, selected.ID), true, nil
+	return normalized, true, nil
 }
 
 func findSource(registry Registry, id string) Source {

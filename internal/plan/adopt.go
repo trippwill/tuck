@@ -6,11 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/trippwill/tuck/internal/domain"
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pathutil"
-	"github.com/trippwill/tuck/internal/resolve"
-	"github.com/trippwill/tuck/internal/state"
 	"github.com/trippwill/tuck/internal/target"
 )
 
@@ -24,96 +21,72 @@ type AdoptOptions struct {
 }
 
 func BuildAdopt(options AdoptOptions) (UsePlan, error) {
-	context := selectedContext(options.Context)
-	scope, err := domain.NewTargetScope(context, options.TargetRoot, true)
-	if err != nil {
-		return UsePlan{}, AppErrMsg(ErrApply, err.Error())
-	}
-	registry, err := state.Load()
-	if err != nil {
-		return UsePlan{}, err
-	}
-	source, err := resolve.ActiveSource(registry, options.SourceID)
+	op, err := newOperation(operationOptions{
+		Command:    "adopt",
+		Context:    options.Context,
+		TargetRoot: options.TargetRoot,
+		SourceID:   options.SourceID,
+		Apply:      options.Apply,
+	})
 	if err != nil {
 		return UsePlan{}, err
 	}
-	identity, err := packages.ResolveForAdopt(source, scope.Context, options.Ref)
+	identity, err := packages.ResolveForAdopt(op.source, op.scope.Context, options.Ref)
 	if err != nil {
 		return UsePlan{}, err
 	}
-
-	adoptPlan := UsePlan{
-		Command:   "adopt",
-		Context:   scope.Context,
-		DryRun:    !options.Apply,
-		Applied:   false,
-		Packages:  []string{identity.String()},
-		Privilege: Privilege{Required: false},
-		Actions:   []Action{},
-		Conflicts: []Conflict{},
-	}
+	op.plan.Packages = []string{identity.String()}
 
 	targetPath, err := pathutil.ExpandInput(options.File)
 	if err != nil {
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not resolve target path")
 	}
-	if !pathutil.Inside(targetPath, scope.LogicalRoot) {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictOutsideTargetRoot, targetPath, identity.String(), "target is outside the selected target root"))
-		return adoptPlan, nil
+	if !pathutil.Inside(targetPath, op.scope.LogicalRoot) {
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictOutsideTargetRoot, targetPath, identity.String(), "target is outside the selected target root"))
+		return op.finalize()
 	}
-	for _, enabled := range registry.EnabledSources() {
+	for _, enabled := range op.registry.EnabledSources() {
 		if pathutil.Inside(targetPath, enabled.Path) {
-			adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictInsideSourceRepo, targetPath, identity.String(), "target is inside an enabled source repository"))
-			return adoptPlan, nil
+			op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictInsideSourceRepo, targetPath, identity.String(), "target is inside an enabled source repository"))
+			return op.finalize()
 		}
 	}
 
-	physicalTargetPath := scope.PhysicalPath(targetPath)
-	class := target.ClassifyAt(targetPath, physicalTargetPath, source, scope.Context, scope.LogicalRoot, nil, "")
+	physicalTargetPath := op.scope.PhysicalPath(targetPath)
+	class := target.ClassifyAt(targetPath, physicalTargetPath, op.source, op.scope.Context, op.scope.LogicalRoot, nil, "")
 	if class.Kind != target.RealFile {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(adoptConflictCode(class), targetPath, identity.String(), adoptConflictMessage(class)))
-		return adoptPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(adoptConflictCode(class), targetPath, identity.String(), adoptConflictMessage(class)))
+		return op.finalize()
 	}
 
-	packagePath, _, err := pathutil.TargetToPackage(scope.LogicalRoot, targetPath, identity.Root)
+	packagePath, _, err := pathutil.TargetToPackage(op.scope.LogicalRoot, targetPath, identity.Root)
 	if err != nil {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
-		return adoptPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
+		return op.finalize()
 	}
 	if _, err := os.Lstat(packagePath); err == nil {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
-		return adoptPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
+		return op.finalize()
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return UsePlan{}, AppErrWrapf(ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if !pathutil.Inside(packagePath, identity.Root) {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
-		return adoptPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
+		return op.finalize()
 	}
 	payload, err := pathutil.SymlinkPayload(physicalTargetPath, packagePath)
 	if err != nil {
-		adoptPlan.Conflicts = append(adoptPlan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
-		return adoptPlan, nil
+		op.plan.Conflicts = append(op.plan.Conflicts, conflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
+		return op.finalize()
 	}
 
-	adoptPlan.Actions = append(adoptPlan.Actions,
+	op.plan.Actions = append(op.plan.Actions,
 		Action{Type: ActionMkdir, Path: filepath.Dir(packagePath)},
 		Action{Type: ActionMove, Src: targetPath, physicalSrc: physicalTargetPath, Dst: packagePath},
 		Action{Type: ActionSymlink, LinkPath: targetPath, physicalLinkPath: physicalTargetPath, Payload: payload, Target: packagePath},
 	)
 
-	markPrivilege(&adoptPlan)
-	if options.Apply {
-		if privilegeDenied(adoptPlan) {
-			return adoptPlan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
-		}
-		if err := Apply(adoptPlan); err != nil {
-			return adoptPlan, err
-		}
-		adoptPlan.Applied = true
-		adoptPlan.DryRun = false
-	}
-	return adoptPlan, nil
+	return op.finalize()
 }
 
 func adoptConflictCode(class target.Class) target.ConflictCode {

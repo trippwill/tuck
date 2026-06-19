@@ -75,8 +75,8 @@ func statusCommand() *cli.Command {
 }
 
 func adoptAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "adopt", "adopt accepts exactly <file> <package>", "pass one target file and one package name")
+	if err := noExtraArgs(cmd, "adopt", "adopt accepts exactly <file> <package>", "pass one target file and one package name"); err != nil {
+		return err
 	}
 	file := cmd.StringArgs("file")[0]
 	ref := cmd.StringArgs("package")[0]
@@ -97,8 +97,8 @@ func adoptAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func ejectAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "eject", "eject accepts exactly one <file>", "pass exactly one target file")
+	if err := noExtraArgs(cmd, "eject", "eject accepts exactly one <file>", "pass exactly one target file"); err != nil {
+		return err
 	}
 	file := cmd.StringArgs("file")[0]
 	ejectPlan, err := plan.BuildEject(plan.EjectOptions{
@@ -117,8 +117,8 @@ func ejectAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func statusAction(_ context.Context, cmd *cli.Command) error {
-	if cmd.Args().Present() {
-		return renderInvalidArgs(cmd, "status", "status accepts exactly one <file>", "pass exactly one target file")
+	if err := noExtraArgs(cmd, "status", "status accepts exactly one <file>", "pass exactly one target file"); err != nil {
+		return err
 	}
 	file := cmd.StringArgs("file")[0]
 	result, err := statuspkg.File(file, statuspkg.Options{
