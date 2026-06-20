@@ -5,7 +5,6 @@ import (
 
 	"github.com/trippwill/tuck/internal/command/pkgcmd"
 	"github.com/trippwill/tuck/internal/output"
-	statuspkg "github.com/trippwill/tuck/internal/status"
 	"github.com/urfave/cli/v3"
 )
 
@@ -158,14 +157,17 @@ func packageStatusAction(_ context.Context, cmd *cli.Command) error {
 	if refs := cmd.StringArgs("package"); len(refs) > 0 {
 		ref = refs[0]
 	}
-	result, err := statuspkg.Package(ref, statuspkg.Options{
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.Status(pkgcmd.StatusRequest{
+		Ref:      ref,
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 	})
-	if err != nil {
-		return renderError(cmd, "package status", err)
-	}
-	return renderStatus(cmd, result)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandStatus,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
 
 func packageShowAction(_ context.Context, cmd *cli.Command) error {

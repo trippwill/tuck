@@ -5,7 +5,6 @@ import (
 
 	"github.com/trippwill/tuck/internal/command/filecmd"
 	"github.com/trippwill/tuck/internal/output"
-	statuspkg "github.com/trippwill/tuck/internal/status"
 	"github.com/urfave/cli/v3"
 )
 
@@ -116,13 +115,15 @@ func statusAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "status", "status accepts exactly one <file>", "pass exactly one target file"); err != nil {
 		return err
 	}
-	file := cmd.StringArgs("file")[0]
-	result, err := statuspkg.File(file, statuspkg.Options{
+	contextName := contextFromFlag(cmd)
+	outcome := filecmd.Status(filecmd.StatusRequest{
+		File:     cmd.StringArgs("file")[0],
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 	})
-	if err != nil {
-		return renderError(cmd, "status", err)
-	}
-	return renderStatus(cmd, result)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: filecmd.CommandStatus,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
