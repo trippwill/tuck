@@ -44,6 +44,7 @@ func packageCommand() *cli.Command {
 			},
 			{
 				Name:      "refresh",
+				Aliases:   []string{"fresh"},
 				Usage:     "re-sync managed symlinks (drop + use)",
 				ArgsUsage: "<package>...",
 				Arguments: []cli.Argument{
@@ -72,6 +73,7 @@ func packageCommand() *cli.Command {
 			},
 			{
 				Name:      "status",
+				Aliases:   []string{"stat"},
 				Usage:     "show managed/conflict state for packages",
 				ArgsUsage: "[package]",
 				Arguments: []cli.Argument{

@@ -52,7 +52,8 @@ func sourceCommand() *cli.Command {
 				Action: sourceInitAction,
 			},
 			{
-				Name:      "rm",
+				Name:      "remove",
+				Aliases:   []string{"rm"},
 				Usage:     "remove a source from this machine",
 				ArgsUsage: "<id>",
 				Arguments: []cli.Argument{

@@ -263,6 +263,14 @@ exec tuck source list --no-color
 stdout 'private +no +yes +.*private-described'
 ! stdout 'public'
 
+# source remove aliases source rm
+phase remove-alias fixtures/source/public-described
+wantstate public public $WORK/src true
+exec tuck source remove public --no-color
+stdout 'removed source public'
+exec tuck source list --no-color
+! stdout 'public'
+
 # source rm preserves another default and can remove disabled entries
 phase rm-disabled fixtures/source/public-described
 wantstate public public $WORK/src true disabled $WORK/missing-disabled false

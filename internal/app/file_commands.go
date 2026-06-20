@@ -61,6 +61,7 @@ func ejectCommand() *cli.Command {
 func statusCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "status",
+		Aliases:   []string{"stat"},
 		Usage:     "classify a target path (managed/conflict/absent)",
 		Category:  "files",
 		ArgsUsage: "<file>",

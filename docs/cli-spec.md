@@ -499,6 +499,7 @@ tuck [--json] status [--source <id>] [--root] <file>
   file, or outside the selected target root. Symlink ownership is inferred only
   in the active source; copied-file ownership is read from active-source machine
   state.
+- **Aliases:** `stat`.
 - **Execution:** read-only.
 
 ### 7.4 `package use`
@@ -546,6 +547,7 @@ tuck [--json] package refresh [--source <id>] [--root] [--apply] <package-ref>..
   clean copied target and the use phase copies the current source; target drift
   conflicts because `drop` conflicts. Apply removals before creations.
 - **Execution:** dry-run by default; mutates only with `--apply`.
+- **Aliases:** `package fresh`, `pkg refresh`, `pkg fresh`.
 
 ### 7.7 `package list`
 
@@ -582,6 +584,7 @@ tuck [--json] package status [--source <id>] [--root] [package-ref]
 - **Without a ref:** summarize every package in the active source/context.
 - **Execution:** read-only. Reported conflicts in the body do not make the
   command fail; it exits `0` when the query succeeds.
+- **Aliases:** `package stat`, `pkg status`, `pkg stat`.
 
 ### 7.10 `package config`
 
@@ -647,6 +650,7 @@ tuck [--json] source rm <id>
 - **Arguments:** one source id.
 - **Behavior:** remove the entry from machine-local state. If it was the default,
   clear the default. Removing a missing source is an error (`unknown_source`).
+- **Aliases:** `source remove`.
 
 ### 7.14 `source list`
 

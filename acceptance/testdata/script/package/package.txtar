@@ -286,6 +286,8 @@ stdout '- unlink'
 stdout '\+ link'
 stdout '2 actions, 0 conflicts'
 stdout 're-run with --apply to execute'
+exec tuck pkg fresh zsh --no-color
+stdout '2 actions, 0 conflicts'
 readlink $WORK/home/.config/zsh/.zshrc $WORK/src/zsh/.config/zsh/.zshrc
 ! stderr .
 
@@ -475,6 +477,9 @@ stdout 'public:home:zsh'
 stdout 'deployed'
 stdout 'absent'
 stdout 'conflict'
+stdout 'real_file'
+exec tuck pkg stat zsh --no-color
+stdout 'tuck package status'
 stdout 'real_file'
 ! stderr .
 
