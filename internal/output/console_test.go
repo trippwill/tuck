@@ -18,18 +18,10 @@ func TestConsoleStyleEnabledWrapsAndResetsText(t *testing.T) {
 	}
 }
 
-func TestConsoleStyleMissingPaletteEntryReturnsText(t *testing.T) {
-	c := Console{Color: true, Palette: Palette{}}
+func TestConsoleStyleUnknownStyleReturnsText(t *testing.T) {
+	c := NewConsole(Invocation{Command: "test"}, true)
 
-	if got := c.Style(StyleSuccess, "ok"); got != "ok" {
+	if got := c.Style(Style("unknown"), "ok"); got != "ok" {
 		t.Fatalf("Style() = %q, want %q", got, "ok")
-	}
-}
-
-func TestConsoleSprintfStylesFormattedText(t *testing.T) {
-	c := Console{Color: true, Palette: Palette{StyleWarning: "33"}}
-
-	if got := c.Sprintf(StyleWarning, "%s=%d", "count", 2); got != "\x1b[33mcount=2\x1b[0m" {
-		t.Fatalf("Sprintf() = %q, want warning SGR with reset", got)
 	}
 }

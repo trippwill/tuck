@@ -1,7 +1,5 @@
 package output
 
-import "fmt"
-
 type Style string
 
 const (
@@ -14,29 +12,15 @@ const (
 	StylePackage Style = "package"
 )
 
-type Palette map[Style]string
-
-var DefaultPalette = Palette{
-	StyleAccent:  "1",
-	StyleMuted:   "2",
-	StyleSuccess: "32",
-	StyleWarning: "33",
-	StyleDanger:  "31;1",
-	StylePath:    "36",
-	StylePackage: "35",
-}
-
 type Console struct {
 	Invocation Invocation
 	Color      bool
-	Palette    Palette
 }
 
 func NewConsole(inv Invocation, color bool) Console {
 	return Console{
 		Invocation: inv,
 		Color:      color,
-		Palette:    DefaultPalette,
 	}
 }
 
@@ -44,17 +28,30 @@ func (c Console) Style(style Style, s string) string {
 	if !c.Color || s == "" {
 		return s
 	}
-	palette := c.Palette
-	if palette == nil {
-		palette = DefaultPalette
-	}
-	code := palette[style]
+	code := styleCode(style)
 	if code == "" {
 		return s
 	}
 	return "\x1b[" + code + "m" + s + "\x1b[0m"
 }
 
-func (c Console) Sprintf(style Style, format string, args ...any) string {
-	return c.Style(style, fmt.Sprintf(format, args...))
+func styleCode(style Style) string {
+	switch style {
+	case StyleAccent:
+		return "1"
+	case StyleMuted:
+		return "2"
+	case StyleSuccess:
+		return "32"
+	case StyleWarning:
+		return "33"
+	case StyleDanger:
+		return "31;1"
+	case StylePath:
+		return "36"
+	case StylePackage:
+		return "35"
+	default:
+		return ""
+	}
 }
