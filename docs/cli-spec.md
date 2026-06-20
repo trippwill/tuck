@@ -130,9 +130,9 @@ All mutating commands plan by default and mutate only with `--apply`.
   prints that group's help and exits `0`.
 - `--help`, `--version`, the no-command case, and command-group help bypass
   machine-state discovery and source resolution.
-- `--help --json` and `--version --json` emit machine-readable metadata for
-  tooling. Plain help/version remains the default. There is no `help` command;
-  help is exposed only through `-h`/`--help`.
+- `--help` and `--version` are framework-rendered text even when `--json` is
+  also present. There is no `help` command; help is exposed only through
+  `-h`/`--help`.
 - `tuck source add <path>` does not require an existing active source; it
   establishes one. `tuck source list` requires only readable machine state.
 
@@ -911,48 +911,7 @@ Emitted by `source list`, `source add`, `source init`, `source rm`, and
 }
 ```
 
-#### 9.2.6 `kind: "help"` and `kind: "version"`
-
-`tuck --help --json` and per-command `--help --json` emit command metadata.
-`tuck --version --json` emits version metadata. There is no `help` command:
-
-```json
-{
-  "schemaVersion": 1,
-  "command": "tuck",
-  "kind": "help",
-  "data": {
-    "name": "tuck",
-    "usage": "manage dotfiles by linking package leaves into a target tree",
-    "usageText": "tuck [global-flags] <command> [args]",
-    "commands": [
-      { "name": "package", "aliases": ["pkg"], "usage": "manage package symlinks" }
-    ],
-    "flags": [
-      { "name": "json", "usage": "machine-readable output" },
-      { "name": "help", "aliases": ["h"], "usage": "show help" }
-    ]
-  },
-  "exitCode": 0
-}
-```
-
-For command groups and leaf commands, `data.name` is the display name including
-`tuck`, while envelope `command` is the canonical command path without aliases
-(for example, `command: "package use"`). Leaf-command metadata may include
-`argsUsage`, `aliases`, command-local `flags`, and root `globalFlags`.
-
-```json
-{
-  "schemaVersion": 1,
-  "command": "version",
-  "kind": "version",
-  "data": { "version": "dev" },
-  "exitCode": 0
-}
-```
-
-#### 9.2.7 `kind: "error"`
+#### 9.2.6 `kind: "error"`
 
 ```json
 {
@@ -1029,8 +988,8 @@ line, version where relevant, visible commands, and options. Exact section order
 capitalization, spacing, and flag rendering are framework-owned.
 
 Acceptance tests assert help loosely with exit code and stable key substrings,
-not byte-for-byte output. `--help --json` is the stable machine-readable help
-surface.
+not byte-for-byte output. `--json` does not make help or version output
+machine-readable.
 
 ---
 
@@ -1615,8 +1574,8 @@ Deliberate changes:
    warnings. `--apply` stays local to mutating plan commands.
 7. **Exit codes are binary.** Detailed classification moved from process exit
    codes into stderr and the JSON `error.code`.
-8. **Machine-readable meta output.** `--help --json` and `--version --json` are
-   supported for tooling; `help` is not a command.
+8. **Framework-owned meta output.** `--help` and `--version` stay text output
+   even when `--json` is present; `help` is not a command.
 
 The internal algorithms for path primitives, package enumeration, ownership
 inference, conflict rules, and execution planning are preserved, translated into

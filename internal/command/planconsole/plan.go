@@ -38,57 +38,33 @@ func ConsoleString(console output.Console, data any) (string, error) {
 	if !planned.DryRun {
 		mode = "apply"
 	}
-	if _, err := fmt.Fprintf(&b, "tuck %s %s   (context: %s, %s)\n\n", inv.Command, packageNames(planned.Packages), inv.Context, mode); err != nil {
-		return "", err
-	}
+	fmt.Fprintf(&b, "tuck %s %s   (context: %s, %s)\n\n", inv.Command, packageNames(planned.Packages), inv.Context, mode)
 	if len(planned.Packages) > 0 {
-		if _, err := fmt.Fprintf(&b, "packages: %s\n\n", strings.Join(planned.Packages, " ")); err != nil {
-			return "", err
-		}
+		fmt.Fprintf(&b, "packages: %s\n\n", strings.Join(planned.Packages, " "))
 	}
-	if _, err := fmt.Fprintln(&b, console.Style(output.StyleAccent, "plan:")); err != nil {
-		return "", err
-	}
+	fmt.Fprintln(&b, console.Style(output.StyleAccent, "plan:"))
 	for _, action := range planned.Actions {
 		switch action.Type {
 		case plan.ActionMkdir:
-			if _, err := fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleSuccess, "+ mkdir "), action.Path); err != nil {
-				return "", err
-			}
+			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleSuccess, "+ mkdir "), action.Path)
 		case plan.ActionRmdir:
-			if _, err := fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- rmdir "), action.Path); err != nil {
-				return "", err
-			}
+			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- rmdir "), action.Path)
 		case plan.ActionSymlink:
-			if _, err := fmt.Fprintf(&b, "  %s %s -> %s\n", console.Style(output.StyleSuccess, "+ link  "), action.LinkPath, action.Target); err != nil {
-				return "", err
-			}
+			fmt.Fprintf(&b, "  %s %s -> %s\n", console.Style(output.StyleSuccess, "+ link  "), action.LinkPath, action.Target)
 		case plan.ActionRemoveSymlink:
-			if _, err := fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- unlink"), action.Path); err != nil {
-				return "", err
-			}
+			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- unlink"), action.Path)
 		case plan.ActionMove:
-			if _, err := fmt.Fprintf(&b, "  %s %s -> %s\n", console.Style(output.StyleSuccess, "+ move  "), action.Src, action.Dst); err != nil {
-				return "", err
-			}
+			fmt.Fprintf(&b, "  %s %s -> %s\n", console.Style(output.StyleSuccess, "+ move  "), action.Src, action.Dst)
 		}
 	}
 	if len(planned.Conflicts) > 0 {
-		if _, err := fmt.Fprintf(&b, "\n%s\n", console.Style(output.StyleDanger, "conflicts:")); err != nil {
-			return "", err
-		}
+		fmt.Fprintf(&b, "\n%s\n", console.Style(output.StyleDanger, "conflicts:"))
 		for _, conflict := range planned.Conflicts {
-			if _, err := fmt.Fprintf(&b, "  %s %s %s", console.Style(output.StyleDanger, "!"), console.Style(output.StyleDanger, string(conflict.Code)), conflict.Path); err != nil {
-				return "", err
-			}
+			fmt.Fprintf(&b, "  %s %s %s", console.Style(output.StyleDanger, "!"), console.Style(output.StyleDanger, string(conflict.Code)), conflict.Path)
 			if conflict.Message != "" {
-				if _, err := fmt.Fprintf(&b, " (%s)", conflict.Message); err != nil {
-					return "", err
-				}
+				fmt.Fprintf(&b, " (%s)", conflict.Message)
 			}
-			if _, err := fmt.Fprintln(&b); err != nil {
-				return "", err
-			}
+			fmt.Fprintln(&b)
 		}
 	}
 	if privilegeDenied(planned) {
@@ -96,17 +72,11 @@ func ConsoleString(console output.Console, data any) (string, error) {
 		if reason == "" {
 			reason = "root-context write"
 		}
-		if _, err := fmt.Fprintf(&b, "\n%s %s\n", console.Style(output.StyleWarning, "privilege required:"), reason); err != nil {
-			return "", err
-		}
+		fmt.Fprintf(&b, "\n%s %s\n", console.Style(output.StyleWarning, "privilege required:"), reason)
 	}
-	if _, err := fmt.Fprintf(&b, "\n%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d actions, %d conflicts", len(planned.Actions), len(planned.Conflicts)))); err != nil {
-		return "", err
-	}
+	fmt.Fprintf(&b, "\n%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d actions, %d conflicts", len(planned.Actions), len(planned.Conflicts))))
 	if planned.DryRun && len(planned.Conflicts) == 0 {
-		if _, err := fmt.Fprintln(&b, console.Style(output.StyleWarning, "re-run with --apply to execute")); err != nil {
-			return "", err
-		}
+		fmt.Fprintln(&b, console.Style(output.StyleWarning, "re-run with --apply to execute"))
 	}
 	return b.String(), nil
 }

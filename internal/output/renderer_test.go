@@ -2,7 +2,6 @@ package output
 
 import (
 	"bytes"
-	"errors"
 	"strings"
 	"testing"
 )
@@ -124,30 +123,6 @@ func TestRendererColorsErrorStreamWithErrColor(t *testing.T) {
 	}
 	if got := stderr.String(); !strings.Contains(got, "\x1b[31;1merror:\x1b[0m failed") {
 		t.Fatalf("Render() stderr = %q, want styled error label", got)
-	}
-}
-
-func TestRendererMapsOutcomeErrorToRuntimeError(t *testing.T) {
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	renderer := NewRenderer(Options{
-		Format: JSON,
-		Out:    &out,
-		Err:    &stderr,
-	})
-
-	exitCode, err := renderer.Render(Invocation{Command: "command"}, Fail(errors.New("boom")))
-	if err != nil {
-		t.Fatalf("Render() error = %v", err)
-	}
-	if exitCode != ExitFail {
-		t.Fatalf("Render() exitCode = %d, want %d", exitCode, ExitFail)
-	}
-	if got := out.String(); !strings.Contains(got, `"code":"runtime_error"`) {
-		t.Fatalf("Render() JSON output = %q, want runtime_error", got)
-	}
-	if stderr.Len() != 0 {
-		t.Fatalf("Render() stderr = %q, want empty", stderr.String())
 	}
 }
 

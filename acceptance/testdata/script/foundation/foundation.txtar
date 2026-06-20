@@ -4,8 +4,8 @@ exec tuck --help
 stdout 'USAGE'
 
 exec tuck --help --json
-stdout '"kind":"help"'
-stdout '"command":"tuck"'
+stdout 'USAGE'
+! stdout '"kind":"help"'
 
 # representative leaf command help includes scoped arguments and flags
 phase leaf-help
@@ -33,27 +33,25 @@ stdout '--default'
 stdout '--init'
 ! stderr .
 
-# JSON help is available for command groups, leaves, and aliases
-phase json-help
+# --json does not make help machine-readable
+phase help-json-ignored
 exec tuck --json package --help
-stdout '"command":"package"'
-stdout '"kind":"help"'
-stdout '"name":"tuck package"'
-stdout '"commands":\['
+stdout 'tuck package'
+stdout 'USAGE'
+! stdout '"kind":"help"'
 ! stderr .
 
 exec tuck package use --help --json
-stdout '"command":"package use"'
-stdout '"kind":"help"'
-stdout '"name":"tuck package use"'
-stdout '"argsUsage":"<package>..."'
-stdout '"globalFlags":\['
+stdout 'tuck package use'
+stdout '<package>...'
+stdout '--apply'
+! stdout '"kind":"help"'
 ! stderr .
 
 exec tuck pkg ls --help --json
-stdout '"command":"package list"'
-stdout '"kind":"help"'
-stdout '"aliases":\["ls"\]'
+stdout 'tuck package list'
+stdout 'USAGE'
+! stdout '"kind":"help"'
 ! stderr .
 
 # no command shows top-level help and exits successfully
@@ -106,5 +104,5 @@ exec tuck -v
 stdout 'tuck version dev'
 
 exec tuck --version --json
-stdout '"kind":"version"'
-stdout '"version":"dev"'
+stdout 'tuck version dev'
+! stdout '"kind":"version"'

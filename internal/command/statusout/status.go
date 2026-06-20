@@ -10,37 +10,17 @@ import (
 
 const Kind output.Kind = "status"
 
-type Payload struct {
-	Source  string  `json:"source"`
-	Entries []Entry `json:"entries"`
-}
-
-type Entry struct {
-	TargetPath     string `json:"targetPath"`
-	State          string `json:"state"`
-	Package        string `json:"package,omitempty"`
-	Entry          string `json:"entry,omitempty"`
-	Code           string `json:"code,omitempty"`
-	Message        string `json:"message,omitempty"`
-	Owner          string `json:"owner,omitempty"`
-	ExpectedTarget string `json:"expectedTarget,omitempty"`
-}
-
 func FromResult(result statuspkg.Result) output.Result {
-	payload := Payload{
-		Source:  result.Source,
-		Entries: fromEntries(result.Entries),
-	}
 	return output.Result{
 		Kind:          Kind,
-		Data:          payload,
+		Data:          result,
 		ExitCode:      output.ExitOK,
 		ConsoleString: renderStatus,
 	}
 }
 
 func renderStatus(console output.Console, data any) (string, error) {
-	p, ok := data.(Payload)
+	p, ok := data.(statuspkg.Result)
 	if !ok {
 		return "", fmt.Errorf("status console renderer received %T", data)
 	}
@@ -59,7 +39,7 @@ func renderStatus(console output.Console, data any) (string, error) {
 			fmt.Fprintf(&b, " owner=%s", console.Style(output.StylePackage, entry.Owner))
 		}
 		if entry.Code != "" {
-			fmt.Fprintf(&b, " code=%s", console.Style(output.StyleDanger, entry.Code))
+			fmt.Fprintf(&b, " code=%s", console.Style(output.StyleDanger, string(entry.Code)))
 		}
 		if entry.Message != "" {
 			fmt.Fprintf(&b, " (%s)", entry.Message)
@@ -83,23 +63,6 @@ func statusStyle(state string) output.Style {
 	default:
 		return output.StyleMuted
 	}
-}
-
-func fromEntries(entries []statuspkg.Entry) []Entry {
-	out := make([]Entry, len(entries))
-	for i, entry := range entries {
-		out[i] = Entry{
-			TargetPath:     entry.TargetPath,
-			State:          entry.State,
-			Package:        entry.Package,
-			Entry:          entry.Entry,
-			Code:           string(entry.Code),
-			Message:        entry.Message,
-			Owner:          entry.Owner,
-			ExpectedTarget: entry.ExpectedTarget,
-		}
-	}
-	return out
 }
 
 func entryNoun(count int) string {

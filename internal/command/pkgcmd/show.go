@@ -20,22 +20,6 @@ type ShowRequest struct {
 	Ref      string
 }
 
-type TreePayload struct {
-	Source  string      `json:"-"`
-	Package TreePackage `json:"package"`
-}
-
-type TreePackage struct {
-	Identity string      `json:"identity"`
-	Root     string      `json:"root"`
-	Entries  []TreeEntry `json:"entries"`
-}
-
-type TreeEntry struct {
-	Rel  string `json:"rel"`
-	Type string `json:"type"`
-}
-
 func Show(req ShowRequest) output.Outcome {
 	tree, err := packages.Show(packages.ShowOptions{
 		SourceID: req.SourceID,
@@ -45,24 +29,16 @@ func Show(req ShowRequest) output.Outcome {
 	if err != nil {
 		return command.ErrorOutcome(err)
 	}
-	payload := TreePayload{
-		Source: tree.Source,
-		Package: TreePackage{
-			Identity: tree.Package.Identity,
-			Root:     tree.Package.Root,
-			Entries:  fromTreeEntries(tree.Package.Entries),
-		},
-	}
 	return output.OK(output.Result{
 		Kind:          KindTree,
-		Data:          payload,
+		Data:          tree,
 		ExitCode:      output.ExitOK,
 		ConsoleString: renderTree,
 	})
 }
 
 func renderTree(console output.Console, data any) (string, error) {
-	p, ok := data.(TreePayload)
+	p, ok := data.(packages.Tree)
 	if !ok {
 		return "", fmt.Errorf("package tree console renderer received %T", data)
 	}
@@ -79,14 +55,6 @@ func renderTree(console output.Console, data any) (string, error) {
 	}
 	fmt.Fprintf(&b, "%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d %s", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))))
 	return b.String(), nil
-}
-
-func fromTreeEntries(entries []packages.TreeEntry) []TreeEntry {
-	out := make([]TreeEntry, 0, len(entries))
-	for _, entry := range entries {
-		out = append(out, TreeEntry{Rel: entry.Rel, Type: entry.Type})
-	}
-	return out
 }
 
 func entryNoun(count int) string {

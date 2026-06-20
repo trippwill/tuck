@@ -1,17 +1,3 @@
-# help JSON golden
-phase help-json
-exec tuck --json --help
-cp stdout help.got
-cmp help.got help.want
-! stderr .
-
-# version JSON golden
-phase version-json
-exec tuck --version --json
-cp stdout version.got
-cmp version.got version.want
-! stderr .
-
 # sources JSON golden
 phase sources-json
 exec tuck --json source list
@@ -59,10 +45,6 @@ cp stdout plan.got
 cmp plan.got plan.want
 ! stderr .
 
--- help.want --
-{"schemaVersion":1,"command":"tuck","kind":"help","data":{"name":"tuck","usage":"manage dotfiles by linking package leaves into a target tree","usageText":"tuck [global-flags] <command> [args]","commands":[{"name":"adopt","usage":"move a real file into a package, then link it back"},{"name":"eject","usage":"remove a managed link, restoring the real file"},{"name":"status","usage":"classify a target path (managed/conflict/absent)"},{"name":"package","aliases":["pkg"],"usage":"manage package symlinks"},{"name":"source","usage":"manage enabled dotfiles sources"}],"flags":[{"name":"json","usage":"machine-readable output"},{"name":"no-color","usage":"disable colored output (implied by --json)"},{"name":"source","aliases":["s"],"usage":"select active source for domain commands"},{"name":"root","usage":"use the root target context for domain commands"},{"name":"help","aliases":["h"],"usage":"show help"},{"name":"version","aliases":["v"],"usage":"print the version"}]},"exitCode":0}
--- version.want --
-{"schemaVersion":1,"command":"version","kind":"version","data":{"version":"dev"},"exitCode":0}
 -- sources.want --
 {"schemaVersion":1,"command":"source list","kind":"sources","data":{"sources":[]},"exitCode":0}
 -- error.want --

@@ -43,23 +43,11 @@ type Result struct {
 }
 
 type Outcome struct {
-	Result *Result
-	Err    error
+	Result Result
 }
 
-func OK(value any) Outcome {
-	switch v := value.(type) {
-	case Result:
-		return Outcome{Result: &v}
-	case *Result:
-		return Outcome{Result: v}
-	default:
-		return Outcome{Err: fmt.Errorf("unsupported output result %T", value)}
-	}
-}
-
-func Fail(err error) Outcome {
-	return Outcome{Err: err}
+func OK(result Result) Outcome {
+	return Outcome{Result: result}
 }
 
 type Error struct {
@@ -154,7 +142,7 @@ func FormatConsoleWarning(console Console, record Warning) string {
 }
 
 func WithWarnings(outcome Outcome, warnings []Warning) Outcome {
-	if len(warnings) == 0 || outcome.Result == nil {
+	if len(warnings) == 0 {
 		return outcome
 	}
 	outcome.Result.Warnings = append(outcome.Result.Warnings, warnings...)
@@ -188,13 +176,7 @@ func NewRenderer(options Options) Renderer {
 }
 
 func (r Renderer) Render(inv Invocation, outcome Outcome) (ExitCode, error) {
-	if outcome.Err != nil {
-		return r.renderError(inv, outcome)
-	}
-	if outcome.Result != nil {
-		return r.renderResult(inv, *outcome.Result)
-	}
-	return ExitOK, nil
+	return r.renderResult(inv, outcome.Result)
 }
 
 func (r Renderer) renderResult(inv Invocation, result Result) (ExitCode, error) {
@@ -228,15 +210,6 @@ func (r Renderer) renderResult(inv Invocation, result Result) (ExitCode, error) 
 		return ExitFail, err
 	}
 	return exitCode, err
-}
-
-func (r Renderer) renderError(inv Invocation, outcome Outcome) (ExitCode, error) {
-	appErr := fallbackError(outcome.Err)
-	if r.format == JSON {
-		return ExitFail, WriteEnvelope(r.out, inv.Command, "", KindError, ErrorData{Error: appErr}, ExitFail)
-	}
-	_, err := io.WriteString(r.err, FormatConsoleError(NewConsole(inv, r.errColor), appErr))
-	return ExitFail, err
 }
 
 type envelope struct {
@@ -279,16 +252,4 @@ func writeJSON(out io.Writer, value any) error {
 	encoder := json.NewEncoder(out)
 	encoder.SetEscapeHTML(false)
 	return encoder.Encode(value)
-}
-
-func fallbackError(err error) Error {
-	message := "runtime error"
-	if err != nil && err.Error() != "" {
-		message = err.Error()
-	}
-	return Error{
-		Code:    "runtime_error",
-		Message: message,
-		Hint:    "retry, or report this unexpected failure if it persists",
-	}
 }

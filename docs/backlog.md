@@ -100,11 +100,11 @@ distributed builds, and docs._
 6. [x] **R6** `source add <path> --init [--name <id>] [--description <text>]` — explicitly create a missing manifest, then register the source `[cmd]`
 7. [x] **R7** Align the current implementation and tests from `<source>/tuck.toml` to `<source>/.tuck.toml`; do not read `tuck.toml` as a fallback and update source init/add/list errors and fixtures accordingly `[engine/cmd/test]`
 8. [x] **R8** Print global and per-command help/usage text `[output]`
-9. [x] **R9** Generate structured JSON help/usage metadata for root and per-command `--help --json` `[output]`
+9. [x] **R9** Keep help/version framework-owned text output, including when `--json` is present `[output]`
 10. [x] **R10** Expose the error classification system (`error.code` in JSON envelope and stderr) `[output]`
 11. [x] **R11** Report `mismatch` / `owned_by_other` in `package status`; `multiple_providers` remains a planning conflict, not a status query result, under the single-source-per-execution architecture `[cmd]`
 12. [x] **R12** Emit stable, versioned JSON for every command, including `source` (`--json`) `[output]`
-13. [x] **R13** JSON golden tests for every envelope `kind` (plan/packages/tree/status/sources/help/version/error) `[test]`
+13. [x] **R13** JSON golden tests for every command envelope `kind` (plan/packages/tree/status/sources/error) `[test]`
 
 **Vertical G — Copy mode and package config** (`deploy = "copy"`)
 

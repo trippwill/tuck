@@ -5,14 +5,16 @@ import (
 	"testing"
 
 	"github.com/trippwill/tuck/internal/output"
+	statuspkg "github.com/trippwill/tuck/internal/status"
+	"github.com/trippwill/tuck/internal/target"
 )
 
 func TestRenderStatusStylesStatesAndCodes(t *testing.T) {
-	got, err := renderStatus(output.NewConsole(output.Invocation{Command: "status", Context: "home"}, true), Payload{
+	got, err := renderStatus(output.NewConsole(output.Invocation{Command: "status", Context: "home"}, true), statuspkg.Result{
 		Source: "public",
-		Entries: []Entry{
+		Entries: []statuspkg.Entry{
 			{TargetPath: "~/.zshrc", State: "deployed", Package: "source:home:zsh"},
-			{TargetPath: "~/.config/nvim/init.lua", State: "conflict", Code: "target_exists"},
+			{TargetPath: "~/.config/nvim/init.lua", State: "conflict", Code: target.ConflictCode("target_exists")},
 		},
 	})
 	if err != nil {
