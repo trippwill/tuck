@@ -1,8 +1,11 @@
 package status
 
 import (
+	"github.com/trippwill/tuck/internal/domain"
 	"github.com/trippwill/tuck/internal/packages"
+	"github.com/trippwill/tuck/internal/pathutil"
 	"github.com/trippwill/tuck/internal/pkgref"
+	"github.com/trippwill/tuck/internal/state"
 	"github.com/trippwill/tuck/internal/target"
 )
 
@@ -43,7 +46,7 @@ func File(path string, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	targetPath, err := expandPath(path)
+	targetPath, err := pathutil.ExpandInput(path)
 	if err != nil {
 		return Result{}, err
 	}
@@ -105,6 +108,18 @@ func Package(ref string, options Options) (Result, error) {
 		Source:  source.ID,
 		Entries: entries,
 	}, nil
+}
+
+func active(options Options) (state.Source, domain.TargetScope, error) {
+	selection, err := domain.SelectActive(domain.SelectionOptions{
+		SourceID:    options.SourceID,
+		Context:     options.Context,
+		RequireHome: false,
+	})
+	if err != nil {
+		return state.Source{}, domain.TargetScope{}, err
+	}
+	return selection.Source, selection.Scope, nil
 }
 
 func entryFromClass(targetPath string, selectedPackage string, selectedEntry string, class target.Class, selected bool) Entry {
