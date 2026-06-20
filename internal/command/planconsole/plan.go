@@ -51,8 +51,22 @@ func ConsoleString(console output.Console, data any) (string, error) {
 			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- rmdir "), action.Path)
 		case plan.ActionSymlink:
 			fmt.Fprintf(&b, "  %s %s -> %s\n", console.Style(output.StyleSuccess, "+ link  "), action.LinkPath, action.Target)
+		case plan.ActionCopy:
+			mode := ""
+			if action.Mode != "" {
+				mode = " mode=" + action.Mode
+			}
+			fmt.Fprintf(&b, "  %s %s -> %s%s\n", console.Style(output.StyleSuccess, "+ copy  "), action.Src, action.Dst, mode)
+		case plan.ActionPackageConfig:
+			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleSuccess, "+ config"), action.Path)
+		case plan.ActionRemoveFile:
+			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- file  "), action.Path)
 		case plan.ActionRemoveSymlink:
 			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- unlink"), action.Path)
+		case plan.ActionRemoveCopy:
+			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- copy  "), action.Path)
+		case plan.ActionForgetCopy:
+			fmt.Fprintf(&b, "  %s %s\n", console.Style(output.StyleDanger, "- track "), action.Path)
 		case plan.ActionMove:
 			fmt.Fprintf(&b, "  %s %s -> %s\n", console.Style(output.StyleSuccess, "+ move  "), action.Src, action.Dst)
 		}

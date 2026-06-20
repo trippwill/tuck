@@ -12,8 +12,10 @@ func normalizeRegistry(registry Registry) (Registry, error) {
 	normalized := Registry{
 		Default: registry.Default,
 		Sources: make([]Source, len(registry.Sources)),
+		Copies:  make([]Copy, len(registry.Copies)),
 	}
 	copy(normalized.Sources, registry.Sources)
+	copy(normalized.Copies, registry.Copies)
 
 	enabledIDs := make(map[string]struct{})
 	enabledPaths := make([]string, 0, len(normalized.Sources))

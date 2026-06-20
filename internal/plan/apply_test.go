@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/trippwill/tuck/internal/target"
@@ -117,6 +118,47 @@ func TestApplyMovesFile(t *testing.T) {
 	}
 	if string(got) != "contents" {
 		t.Fatalf("moved contents = %q", got)
+	}
+}
+
+func TestApplyMoveFallsBackForCrossDeviceRename(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "home/file")
+	dst := filepath.Join(root, "src/pkg/file")
+	if err := os.MkdirAll(filepath.Dir(src), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, []byte("contents"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	oldRename := renameFile
+	renameFile = func(oldpath, newpath string) error {
+		return &os.LinkError{Op: "rename", Old: oldpath, New: newpath, Err: syscall.EXDEV}
+	}
+	t.Cleanup(func() { renameFile = oldRename })
+
+	if err := Apply(Plan{Actions: []Action{{Type: ActionMove, Src: src, Dst: dst}}}); err != nil {
+		t.Fatalf("Apply() error = %v, want nil", err)
+	}
+	if _, err := os.Lstat(src); !os.IsNotExist(err) {
+		t.Fatalf("source exists after move fallback, err = %v", err)
+	}
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	if string(got) != "contents" {
+		t.Fatalf("moved contents = %q", got)
+	}
+	info, err := os.Stat(dst)
+	if err != nil {
+		t.Fatalf("Stat() error = %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("mode = %v, want 0600", info.Mode().Perm())
 	}
 }
 

@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 
 	"github.com/trippwill/tuck/internal/apperr"
+	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pathutil"
 	"github.com/trippwill/tuck/internal/plan"
+	"github.com/trippwill/tuck/internal/state"
 	"github.com/trippwill/tuck/internal/target"
 )
 
@@ -51,19 +53,76 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 		return op.Finalize()
 	}
 
-	packagePath, _, err := pathutil.TargetToPackage(scope.LogicalRoot, targetPath, identity.Root)
+	packagePath, rel, err := pathutil.TargetToPackage(scope.LogicalRoot, targetPath, identity.Root)
 	if err != nil {
 		op.AddConflict(plan.NewConflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
 		return op.Finalize()
 	}
+	packagePathExists := false
 	if _, err := os.Lstat(packagePath); err == nil {
-		op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
-		return op.Finalize()
+		packagePathExists = true
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if !pathutil.Inside(packagePath, identity.Root) {
 		op.AddConflict(plan.NewConflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
+		return op.Finalize()
+	}
+	deployCopy, mode := adoptDeployCopy(&op, identity, rel)
+	if req.Copy {
+		deployCopy = true
+	}
+	if deployCopy {
+		targetMode, err := packages.ModeFromFile(physicalTargetPath)
+		if err != nil {
+			return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not inspect target mode %q", targetPath)
+		}
+		if req.SetMode {
+			mode, err = packages.NormalizeModeFlag(req.Mode, targetMode)
+			if err != nil {
+				return plan.Plan{}, apperr.AppErrMsgf(plan.ErrApply, "invalid mode %q", req.Mode)
+			}
+		} else if mode == "" {
+			mode = targetMode
+		}
+		configActions := []plan.Action{}
+		if req.Copy {
+			configAction, err := adoptCopyConfigAction(identity, rel, mode, req.SetMode)
+			if err != nil {
+				return plan.Plan{}, err
+			}
+			configActions = append(configActions, configAction)
+		}
+		if packagePathExists {
+			record, ok := op.Registry().CopyByTarget(op.Source().ID, scope.Context, targetPath)
+			if !ok || record.Package != identity.Name || record.Path != rel {
+				op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
+				return op.Finalize()
+			}
+			copyToPackage := plan.CopyAction(targetPath, physicalTargetPath, packagePath, "", mode, true, state.Copy{})
+			copyBack, ok := trackedCopyFromTarget(identity, rel, packagePath, targetPath, physicalTargetPath, mode, true)
+			if !ok {
+				op.AddConflict(plan.NewConflict(target.ConflictGeneric, targetPath, identity.String(), "could not plan copy"))
+				return op.Finalize()
+			}
+			op.AddActions(append([]plan.Action{copyToPackage, copyBack}, configActions...)...)
+			return op.Finalize()
+		}
+		copyBack, ok := trackedCopyFromTarget(identity, rel, packagePath, targetPath, physicalTargetPath, mode, false)
+		if !ok {
+			op.AddConflict(plan.NewConflict(target.ConflictGeneric, targetPath, identity.String(), "could not plan copy"))
+			return op.Finalize()
+		}
+		actions := []plan.Action{
+			plan.MkdirAction(filepath.Dir(packagePath), ""),
+			plan.MoveAction(targetPath, physicalTargetPath, packagePath, ""),
+			copyBack,
+		}
+		op.AddActions(append(actions, configActions...)...)
+		return op.Finalize()
+	}
+	if packagePathExists {
+		op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
 		return op.Finalize()
 	}
 	payload, err := pathutil.SymlinkPayload(physicalTargetPath, packagePath)
@@ -97,12 +156,39 @@ func buildEject(req EjectRequest) (plan.Plan, error) {
 
 	scope := op.Scope()
 	physicalTargetPath := scope.PhysicalPath(targetPath)
+	if record, ok := op.Registry().CopyByTarget(op.Source().ID, scope.Context, targetPath); ok {
+		copyEntry, err := copyEntryFromRecord(op.Source(), scope.Context, record, scope.LogicalRoot, scope.PhysicalPath)
+		if err != nil {
+			op.AddConflict(plan.NewConflict(target.ConflictGeneric, targetPath, "", err.Error()))
+			return op.Finalize()
+		}
+		copyClass := target.ClassifyCopy(copyEntry, op.Registry())
+		if copyClass.Kind != target.CopyUnchanged {
+			op.SetPackages(copyEntry.PackageID)
+			op.AddConflict(plan.NewConflict(copyClass.ConflictCode(), targetPath, copyEntry.PackageID, copyMessage(copyClass)))
+			return op.Finalize()
+		}
+		op.SetPackages(copyEntry.PackageID)
+		op.AddActions(
+			plan.ForgetCopyAction(targetPath, record),
+			plan.RemoveFileAction(copyEntry.Entry.Path, ""),
+		)
+		pruneDirs, err := pruneAfterEject(copyEntry.Identity.Root, copyEntry.Entry.Path)
+		if err != nil {
+			return plan.Plan{}, err
+		}
+		for _, dir := range pruneDirs {
+			op.AddAction(plan.RmdirAction(dir, ""))
+		}
+		return op.Finalize()
+	}
 	class := target.ClassifyAt(targetPath, physicalTargetPath, op.Source(), scope.Context, scope.LogicalRoot, nil, "")
 	if class.Kind == target.PathMismatch {
 		op.SetPackages(class.Owner.Identity.String())
 		op.AddConflict(plan.NewConflict(target.ConflictPathMismatch, targetPath, class.Owner.Identity.String(), class.Message))
 		return op.Finalize()
 	}
+
 	if class.Kind != target.Managed {
 		op.AddConflict(plan.NewConflict(target.ConflictNotManagedSymlink, targetPath, "", notManagedMessage(class)))
 		return op.Finalize()
@@ -141,6 +227,101 @@ func buildEject(req EjectRequest) (plan.Plan, error) {
 		op.AddAction(plan.RmdirAction(dir, ""))
 	}
 	return op.Finalize()
+}
+
+func adoptDeployCopy(op *plan.Operation, identity packages.Identity, rel string) (bool, string) {
+	if record, ok := op.Registry().CopyByEntry(identity.Source, identity.Context, identity.Name, rel); ok && record.Target != "" {
+		return true, record.TargetMode
+	}
+
+	entries, err := packages.Enumerate(identity.Root)
+	if err != nil {
+		return false, ""
+	}
+	config, err := packages.LoadConfig(identity.Root, entries)
+	if err != nil {
+		return false, ""
+	}
+	if file, ok := packages.ConfiguredFile(config, rel); ok && file.Deploy == packages.DeployCopy {
+		return true, file.Mode
+	}
+	return false, ""
+}
+
+func adoptCopyConfigAction(identity packages.Identity, rel string, mode string, setMode bool) (plan.Action, error) {
+	var config packages.PackageConfig
+	entries, err := packages.Enumerate(identity.Root)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return plan.Action{}, err
+		}
+	} else {
+		config, err = packages.LoadConfig(identity.Root, entries)
+		if err != nil {
+			return plan.Action{}, err
+		}
+	}
+	file, ok := packages.ConfiguredFile(config, rel)
+	if !ok {
+		file = packages.FileConfig{Path: rel}
+	}
+	file.Deploy = packages.DeployCopy
+	if setMode {
+		file.Mode = mode
+	}
+	config = packages.SetFileConfig(config, file)
+	manifestPath := filepath.Join(identity.Root, manifest.ManifestFilename)
+	return plan.PackageConfigAction(manifestPath, identity.Root, config), nil
+}
+
+func trackedCopyFromTarget(identity packages.Identity, rel string, packagePath string, targetPath string, physicalTargetPath string, mode string, overwrite bool) (plan.Action, bool) {
+	checksum, err := state.FileChecksum(physicalTargetPath)
+	if err != nil {
+		return plan.Action{}, false
+	}
+	record := state.Copy{
+		Source:         identity.Source,
+		Context:        identity.Context,
+		Package:        identity.Name,
+		Path:           rel,
+		Target:         targetPath,
+		SourceChecksum: checksum,
+		TargetChecksum: checksum,
+		TargetMode:     mode,
+	}
+	return plan.CopyAction(packagePath, "", targetPath, physicalTargetPath, mode, overwrite, record), true
+}
+
+func copyEntryFromRecord(source state.Source, contextName string, record state.Copy, logicalRoot string, physicalPath func(string) string) (target.PackageEntry, error) {
+	if pkg, err := packages.ResolveOne(source, contextName, record.Package); err == nil {
+		for _, entry := range packages.Leaves(pkg.Entries) {
+			if entry.Rel == record.Path {
+				return target.NewPackageEntry(pkg, entry, logicalRoot, physicalPath)
+			}
+		}
+	}
+	identity := packages.Identity{
+		Source:  source.ID,
+		Context: contextName,
+		Name:    record.Package,
+		Root:    filepath.Join(packages.Base(source, contextName), record.Package),
+	}
+	entry := packages.Entry{Path: filepath.Join(identity.Root, record.Path), Rel: record.Path, Deploy: packages.DeployCopy}
+	return target.PackageEntry{
+		Identity:     identity,
+		Entry:        entry,
+		PackageID:    identity.String(),
+		ProviderKey:  identity.String() + ":" + entry.Rel,
+		TargetPath:   record.Target,
+		PhysicalPath: physicalPath(record.Target),
+	}, nil
+}
+
+func copyMessage(class target.CopyClass) string {
+	if class.Message != "" {
+		return class.Message
+	}
+	return "copied target is not safe to modify"
 }
 
 func adoptConflictCode(class target.Class) target.ConflictCode {

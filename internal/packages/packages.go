@@ -37,9 +37,11 @@ func (p Identity) String() string {
 }
 
 type Entry struct {
-	Path string
-	Rel  string
-	Dir  bool
+	Path   string
+	Rel    string
+	Dir    bool
+	Deploy Deploy
+	Mode   string
 }
 
 type Resolved struct {
@@ -187,6 +189,11 @@ func ResolveOne(source state.Source, context string, name string) (Resolved, err
 	if err != nil {
 		return Resolved{}, err
 	}
+	config, err := LoadConfig(root, entries)
+	if err != nil {
+		return Resolved{}, err
+	}
+	entries = ApplyConfig(entries, config)
 	return Resolved{
 		Identity: Identity{Source: source.ID, Context: context, Name: name, Root: root},
 		Entries:  entries,

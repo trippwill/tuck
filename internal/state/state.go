@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/trippwill/tuck/internal/apperr"
@@ -20,6 +21,18 @@ type Source struct {
 type Registry struct {
 	Sources []Source
 	Default string
+	Copies  []Copy
+}
+
+type Copy struct {
+	Source         string
+	Context        string
+	Package        string
+	Path           string
+	Target         string
+	SourceChecksum string
+	TargetChecksum string
+	TargetMode     string
 }
 
 func (r Registry) EnabledSources() []Source {
@@ -59,6 +72,16 @@ func Load() (Registry, error) {
 			Path    string `toml:"path"`
 			Enabled *bool  `toml:"enabled"`
 		} `toml:"source"`
+		Copies []struct {
+			Source         string `toml:"source"`
+			Context        string `toml:"context"`
+			Package        string `toml:"package"`
+			Path           string `toml:"path"`
+			Target         string `toml:"target"`
+			SourceChecksum string `toml:"sourceChecksum"`
+			TargetChecksum string `toml:"targetChecksum"`
+			TargetMode     string `toml:"targetMode"`
+		} `toml:"copy"`
 	}{}
 
 	if err := toml.Unmarshal(contents, &file); err != nil {
@@ -79,9 +102,24 @@ func Load() (Registry, error) {
 		}
 	}
 
+	copies := make([]Copy, len(file.Copies))
+	for i, entry := range file.Copies {
+		copies[i] = Copy{
+			Source:         entry.Source,
+			Context:        entry.Context,
+			Package:        entry.Package,
+			Path:           entry.Path,
+			Target:         entry.Target,
+			SourceChecksum: entry.SourceChecksum,
+			TargetChecksum: entry.TargetChecksum,
+			TargetMode:     entry.TargetMode,
+		}
+	}
+
 	return normalizeRegistry(Registry{
 		Default: file.Default,
 		Sources: sources,
+		Copies:  copies,
 	})
 }
 
@@ -116,10 +154,31 @@ func Save(registry Registry) error {
 	if err := tempFile.Close(); err != nil {
 		return apperr.AppErrWrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
 	}
+	if err := chownStateTemp(tempPath, stateDir); err != nil {
+		return err
+	}
 	if err := os.Rename(tempPath, sourcesPath); err != nil {
 		return apperr.AppErrWrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
 	}
 	removeTemp = false
+	return nil
+}
+
+func chownStateTemp(tempPath string, stateDir string) error {
+	if geteuid() != 0 {
+		return nil
+	}
+	info, err := os.Stat(stateDir)
+	if err != nil {
+		return apperr.AppErrWrapf(ErrWrite, err, "could not inspect state directory %q", stateDir)
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return nil
+	}
+	if err := os.Chown(tempPath, int(stat.Uid), int(stat.Gid)); err != nil {
+		return apperr.AppErrWrapf(ErrWrite, err, "could not set state file owner %q", tempPath)
+	}
 	return nil
 }
 

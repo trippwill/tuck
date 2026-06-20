@@ -445,7 +445,7 @@ is found, it prints conflicts and mutates nothing.
 ### 7.1 `adopt`
 
 ```text
-tuck [--json] adopt [--source <id>] [--root] [--apply] <file> <package-ref>
+tuck [--json] adopt [--source <id>] [--root] [--apply] [--copy] [--mode <mode>] <file> <package-ref>
 ```
 
 - **Arguments:** one existing real target file and one package name. The package
@@ -459,8 +459,13 @@ tuck [--json] adopt [--source <id>] [--root] [--apply] <file> <package-ref>
   the target-wins reconciliation path: if the target is already a tracked copy
   for that package path, plan to copy the target bytes into the package source
   and update copied-file state; if the package path does not exist, plan to move
-  target-to-package and copy it back to the target. Other existing package paths
-  still conflict.
+  target-to-package and copy it back to the target. `--copy` forces this copy
+  deployment path and writes per-file `[[file]] deploy = "copy"` package config
+  during apply. `--mode` is valid only with `--copy`; it sets the copied target
+  mode and writes the normalized octal mode to package config. Without `--mode`,
+  no explicit mode is written; the moved package source keeps the target's
+  current mode and copied-file state records the applied mode. Other existing
+  package paths still conflict.
 - **Execution:** dry-run by default; mutates only with `--apply`.
 
 ### 7.2 `eject`
@@ -491,8 +496,9 @@ tuck [--json] status [--source <id>] [--root] <file>
 - **Arguments:** one target path.
 - **Behavior:** classify the target path as absent, managed, unmanaged,
   mismatched, owned by another package, real file, real directory, or special
-  file. Symlink ownership is inferred only in the active source; copied-file
-  ownership is read from active-source machine state.
+  file, or outside the selected target root. Symlink ownership is inferred only
+  in the active source; copied-file ownership is read from active-source machine
+  state.
 - **Execution:** read-only.
 
 ### 7.4 `package use`
@@ -570,12 +576,39 @@ tuck [--json] package status [--source <id>] [--root] [package-ref]
 ```
 
 - **With `<package-ref>`:** resolve the package and report each leaf entry as
-  `deployed`, `absent`, `conflict`, `mismatch`, or `owned_by_other`.
+  `deployed`, `absent`, `conflict`, `mismatch`, `owned_by_other`,
+  `copy_missing`, `copy_source_modified`, `copy_target_modified`, or
+  `copy_drift`.
 - **Without a ref:** summarize every package in the active source/context.
 - **Execution:** read-only. Reported conflicts in the body do not make the
   command fail; it exits `0` when the query succeeds.
 
-### 7.10 `source add`
+### 7.10 `package config`
+
+```text
+tuck [--json] package config show [--source <id>] [--root] <package-ref> [path]
+tuck [--json] package config set [--source <id>] [--root] <package-ref> <path> [--deploy symlink|copy] [--mode <mode>]
+tuck [--json] package config unset [--source <id>] [--root] <package-ref> <path> [--deploy] [--mode]
+```
+
+- **Behavior:** inspect and edit per-file `[[file]]` entries in
+  `<package-root>/.tuck.toml`. There are no package-level deployment defaults;
+  absent file config means `deploy = "symlink"` and no explicit mode.
+- **`show`:** without `path`, list configured file entries. With `path`, show the
+  effective config for that package-relative leaf.
+- **`set`:** require a package-relative leaf path and at least one of `--deploy`
+  or `--mode`; write the package manifest atomically.
+- **`unset`:** require a package-relative leaf path. With no field flags, remove
+  the file entry. With flags, clear only those fields and prune the entry or
+  package manifest when it becomes empty.
+
+`<mode>` flags accept octal modes such as `0600` or chmod-style `rwx`
+expressions such as `u=rw,go=` and `g+x`. CLI expressions are resolved against
+the current source/target mode available to the command and are stored in
+package manifests as normalized octal. Package manifests themselves accept only
+octal `mode` values.
+
+### 7.11 `source add`
 
 ```text
 tuck [--json] source add <path> [--default]
@@ -593,7 +626,7 @@ tuck [--json] source add <path> --init [--name <id>] [--description <text>] [--d
   invalid manifests still fail. `--name` and `--description` are valid only with
   `--init`.
 
-### 7.11 `source init`
+### 7.12 `source init`
 
 ```text
 tuck [--json] source init <path> [--name <id>] [--description <text>]
@@ -605,7 +638,7 @@ tuck [--json] source init <path> [--name <id>] [--description <text>]
   are not overwritten. The command does not register the source in machine-local
   state.
 
-### 7.12 `source rm`
+### 7.13 `source rm`
 
 ```text
 tuck [--json] source rm <id>
@@ -615,7 +648,7 @@ tuck [--json] source rm <id>
 - **Behavior:** remove the entry from machine-local state. If it was the default,
   clear the default. Removing a missing source is an error (`unknown_source`).
 
-### 7.13 `source list`
+### 7.14 `source list`
 
 ```text
 tuck [--json] source list
@@ -626,7 +659,7 @@ tuck [--json] source list
   `0`.
 - **Aliases:** `source ls`.
 
-### 7.14 `source default`
+### 7.15 `source default`
 
 ```text
 tuck [--json] source default <id>
@@ -648,6 +681,7 @@ Mutating commands that plan filesystem changes emit an ordered list of actions:
 | `rmdir` | `path` | Remove an empty directory left behind in a source package tree. |
 | `symlink` | `linkPath`, `payload`, `target` | Create a symlink. `payload` is relative link text; `target` is the resolved destination. |
 | `copy` | `src`, `dst`, `mode` | Copy a regular file and optionally set the destination mode. |
+| `package_config` | `path` | Write package-local `.tuck.toml` metadata. |
 | `remove_file` | `path` | Remove a package source file. |
 | `remove_symlink` | `path` | Remove a managed target symlink. |
 | `remove_copy` | `path` | Remove a tracked copied target if present and delete its copy-state record. |
@@ -1348,8 +1382,10 @@ reject unless classify(targetPath) is RealFile
 packagePath = convert target path -> package path
 reject if not inside(packagePath, packageRoot)
 entry = package metadata for packagePath, defaulting to deploy = "symlink"
+if --copy: entry.deploy = "copy"
 
 if entry.deploy == "copy":
+    if --mode: entry.mode = normalize --mode against target mode
     copied = classifyCopiedTarget(targetPath, entry)
     if packagePath exists:
         reject unless copied is tracked for this source/context/package/path
@@ -1359,6 +1395,7 @@ if entry.deploy == "copy":
         plan mkdir dirname(packagePath)
         plan move targetPath -> packagePath
         plan copy packagePath -> targetPath
+    if --copy: plan package_config packageRoot/.tuck.toml with deploy = "copy" and optional mode for path
     stop
 
 reject if packagePath already exists

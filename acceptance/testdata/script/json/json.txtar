@@ -27,9 +27,9 @@ cmpenv tree.got tree.want
 # status JSON golden
 phase status-json fixtures/json/public
 wantstate public public $WORK/src true
-exec tuck --json status /definitely/not/tuck-json-missing
+exec tuck --json status $WORK/home/definitely-not-tuck-json-missing
 cp stdout status.got
-cmp status.got status.want
+cmpenv status.got status.want
 ! stderr .
 
 # plan JSON golden
@@ -45,6 +45,18 @@ cp stdout plan.got
 cmp plan.got plan.want
 ! stderr .
 
+# config and copy plan JSON goldens
+phase config-copy-json fixtures/json/copy-public
+wantstate public public $WORK/src true
+exec tuck --json pkg config show app .config/app/config
+cp stdout config.got
+cmpenv config.got config.want
+! stderr .
+exec tuck --json pkg use app
+cp stdout copy-plan.got
+cmpenv copy-plan.got copy-plan.want
+! stderr .
+
 -- sources.want --
 {"schemaVersion":1,"command":"source list","kind":"sources","data":{"sources":[]},"exitCode":0}
 -- error.want --
@@ -54,9 +66,13 @@ cmp plan.got plan.want
 -- tree.want --
 {"schemaVersion":1,"command":"package show","context":"home","kind":"tree","data":{"package":{"identity":"public:home:git","root":"$WORK/src/git","entries":[{"rel":".gitconfig","type":"leaf"}]}},"exitCode":0}
 -- status.want --
-{"schemaVersion":1,"command":"status","context":"home","kind":"status","data":{"source":"public","entries":[{"targetPath":"/definitely/not/tuck-json-missing","state":"absent"}]},"exitCode":0}
+{"schemaVersion":1,"command":"status","context":"home","kind":"status","data":{"source":"public","entries":[{"targetPath":"$WORK/home/definitely-not-tuck-json-missing","state":"absent"}]},"exitCode":0}
 -- plan.want --
 {"schemaVersion":1,"command":"package use","context":"root","kind":"plan","data":{"dryRun":true,"applied":false,"packages":["public:root:sshd"],"privilege":{"required":false},"actions":[],"conflicts":[{"code":"real_file","path":"/etc/ssh/sshd_config","message":"target is a real file","package":"public:root:sshd"}]},"exitCode":1}
+-- config.want --
+{"schemaVersion":1,"command":"package config show","context":"home","kind":"config","data":{"source":"public","package":"public:home:app","manifestPath":"$WORK/src/app/.tuck.toml","files":[{"path":".config/app/config","deploy":"copy","mode":"0600","configured":true}]},"exitCode":0}
+-- copy-plan.want --
+{"schemaVersion":1,"command":"package use","context":"home","kind":"plan","data":{"dryRun":true,"applied":false,"packages":["public:home:app"],"privilege":{"required":false},"actions":[{"type":"mkdir","path":"$WORK/home/.config/app"},{"type":"copy","src":"$WORK/src/app/.config/app/config","dst":"$WORK/home/.config/app/config","mode":"0600"}],"conflicts":[]},"exitCode":0}
 -- fixtures/json/public/.tuck.toml --
 name = "public"
 -- fixtures/json/public/git/.gitconfig --
@@ -68,3 +84,12 @@ name = "public"
 # sshd
 -- fixtures/json/existing-file --
 existing
+-- fixtures/json/copy-public/.tuck.toml --
+name = "public"
+-- fixtures/json/copy-public/app/.config/app/config --
+source-v1
+-- fixtures/json/copy-public/app/.tuck.toml --
+[[file]]
+path = ".config/app/config"
+deploy = "copy"
+mode = "0600"

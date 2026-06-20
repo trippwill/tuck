@@ -29,8 +29,12 @@ func adoptCommand() *cli.Command {
 			},
 		},
 		OnUsageError: commandUsageError,
-		Flags:        mutatingFlags(),
-		Action:       adoptAction,
+		Flags: append(
+			mutatingFlags(),
+			&cli.BoolFlag{Name: "copy", Usage: "adopt as a copied deployment"},
+			&cli.StringFlag{Name: "mode", Usage: "mode for copied deployment"},
+		),
+		Action: adoptAction,
 	}
 }
 
@@ -84,6 +88,9 @@ func adoptAction(_ context.Context, cmd *cli.Command) error {
 		SourceID: cmd.String("source"),
 		Context:  contextName,
 		Apply:    cmd.Bool("apply"),
+		Copy:     cmd.Bool("copy"),
+		Mode:     cmd.String("mode"),
+		SetMode:  cmd.IsSet("mode"),
 	})
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{
 		Command: filecmd.CommandAdopt,

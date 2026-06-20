@@ -66,6 +66,18 @@ func ErrorResult(err error) output.Result {
 			output.DetailMessage(err, packages.ErrPackageNotFound.Error(), packages.ErrPackageNotFound),
 			"run tuck pkg list to see packages in the active source",
 		)
+	case errors.Is(err, packages.ErrConfigInvalid):
+		return output.ErrorResult(
+			"manifest_invalid",
+			output.DetailMessage(err, "package manifest is invalid", packages.ErrConfigInvalid),
+			"fix the package .tuck.toml",
+		)
+	case errors.Is(err, packages.ErrConfigWrite):
+		return output.ErrorResult(
+			"io_error",
+			output.DetailMessage(err, "could not write package manifest", packages.ErrConfigWrite),
+			"retry after fixing filesystem permissions or disk state",
+		)
 	case errors.Is(err, plan.ErrApply):
 		return output.ErrorResult(
 			"io_error",

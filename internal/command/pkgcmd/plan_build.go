@@ -7,6 +7,7 @@ import (
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pathutil"
 	"github.com/trippwill/tuck/internal/plan"
+	"github.com/trippwill/tuck/internal/state"
 	"github.com/trippwill/tuck/internal/target"
 )
 
@@ -56,6 +57,18 @@ func buildDrop(req DropRequest) (plan.Plan, error) {
 			}
 
 			class := targetEntry.Classify(op.Source(), scope.Context, scope.LogicalRoot)
+			if _, tracked := op.Registry().CopyByEntry(pkg.Identity.Source, pkg.Identity.Context, pkg.Identity.Name, entry.Rel); tracked {
+				copyClass := target.ClassifyCopy(targetEntry, op.Registry())
+				switch copyClass.Kind {
+				case target.CopyTrackedAbsent, target.CopyUnchanged, target.CopySourceChanged:
+					op.AddAction(plan.RemoveCopyAction(targetEntry.TargetPath, targetEntry.PhysicalPath, copyClass.Record))
+				case target.CopyTargetChanged, target.CopyBothChanged:
+					op.AddConflict(plan.NewConflict(copyClass.ConflictCode(), targetEntry.TargetPath, targetEntry.PackageID, copyClass.Message))
+				default:
+					op.AddConflict(plan.NewConflict(copyClass.ConflictCode(), targetEntry.TargetPath, targetEntry.PackageID, copyMessage(copyClass)))
+				}
+				continue
+			}
 			switch class.Kind {
 			case target.Absent:
 			case target.ManagedSelected:
@@ -132,6 +145,34 @@ func packageCreateActions(op *plan.Operation, resolvedPackages []packages.Resolv
 			}
 			plannedTargets[targetEntry.TargetPath] = targetEntry.ProviderKey
 
+			if copyClass, tracked := refreshCopyRemoval(op, targetEntry, refresh); tracked {
+				if copyClass.Kind == target.CopyTargetChanged || copyClass.Kind == target.CopyBothChanged {
+					op.AddConflict(plan.NewConflict(copyClass.ConflictCode(), targetEntry.TargetPath, targetEntry.PackageID, copyClass.Message))
+					continue
+				}
+				removeActions = append(removeActions, plan.RemoveCopyAction(targetEntry.TargetPath, targetEntry.PhysicalPath, copyClass.Record))
+				action, ok := deployAction(targetEntry, op, true)
+				if ok {
+					createActions = append(createActions, action)
+				}
+				continue
+			}
+
+			if targetEntry.Entry.Deploy == packages.DeployCopy {
+				copyClass := target.ClassifyCopy(targetEntry, op.Registry())
+				switch copyClass.Kind {
+				case target.CopyAbsent, target.CopyTrackedAbsent:
+					action, ok := copyAction(targetEntry, op, false)
+					if ok {
+						createActions = append(createActions, action)
+					}
+				case target.CopyUnchanged:
+				default:
+					op.AddConflict(plan.NewConflict(copyClass.ConflictCode(), targetEntry.TargetPath, targetEntry.PackageID, copyMessage(copyClass)))
+				}
+				continue
+			}
+
 			class := targetEntry.Classify(op.Source(), scope.Context, scope.LogicalRoot)
 			switch class.Kind {
 			case target.Absent:
@@ -153,6 +194,57 @@ func packageCreateActions(op *plan.Operation, resolvedPackages []packages.Resolv
 		}
 	}
 	return removeActions, createActions
+}
+
+func refreshCopyRemoval(op *plan.Operation, targetEntry target.PackageEntry, refresh bool) (target.CopyClass, bool) {
+	if !refresh {
+		return target.CopyClass{}, false
+	}
+	if _, tracked := op.Registry().CopyByEntry(targetEntry.Identity.Source, targetEntry.Identity.Context, targetEntry.Identity.Name, targetEntry.Entry.Rel); !tracked {
+		return target.CopyClass{}, false
+	}
+	return target.ClassifyCopy(targetEntry, op.Registry()), true
+}
+
+func deployAction(targetEntry target.PackageEntry, op *plan.Operation, overwrite bool) (plan.Action, bool) {
+	if targetEntry.Entry.Deploy == packages.DeployCopy {
+		return copyAction(targetEntry, op, overwrite)
+	}
+	return symlinkAction(targetEntry.TargetPath, targetEntry.PhysicalPath, targetEntry.Entry.Path, targetEntry.PackageID, op)
+}
+
+func copyAction(targetEntry target.PackageEntry, op *plan.Operation, overwrite bool) (plan.Action, bool) {
+	sourceChecksum, err := state.FileChecksum(targetEntry.Entry.Path)
+	if err != nil {
+		op.AddConflict(plan.NewConflict(target.ConflictGeneric, targetEntry.TargetPath, targetEntry.PackageID, err.Error()))
+		return plan.Action{}, false
+	}
+	mode := targetEntry.Entry.Mode
+	if mode == "" {
+		mode, err = packages.ModeFromFile(targetEntry.Entry.Path)
+		if err != nil {
+			op.AddConflict(plan.NewConflict(target.ConflictGeneric, targetEntry.TargetPath, targetEntry.PackageID, err.Error()))
+			return plan.Action{}, false
+		}
+	}
+	copyRecord := state.Copy{
+		Source:         targetEntry.Identity.Source,
+		Context:        targetEntry.Identity.Context,
+		Package:        targetEntry.Identity.Name,
+		Path:           targetEntry.Entry.Rel,
+		Target:         targetEntry.TargetPath,
+		SourceChecksum: sourceChecksum,
+		TargetChecksum: sourceChecksum,
+		TargetMode:     mode,
+	}
+	return plan.CopyAction(targetEntry.Entry.Path, "", targetEntry.TargetPath, targetEntry.PhysicalPath, mode, overwrite, copyRecord), true
+}
+
+func copyMessage(class target.CopyClass) string {
+	if class.Message != "" {
+		return class.Message
+	}
+	return "copied target is not safe to modify"
 }
 
 func symlinkAction(targetPath string, physicalTargetPath string, entryPath string, packageID string, op *plan.Operation) (plan.Action, bool) {

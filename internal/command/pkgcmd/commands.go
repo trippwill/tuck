@@ -9,10 +9,13 @@ import (
 )
 
 const (
-	CommandUse     output.Command = "package use"
-	CommandDrop    output.Command = "package drop"
-	CommandRefresh output.Command = "package refresh"
-	CommandStatus  output.Command = "package status"
+	CommandUse         output.Command = "package use"
+	CommandDrop        output.Command = "package drop"
+	CommandRefresh     output.Command = "package refresh"
+	CommandStatus      output.Command = "package status"
+	CommandConfigShow  output.Command = "package config show"
+	CommandConfigSet   output.Command = "package config set"
+	CommandConfigUnset output.Command = "package config unset"
 )
 
 type UseRequest struct {

@@ -80,6 +80,68 @@ func packageCommand() *cli.Command {
 				OnUsageError: commandUsageError,
 				Action:       packageStatusAction,
 			},
+			{
+				Name:            "config",
+				Usage:           "manage per-file package config",
+				UsageText:       "tuck package config <command> [args]",
+				HideHelpCommand: true,
+				CommandNotFound: commandNotFound,
+				Commands: []*cli.Command{
+					{
+						Name:      "show",
+						Usage:     "show per-file package config",
+						ArgsUsage: "<package> [path]",
+						Arguments: []cli.Argument{
+							&cli.StringArgs{
+								Name:      "config",
+								UsageText: "<package> [path]",
+								Min:       1,
+								Max:       2,
+							},
+						},
+						OnUsageError: commandUsageError,
+						Action:       packageConfigShowAction,
+					},
+					{
+						Name:      "set",
+						Usage:     "set per-file package config",
+						ArgsUsage: "<package> <path>",
+						Arguments: []cli.Argument{
+							&cli.StringArgs{
+								Name:      "config",
+								UsageText: "<package> <path>",
+								Min:       2,
+								Max:       2,
+							},
+						},
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "deploy", Usage: "deployment strategy: symlink or copy"},
+							&cli.StringFlag{Name: "mode", Usage: "octal mode for copied files"},
+						},
+						OnUsageError: commandUsageError,
+						Action:       packageConfigSetAction,
+					},
+					{
+						Name:      "unset",
+						Usage:     "unset per-file package config",
+						ArgsUsage: "<package> <path>",
+						Arguments: []cli.Argument{
+							&cli.StringArgs{
+								Name:      "config",
+								UsageText: "<package> <path>",
+								Min:       2,
+								Max:       2,
+							},
+						},
+						Flags: []cli.Flag{
+							&cli.BoolFlag{Name: "deploy", Usage: "unset deploy for the file"},
+							&cli.BoolFlag{Name: "mode", Usage: "unset mode for the file"},
+						},
+						OnUsageError: commandUsageError,
+						Action:       packageConfigUnsetAction,
+					},
+				},
+			},
 		},
 	}
 }
@@ -179,6 +241,64 @@ func packageShowAction(_ context.Context, cmd *cli.Command) error {
 	})
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{
 		Command: pkgcmd.CommandShow,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
+}
+
+func packageConfigShowAction(_ context.Context, cmd *cli.Command) error {
+	args := cmd.StringArgs("config")
+	path := ""
+	if len(args) > 1 {
+		path = args[1]
+	}
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.ConfigShow(pkgcmd.ConfigShowRequest{
+		Ref:      args[0],
+		Path:     path,
+		SourceID: cmd.String("source"),
+		Context:  contextName,
+	})
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandConfigShow,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
+}
+
+func packageConfigSetAction(_ context.Context, cmd *cli.Command) error {
+	args := cmd.StringArgs("config")
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.ConfigSet(pkgcmd.ConfigSetRequest{
+		Ref:       args[0],
+		Path:      args[1],
+		Deploy:    cmd.String("deploy"),
+		Mode:      cmd.String("mode"),
+		SetDeploy: cmd.IsSet("deploy"),
+		SetMode:   cmd.IsSet("mode"),
+		SourceID:  cmd.String("source"),
+		Context:   contextName,
+	})
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandConfigSet,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
+}
+
+func packageConfigUnsetAction(_ context.Context, cmd *cli.Command) error {
+	args := cmd.StringArgs("config")
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.ConfigUnset(pkgcmd.ConfigUnsetRequest{
+		Ref:         args[0],
+		Path:        args[1],
+		UnsetDeploy: cmd.Bool("deploy"),
+		UnsetMode:   cmd.Bool("mode"),
+		SourceID:    cmd.String("source"),
+		Context:     contextName,
+	})
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandConfigUnset,
 		Context: contextName,
 	}, outcome)
 	return finish(exitCode, err)

@@ -56,9 +56,9 @@ func statusStyle(state string) output.Style {
 		return output.StyleSuccess
 	case statuspkg.StateAbsent:
 		return output.StyleWarning
-	case statuspkg.StateConflict, statuspkg.StateMismatch, statuspkg.StateOwnedByOther:
+	case statuspkg.StateConflict, statuspkg.StateMismatch, statuspkg.StateOwnedByOther, "copy_target_modified", "copy_drift":
 		return output.StyleDanger
-	case statuspkg.StateUnmanaged:
+	case statuspkg.StateUnmanaged, statuspkg.StateCopyMissing, "copy_source_modified":
 		return output.StyleWarning
 	default:
 		return output.StyleMuted

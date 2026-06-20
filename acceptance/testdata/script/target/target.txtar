@@ -13,6 +13,11 @@ exec tuck status --root /etc/hosts --no-color
 stdout 'context: root'
 stdout 'absent'
 stdout '/etc/hosts'
+exec tuck status /usr/local/bin/tool --no-color
+stdout 'outside_target_root'
+stdout 'pass --root'
+exec tuck --json status /usr/local/bin/tool
+stdout '"code":"outside_target_root"'
 
 # file status classifies absent, unmanaged, and mismatched targets
 phase status-file-absent-unmanaged-mismatch fixtures/target/status/common
@@ -129,6 +134,46 @@ readlink $WORK/home/.config/nvim/init.lua ../../../src/nvim/.config/nvim/init.lu
 exists $WORK/src/nvim/.config/nvim/init.lua
 ! stderr .
 
+# adopt --copy creates per-file copy config and a copied target
+phase adopt-copy fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
+exec tuck adopt --copy $WORK/home/.config/nvim/init.lua nvim --no-color
+stdout '\+ move'
+stdout '\+ copy'
+stdout '\+ config'
+stdout '4 actions, 0 conflicts'
+exists $WORK/home/.config/nvim/init.lua
+! exists $WORK/src/nvim/.tuck.toml
+exec tuck adopt --copy $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+stdout '\+ copy'
+stdout '\+ config'
+stdout '4 actions, 0 conflicts'
+exists $WORK/home/.config/nvim/init.lua
+! exec test -L $WORK/home/.config/nvim/init.lua
+exists $WORK/src/nvim/.config/nvim/init.lua
+grep 'deploy = "copy"' $WORK/src/nvim/.tuck.toml
+exec tuck status $WORK/home/.config/nvim/init.lua --no-color
+stdout 'deployed'
+stdout 'public:home:nvim'
+! exec tuck adopt --mode 0600 $WORK/home/.config/nvim/init.lua nvim --no-color
+stderr 'adopt --mode requires --copy'
+
+# adopt --copy --mode accepts chmod-style expressions and writes normalized octal mode
+phase adopt-copy-mode fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
+exec tuck adopt --copy --mode u=rw,go= $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+stdout 'mode=0600'
+grep 'mode = "0600"' $WORK/src/nvim/.tuck.toml
+exec stat -c %a $WORK/home/.config/nvim/init.lua
+stdout '600'
+! stderr .
+
 # adopt can add a new leaf to an existing package
 phase adopt-existing-package fixtures/target/status/common
 wantstate public public $WORK/src true
@@ -164,6 +209,35 @@ stdout '"conflicts":\[\]'
 stdout '"exitCode":0'
 exists $WORK/home/.config/nvim/init.lua
 ! exists $WORK/src/nvim/.config/nvim/init.lua
+! stderr .
+
+# adopt --copy emits copy and config actions in JSON
+phase adopt-copy-json fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
+exec tuck --json adopt --copy $WORK/home/.config/nvim/init.lua nvim
+stdout '"command":"adopt"'
+stdout '"kind":"plan"'
+stdout '"type":"move"'
+stdout '"type":"copy"'
+stdout '"type":"package_config"'
+stdout '"path":"'$WORK'/src/nvim/.tuck.toml"'
+stdout '"exitCode":0'
+! exists $WORK/src/nvim/.tuck.toml
+! stderr .
+
+phase adopt-copy-mode-json fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/nvim
+cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
+exec tuck --json adopt --copy --mode u=rw,go= $WORK/home/.config/nvim/init.lua nvim
+stdout '"type":"copy"'
+stdout '"mode":"0600"'
+stdout '"type":"package_config"'
+stdout '"exitCode":0'
 ! stderr .
 
 # adopt reports target and package-path conflicts without mutating
@@ -350,6 +424,23 @@ stderr 'Incorrect Usage'
 ! exec tuck eject one two --no-color
 stderr 'eject accepts exactly one <file>'
 
+# adopt and eject are copy-aware for tracked copied files
+phase copy-adopt-eject fixtures/target/copy/common
+wantstate public public $WORK/src true
+exec tuck pkg use app --apply --no-color
+cp fixtures/target/copy/target-v2 $WORK/home/.config/app/config
+exec tuck adopt $WORK/home/.config/app/config app --apply --no-color
+stdout '\+ copy'
+stdout '2 actions, 0 conflicts'
+cmp $WORK/src/app/.config/app/config fixtures/target/copy/target-v2
+exec tuck eject $WORK/home/.config/app/config --apply --no-color
+stdout '- track'
+stdout '- file'
+exists $WORK/home/.config/app/config
+! exists $WORK/src/app/.config/app/config
+cmp $WORK/home/.config/app/config fixtures/target/copy/target-v2
+! stderr .
+
 -- fixtures/target/status/common/.tuck.toml --
 name = "public"
 -- fixtures/target/status/common/zsh/.config/zsh/.zshrc --
@@ -370,3 +461,13 @@ name = "private"
 # zprofile
 -- fixtures/target/eject/extra-entry/zsh/.config/zsh/plugins/README --
 plugins
+-- fixtures/target/copy/common/.tuck.toml --
+name = "public"
+-- fixtures/target/copy/common/app/.config/app/config --
+source-v1
+-- fixtures/target/copy/common/app/.tuck.toml --
+[[file]]
+path = ".config/app/config"
+deploy = "copy"
+-- fixtures/target/copy/target-v2 --
+target-v2

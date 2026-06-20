@@ -16,6 +16,9 @@ const (
 	ConflictSpecialFile       ConflictCode = "special_file"
 	ConflictUnmanagedSymlink  ConflictCode = "unmanaged_symlink"
 	ConflictOwnedByOther      ConflictCode = "owned_by_other"
+	ConflictCopySourceChanged ConflictCode = "copy_source_modified"
+	ConflictCopyTargetChanged ConflictCode = "copy_target_modified"
+	ConflictCopyDrift         ConflictCode = "copy_drift"
 )
 
 func (c Class) ConflictCode() ConflictCode {

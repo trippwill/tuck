@@ -1,11 +1,19 @@
 package plan
 
 import (
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
+	"syscall"
 
 	"github.com/trippwill/tuck/internal/apperr"
+	"github.com/trippwill/tuck/internal/packages"
+	"github.com/trippwill/tuck/internal/state"
 )
+
+var renameFile = os.Rename
 
 func Apply(plan Plan) error {
 	if len(plan.Conflicts) > 0 {
@@ -44,6 +52,18 @@ func Apply(plan Plan) error {
 			if err := os.Symlink(action.Payload, linkPath); err != nil {
 				return apperr.AppErrWrapf(ErrApply, err, "could not create symlink %q", action.LinkPath)
 			}
+		case ActionCopy:
+			if err := copyAction(action); err != nil {
+				return err
+			}
+		case ActionPackageConfig:
+			if err := packages.SaveConfig(action.packageRoot, action.packageConfig); err != nil {
+				return apperr.AppErrWrapf(ErrApply, err, "could not write package config %q", action.Path)
+			}
+		case ActionRemoveFile:
+			if err := removeRegularFile(action.fsPath(), action.Path); err != nil {
+				return err
+			}
 		case ActionRemoveSymlink:
 			path := action.fsPath()
 			info, err := os.Lstat(path)
@@ -56,15 +76,32 @@ func Apply(plan Plan) error {
 			if err := os.Remove(path); err != nil {
 				return apperr.AppErrWrapf(ErrApply, err, "could not remove symlink %q", action.Path)
 			}
+		case ActionRemoveCopy:
+			if err := removeCopy(action); err != nil {
+				return err
+			}
+		case ActionForgetCopy:
+			if err := state.RemoveCopy(action.copyRecord); err != nil {
+				return apperr.AppErrWrapf(ErrApply, err, "could not update copied-file state for %q", action.Path)
+			}
 		case ActionMove:
-			if err := os.Rename(action.fsSrc(), action.fsDst()); err != nil {
-				return apperr.AppErrWrapf(ErrApply, err, "could not move %q to %q", action.Src, action.Dst)
+			if err := moveAction(action); err != nil {
+				return err
 			}
 		default:
 			return apperr.AppErrMsgf(ErrApply, "unknown plan action type %q", action.Type)
 		}
 	}
 	return nil
+}
+
+func moveAction(action Action) error {
+	if err := renameFile(action.fsSrc(), action.fsDst()); err == nil {
+		return nil
+	} else if !errors.Is(err, syscall.EXDEV) {
+		return apperr.AppErrWrapf(ErrApply, err, "could not move %q to %q", action.Src, action.Dst)
+	}
+	return copyThenRemove(action)
 }
 
 type preflightPathKind int
@@ -110,8 +147,18 @@ func (p *applyPreflight) validate(action Action) error {
 		return p.validateRmdir(action.fsPath(), action.Path)
 	case ActionSymlink:
 		return p.validateSymlink(action)
+	case ActionCopy:
+		return p.validateCopy(action)
+	case ActionPackageConfig:
+		return nil
+	case ActionRemoveFile:
+		return p.validateRemoveFile(action.fsPath(), action.Path, false)
 	case ActionRemoveSymlink:
 		return p.validateRemoveSymlink(action.fsPath(), action.Path)
+	case ActionRemoveCopy:
+		return p.validateRemoveFile(action.fsPath(), action.Path, true)
+	case ActionForgetCopy:
+		return nil
 	case ActionMove:
 		return p.validateMove(action)
 	default:
@@ -127,8 +174,16 @@ func (p *applyPreflight) record(action Action) {
 		p.paths[filepath.Clean(action.fsPath())] = preflightRemoved
 	case ActionSymlink:
 		p.paths[filepath.Clean(action.fsLinkPath())] = preflightSymlink
+	case ActionCopy:
+		p.paths[filepath.Clean(action.fsDst())] = preflightNonDirectory
+	case ActionPackageConfig:
+	case ActionRemoveFile:
+		p.paths[filepath.Clean(action.fsPath())] = preflightRemoved
 	case ActionRemoveSymlink:
 		p.paths[filepath.Clean(action.fsPath())] = preflightRemoved
+	case ActionRemoveCopy:
+		p.paths[filepath.Clean(action.fsPath())] = preflightRemoved
+	case ActionForgetCopy:
 	case ActionMove:
 		p.paths[filepath.Clean(action.fsSrc())] = preflightRemoved
 		p.paths[filepath.Clean(action.fsDst())] = preflightNonDirectory
@@ -192,6 +247,47 @@ func (p *applyPreflight) validateSymlink(action Action) error {
 	return nil
 }
 
+func (p *applyPreflight) validateCopy(action Action) error {
+	kind, exists, err := p.pathKind(action.fsSrc())
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy source %q", action.Src)
+	}
+	if !exists {
+		return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: source does not exist", action.Src, action.Dst)
+	}
+	if kind == preflightDirectory {
+		return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: source is a directory", action.Src, action.Dst)
+	}
+	if err := p.validateMkdir(filepath.Dir(action.fsDst()), filepath.Dir(action.Dst)); err != nil {
+		return err
+	}
+	_, exists, err = p.pathKind(action.fsDst())
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy destination %q", action.Dst)
+	}
+	if exists && !action.overwrite {
+		return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination already exists", action.Src, action.Dst)
+	}
+	return nil
+}
+
+func (p *applyPreflight) validateRemoveFile(path string, displayPath string, allowAbsent bool) error {
+	kind, exists, err := p.pathKind(path)
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect file %q", displayPath)
+	}
+	if !exists {
+		if allowAbsent {
+			return nil
+		}
+		return apperr.AppErrMsgf(ErrApply, "could not remove file %q: path does not exist", displayPath)
+	}
+	if kind != preflightNonDirectory {
+		return apperr.AppErrMsgf(ErrApply, "refusing to remove non-file %q", displayPath)
+	}
+	return nil
+}
+
 func (p *applyPreflight) validateRemoveSymlink(path string, displayPath string) error {
 	path = filepath.Clean(path)
 	kind, exists, err := p.pathKind(path)
@@ -239,6 +335,128 @@ func (p *applyPreflight) validateExistingDirectory(path string, displayPath stri
 	}
 	if !isDir {
 		return apperr.AppErrMsgf(ErrApply, "%q is not a directory", displayPath)
+	}
+	return nil
+}
+
+func copyAction(action Action) error {
+	src := action.fsSrc()
+	dst := action.fsDst()
+	input, err := os.Open(src)
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not open copy source %q", action.Src)
+	}
+	defer input.Close()
+	info, err := input.Stat()
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy source %q", action.Src)
+	}
+	if !info.Mode().IsRegular() {
+		return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: source is not a regular file", action.Src, action.Dst)
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not create directory %q", filepath.Dir(action.Dst))
+	}
+	flags := os.O_WRONLY | os.O_CREATE
+	if action.overwrite {
+		flags |= os.O_TRUNC
+	} else {
+		flags |= os.O_EXCL
+	}
+	output, err := os.OpenFile(dst, flags, info.Mode().Perm())
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not create copy destination %q", action.Dst)
+	}
+	if _, err := io.Copy(output, input); err != nil {
+		_ = output.Close()
+		return apperr.AppErrWrapf(ErrApply, err, "could not copy %q to %q", action.Src, action.Dst)
+	}
+	if err := output.Close(); err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not close copy destination %q", action.Dst)
+	}
+	if action.Mode != "" {
+		mode, err := strconv.ParseUint(action.Mode, 8, 32)
+		if err != nil {
+			return apperr.AppErrWrapf(ErrApply, err, "invalid copy mode %q", action.Mode)
+		}
+		if err := os.Chmod(dst, os.FileMode(mode)); err != nil {
+			return apperr.AppErrWrapf(ErrApply, err, "could not set copy mode for %q", action.Dst)
+		}
+	}
+	if action.copyRecord.Target != "" {
+		if err := state.UpsertCopy(action.copyRecord); err != nil {
+			return apperr.AppErrWrapf(ErrApply, err, "could not update copied-file state for %q", action.Dst)
+		}
+	}
+	return nil
+}
+
+func copyThenRemove(action Action) error {
+	src := action.fsSrc()
+	dst := action.fsDst()
+	input, err := os.Open(src)
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not open move source %q", action.Src)
+	}
+	defer input.Close()
+	info, err := input.Stat()
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect move source %q", action.Src)
+	}
+	if !info.Mode().IsRegular() {
+		return apperr.AppErrMsgf(ErrApply, "could not move %q to %q: source is not a regular file", action.Src, action.Dst)
+	}
+	output, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not create move destination %q", action.Dst)
+	}
+	if _, err := io.Copy(output, input); err != nil {
+		_ = output.Close()
+		_ = os.Remove(dst)
+		return apperr.AppErrWrapf(ErrApply, err, "could not move %q to %q", action.Src, action.Dst)
+	}
+	if err := output.Close(); err != nil {
+		_ = os.Remove(dst)
+		return apperr.AppErrWrapf(ErrApply, err, "could not close move destination %q", action.Dst)
+	}
+	if os.Geteuid() == 0 {
+		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+			if err := os.Chown(dst, int(stat.Uid), int(stat.Gid)); err != nil {
+				_ = os.Remove(dst)
+				return apperr.AppErrWrapf(ErrApply, err, "could not set move destination owner %q", action.Dst)
+			}
+		}
+	}
+	if err := os.Remove(src); err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not remove move source %q", action.Src)
+	}
+	return nil
+}
+
+func removeRegularFile(path string, displayPath string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect file %q", displayPath)
+	}
+	if !info.Mode().IsRegular() {
+		return apperr.AppErrMsgf(ErrApply, "refusing to remove non-file %q", displayPath)
+	}
+	if err := os.Remove(path); err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not remove file %q", displayPath)
+	}
+	return nil
+}
+
+func removeCopy(action Action) error {
+	if _, err := os.Lstat(action.fsPath()); err == nil {
+		if err := removeRegularFile(action.fsPath(), action.Path); err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect copied target %q", action.Path)
+	}
+	if err := state.RemoveCopy(action.copyRecord); err != nil {
+		return apperr.AppErrWrapf(ErrApply, err, "could not update copied-file state for %q", action.Path)
 	}
 	return nil
 }

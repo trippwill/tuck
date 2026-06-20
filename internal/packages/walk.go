@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/pathutil"
 )
 
@@ -20,6 +21,9 @@ func Enumerate(root string) ([]Entry, error) {
 		rel, err := pathutil.RelInside(root, path)
 		if err != nil {
 			return err
+		}
+		if rel == manifest.ManifestFilename {
+			return nil
 		}
 		entries = append(entries, Entry{Path: path, Rel: rel, Dir: dirEntry.IsDir()})
 		return nil

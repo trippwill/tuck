@@ -108,16 +108,16 @@ distributed builds, and docs._
 
 **Vertical G — Copy mode and package config** (`deploy = "copy"`)
 
-14. [ ] **R14** Extend the package manifest model and parser for package-level defaults plus `[[file]]` overrides in `<package-root>/.tuck.toml`; exclude `.tuck.toml` from package entries `[engine]`
-15. [ ] **R15** Define and implement effective package/file config inspection with `package config show <package-ref> [path]`, including defaults, file overrides, and the manifest path that supplied them `[cmd/output]`
-16. [ ] **R16** Define and implement package-level deployment defaults with `package config set <package-ref> [--deploy symlink|copy] [--mode <octal>]`, writing `<package-root>/.tuck.toml` atomically `[cmd]`
-17. [ ] **R17** Define and implement file-level deployment overrides with `package config set <package-ref> <path> [--deploy symlink|copy] [--mode <octal>]`, validating that `<path>` is a package-relative leaf `[cmd]`
-18. [ ] **R18** Define and implement package/file config removal with `package config unset <package-ref> [path] [--deploy] [--mode]`, pruning empty `[[file]]` entries and empty package manifests when safe `[cmd]`
-19. [ ] **R19** Support `deploy = "copy"` in `package use`: plan/apply copy actions, preserve explicit modes, write copied-file state, and reject unsafe existing targets `[engine/cmd]`
-20. [ ] **R20** Report copied-file ownership and drift in `status` / `package status`: unchanged, source modified, target modified, both modified, missing target with stale state, and untracked target conflicts `[engine/cmd]`
-21. [ ] **R21** Make `package drop` and `package refresh` copy-aware while preserving `package refresh == package drop + package use`; source-only drift refreshes, target drift conflicts `[engine/cmd]`
-22. [ ] **R22** Make `adopt` and `eject` copy-aware: `adopt` is target-wins for tracked copies, and `eject` forgets clean copies while leaving a real target `[engine/cmd]`
-23. [ ] **R23** Add JSON and human output coverage for package config commands, copy actions, copy drift hints, explicit modes, and copy-aware adopt/drop/eject/refresh behavior `[test/output]`
+14. [x] **R14** Extend the package manifest model and parser for per-file `[[file]]` overrides in `<package-root>/.tuck.toml`; exclude `.tuck.toml` from package entries `[engine]`
+15. [x] **R15** Define and implement package/file config inspection with `package config show <package-ref> [path]`, including effective per-file config and the manifest path that supplied it `[cmd/output]`
+16. [x] **R16** Defer package-level deployment defaults; per-file `[[file]]` config is the First Release surface, and package defaults can be added later if whole-package copy becomes a real need `[cmd]`
+17. [x] **R17** Define and implement file-level deployment overrides with `package config set <package-ref> <path> [--deploy symlink|copy] [--mode <octal>]`, validating that `<path>` is a package-relative leaf `[cmd]`
+18. [x] **R18** Define and implement file-level config removal with `package config unset <package-ref> <path> [--deploy] [--mode]`, pruning empty `[[file]]` entries and empty package manifests when safe `[cmd]`
+19. [x] **R19** Support `deploy = "copy"` in `package use`: plan/apply copy actions, preserve explicit modes, write copied-file state, and reject unsafe existing targets `[engine/cmd]`
+20. [x] **R20** Report copied-file ownership and drift in `status` / `package status`: unchanged, source modified, target modified, both modified, missing target with stale state, and untracked target conflicts `[engine/cmd]`
+21. [x] **R21** Make `package drop` and `package refresh` copy-aware while preserving `package refresh == package drop + package use`; source-only drift refreshes, target drift conflicts `[engine/cmd]`
+22. [x] **R22** Make `adopt` and `eject` copy-aware: `adopt` is target-wins for tracked copies, and `eject` forgets clean copies while leaving a real target `[engine/cmd]`
+23. [x] **R23** Add JSON and human output coverage for package config commands, copy actions, copy drift hints, explicit modes, and copy-aware adopt/drop/eject/refresh behavior `[test/output]`
 
 **Release hardening**
 

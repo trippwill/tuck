@@ -633,6 +633,73 @@ stderr 'error: package "missing" not found in source "public"'
 stderr 'error: package "zsh" not found in source "public"'
 ! stdout .
 
+# package config is per-file only
+phase package-config-per-file fixtures/package/common/public-only fixtures/package/copy/app
+wantstate public public $WORK/src true
+exec tuck pkg config show app .config/app/config --no-color
+stdout 'deploy=copy'
+stdout 'mode=0600'
+stdout 'configured'
+exec tuck --json pkg config show app .config/app/config
+stdout '"command":"package config show"'
+stdout '"kind":"config"'
+stdout '"deploy":"copy"'
+stdout '"mode":"0600"'
+exec tuck pkg config set app .config/app/config --deploy symlink --no-color
+stdout 'deploy=symlink'
+exec tuck pkg config set app .config/app/config --mode g+x --no-color
+stdout 'mode=0610'
+exec tuck pkg config unset app .config/app/config --no-color
+stdout 'deploy=symlink'
+stdout 'default'
+! exists $WORK/src/app/.tuck.toml
+! stderr .
+
+# package use/drop/status support copied files
+phase package-copy-use-drop fixtures/package/common/public-only fixtures/package/copy/app
+wantstate public public $WORK/src true
+exec tuck pkg use app --no-color
+stdout '\+ copy'
+stdout 'mode=0600'
+! exists $WORK/home/.config/app/config
+exec tuck pkg use app --apply --no-color
+stdout '\+ copy'
+stdout '2 actions, 0 conflicts'
+exists $WORK/home/.config/app/config
+! exec test -L $WORK/home/.config/app/config
+cmp $WORK/home/.config/app/config $WORK/src/app/.config/app/config
+exec tuck pkg status app --no-color
+stdout 'deployed'
+stdout 'public:home:app'
+rm $WORK/home/.config/app/config
+exec tuck status $WORK/home/.config/app/config --no-color
+stdout 'copy_missing'
+exec tuck pkg drop app --apply --no-color
+stdout '- copy'
+stdout '1 actions, 0 conflicts'
+! exists $WORK/home/.config/app/config
+exists $WORK/src/app/.config/app/config
+! stderr .
+
+# package refresh handles source-only copy drift and blocks target drift
+phase package-copy-drift-refresh fixtures/package/common/public-only fixtures/package/copy/app
+wantstate public public $WORK/src true
+exec tuck pkg use app --apply --no-color
+cp fixtures/package/copy/config-v2 $WORK/src/app/.config/app/config
+exec tuck pkg status app --no-color
+stdout 'copy_source_modified'
+exec tuck pkg refresh app --apply --no-color
+stdout '- copy'
+stdout '\+ copy'
+cmp $WORK/home/.config/app/config fixtures/package/copy/config-v2
+cp fixtures/package/copy/config-target $WORK/home/.config/app/config
+exec tuck pkg status app --no-color
+stdout 'copy_target_modified'
+! exec tuck pkg drop app --apply --no-color
+stdout 'copy_target_modified'
+exists $WORK/home/.config/app/config
+! stderr .
+
 -- fixtures/package/common/public-only/.tuck.toml --
 name = "public"
 -- fixtures/package/common/zsh-config/zsh/.config/zsh/.zshrc --
@@ -668,3 +735,14 @@ Host *
 # zprofile
 -- fixtures/package/status/mixed/zsh/.config/zsh/.zlogin --
 # zlogin
+-- fixtures/package/copy/app/app/.config/app/config --
+source-v1
+-- fixtures/package/copy/app/app/.tuck.toml --
+[[file]]
+path = ".config/app/config"
+deploy = "copy"
+mode = "0600"
+-- fixtures/package/copy/config-v2 --
+source-v2
+-- fixtures/package/copy/config-target --
+target-v2
