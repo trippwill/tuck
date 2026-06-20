@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/trippwill/tuck/internal/manifest"
@@ -15,48 +14,18 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-type errorData struct {
-	Error errorRecord `json:"error"`
-}
-
 type errorRecord struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Hint    string `json:"hint"`
 }
 
-func renderError(cmd *cli.Command, command string, err error) error {
-	return newRenderer(cmd).renderError(command, err)
-}
-
 func renderInvalidArgs(cmd *cli.Command, command string, message string, hint string) error {
-	return newRenderer(cmd).renderErrorRecord(command, "", errorRecord{
-		Code:    "invalid_args",
-		Message: message,
-		Hint:    hint,
-	})
-}
-
-func (r renderer) renderError(command string, err error) error {
-	return r.renderErrorContext(command, "", err)
-}
-
-func (r renderer) renderErrorContext(command string, context string, err error) error {
-	return r.renderErrorRecord(command, context, classifyError(err))
-}
-
-func (r renderer) renderErrorRecord(command string, context string, appErr errorRecord) error {
-	if r.json {
-		if err := r.writeEnvelope(command, context, "error", errorData{Error: appErr}, ExitFail); err != nil {
-			return err
-		}
-		return cli.Exit("", ExitFail)
-	}
-
-	fmt.Fprintf(r.err, "error: %s\n", appErr.Message)
-	fmt.Fprintf(r.err, "code: %s\n", appErr.Code)
-	fmt.Fprintf(r.err, "hint: %s\n", appErr.Hint)
-	return cli.Exit("", ExitFail)
+	exitCode, err := rendererFor(cmd).Render(
+		output.Invocation{Command: output.Command(command)},
+		output.Fail(output.InvalidArgs(message, hint)),
+	)
+	return finish(exitCode, err)
 }
 
 func classifyError(err error) errorRecord {

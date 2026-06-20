@@ -8,24 +8,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-type renderer struct {
-	out   io.Writer
-	err   io.Writer
-	json  bool
-	color bool
-}
-
-func newRenderer(cmd *cli.Command) renderer {
-	root := cmd.Root()
-	jsonOutput := cmd.Bool("json")
-	return renderer{
-		out:   root.Writer,
-		err:   root.ErrWriter,
-		json:  jsonOutput,
-		color: colorEnabled(cmd, jsonOutput),
-	}
-}
-
 func rendererFor(cmd *cli.Command) output.Renderer {
 	root := cmd.Root()
 	jsonOutput := cmd.Bool("json")
@@ -58,10 +40,6 @@ func colorEnabled(cmd *cli.Command, jsonOutput bool) bool {
 
 func writeEnvelope(out io.Writer, command string, context string, kind string, data any, exitCode int) error {
 	return output.WriteEnvelope(out, output.Command(command), context, output.Kind(kind), data, output.ExitCode(exitCode))
-}
-
-func (r renderer) writeEnvelope(command string, context string, kind string, data any, exitCode int) error {
-	return writeEnvelope(r.out, command, context, kind, data, exitCode)
 }
 
 func classifyOutputError(err error) output.Error {
