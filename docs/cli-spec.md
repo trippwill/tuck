@@ -144,9 +144,11 @@ boolean `--root` flag selects `root`:
 - no `--root` -> `home` (package base `<source.path>`, target root `$HOME`);
 - `--root` -> `root` (package base `<source.path>/.root`, target root `/`).
 
-`--root` is scoped to commands that operate on target paths or packages:
-`adopt`, `eject`, `status`, and all `package` subcommands. It is not valid on
-`source` commands.
+`--root` is a global selector flag so it may appear before command groups or leaf
+commands. Commands that operate on target paths or packages use it: `adopt`,
+`eject`, `status`, and all `package` subcommands. `source` commands ignore it
+with an `ignored_flag` warning because they manage the source registry rather
+than selecting a target context.
 
 ### 3.2 Source selection
 
@@ -159,8 +161,11 @@ source. The active source is resolved in this order:
 3. The sole enabled source, when exactly one source is enabled.
 4. Otherwise, error `no_source`.
 
-`--source` accepts an enabled source id only. It is scoped to `adopt`, `eject`,
-`status`, and all `package` subcommands. It is not valid on `source` commands.
+`--source` accepts an enabled source id only for commands that resolve an active
+source. It is a global selector flag so it may appear before command groups or
+leaf commands. `adopt`, `eject`, `status`, and all `package` subcommands use it.
+`source` commands ignore it with an `ignored_flag` warning because they manage
+the source registry rather than selecting an active source.
 
 There is no simultaneous multi-source operation. The listing commands operate
 only on the active source. `eject` and `status <file>` infer ownership in the
@@ -171,7 +176,9 @@ as unmanaged unless that source is made active.
 
 ## 4. Flags
 
-No flag is global unless it is meaningful for every command.
+Some flags are globally parseable because they are common execution selectors,
+even when not every command uses them. Commands that do not use a selector must
+warn before ignoring it; mutation flags remain command-local.
 
 | Flag | Alias | Scope | Meaning |
 | --- | --- | --- | --- |
@@ -179,8 +186,8 @@ No flag is global unless it is meaningful for every command.
 | `--no-color` | | universal | Disable colored console output. |
 | `--help` | `-h` | universal | Print help for the program or command. |
 | `--version` | `-v` | root only | Print version. |
-| `--source <id>` | `-s` | domain commands | Select the active source by enabled id. |
-| `--root` | | domain commands | Select the root context. |
+| `--source <id>` | `-s` | global selector; used by domain commands | Select the active source by enabled id. |
+| `--root` | | global selector; used by domain commands | Select the root context. |
 | `--apply` | | mutating target-tree commands | Execute the plan. Without it, print the plan only. |
 | `--default` | | `source add` | Make the added source the machine-local default. |
 | `--init` | | `source add` | Create a missing `.tuck.toml` before registering the source. |
@@ -196,6 +203,10 @@ Flag interaction rules:
 
 - Mutating target-tree commands build and print a plan unless `--apply` is
   given.
+- `--source` and `--root` may be placed before command groups or leaf commands.
+  `source` commands ignore them with warnings.
+- `--apply` stays local to mutating target-tree commands. Keeping mutation intent
+  close to the mutating verb is part of the dry-run safety model.
 - `--json` implies `--no-color`.
 - Console color is enabled only when the destination stream is a terminal and
   `NO_COLOR` is unset. `--no-color` disables color on all console streams.
@@ -744,6 +755,27 @@ With `--json`, a command prints exactly one JSON document:
   "context": "home",
   "kind": "plan",
   "data": {},
+  "exitCode": 0
+}
+```
+
+Successful or failed results may include top-level warnings. Warnings are
+diagnostics that do not change `exitCode`; in JSON mode they are included in the
+single stdout envelope and stderr remains empty:
+
+```json
+{
+  "schemaVersion": 1,
+  "command": "source list",
+  "kind": "sources",
+  "data": { "sources": [] },
+  "warnings": [
+    {
+      "code": "ignored_flag",
+      "message": "source list ignores --source",
+      "hint": "source commands manage the registry and do not select an active source"
+    }
+  ],
   "exitCode": 0
 }
 ```
@@ -1578,8 +1610,9 @@ Deliberate changes:
 5. **Source commands aligned with package commands.** `source enable` became
    `source add`; `source rm` and `source default` are part of the designed
    surface.
-6. **No false globals.** `--source`, `--root`, and `--apply` are scoped to the
-   commands where they matter. `--json` and `--no-color` are universal.
+6. **Forgiving selectors, local mutation.** `--source` and `--root` are globally
+   parseable selectors that domain commands use and source commands ignore with
+   warnings. `--apply` stays local to mutating plan commands.
 7. **Exit codes are binary.** Detailed classification moved from process exit
    codes into stderr and the JSON `error.code`.
 8. **Machine-readable meta output.** `--help --json` and `--version --json` are

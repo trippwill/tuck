@@ -38,6 +38,7 @@ type Result struct {
 	Kind          Kind
 	Data          any
 	ExitCode      ExitCode
+	Warnings      []Warning
 	ConsoleString ConsoleStringFunc
 }
 
@@ -69,6 +70,12 @@ type Error struct {
 
 type ErrorData struct {
 	Error Error `json:"error"`
+}
+
+type Warning struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Hint    string `json:"hint"`
 }
 
 func ErrorResult(code, message, hint string) Result {
@@ -118,6 +125,10 @@ func FormatError(record Error) string {
 	return FormatConsoleError(Console{}, record)
 }
 
+func FormatWarning(record Warning) string {
+	return FormatConsoleWarning(Console{}, record)
+}
+
 func FormatConsoleError(console Console, record Error) string {
 	return fmt.Sprintf("%s %s\n%s %s\n%s %s\n",
 		console.Style(StyleDanger, "error:"),
@@ -127,6 +138,23 @@ func FormatConsoleError(console Console, record Error) string {
 		console.Style(StyleWarning, "hint:"),
 		record.Hint,
 	)
+}
+
+func FormatConsoleWarning(console Console, record Warning) string {
+	return fmt.Sprintf("%s %s\n%s %s\n",
+		console.Style(StyleWarning, "warning:"),
+		record.Message,
+		console.Style(StyleMuted, "hint:"),
+		record.Hint,
+	)
+}
+
+func WithWarnings(outcome Outcome, warnings []Warning) Outcome {
+	if len(warnings) == 0 || outcome.Result == nil {
+		return outcome
+	}
+	outcome.Result.Warnings = append(outcome.Result.Warnings, warnings...)
+	return outcome
 }
 
 type Options struct {
@@ -172,7 +200,7 @@ func (r Renderer) renderResult(inv Invocation, result Result) (ExitCode, error) 
 		if result.Kind == KindError {
 			context = ""
 		}
-		return exitCode, WriteEnvelope(r.out, inv.Command, context, result.Kind, result.Data, exitCode)
+		return exitCode, writeEnvelopeWithWarnings(r.out, inv.Command, context, result.Kind, result.Data, result.Warnings, exitCode)
 	}
 	if result.ConsoleString == nil {
 		return ExitFail, fmt.Errorf("missing console renderer for %q result", result.Kind)
@@ -189,7 +217,12 @@ func (r Renderer) renderResult(inv Invocation, result Result) (ExitCode, error) 
 	if result.Kind == KindError {
 		w = r.err
 	}
-	_, err = io.WriteString(w, text)
+	if _, err = io.WriteString(w, text); err != nil {
+		return ExitFail, err
+	}
+	if err := r.writeWarnings(inv, result.Warnings); err != nil {
+		return ExitFail, err
+	}
 	return exitCode, err
 }
 
@@ -203,23 +236,39 @@ func (r Renderer) renderError(inv Invocation, outcome Outcome) (ExitCode, error)
 }
 
 type envelope struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	Command       string `json:"command"`
-	Context       string `json:"context,omitempty"`
-	Kind          string `json:"kind"`
-	Data          any    `json:"data"`
-	ExitCode      int    `json:"exitCode"`
+	SchemaVersion int       `json:"schemaVersion"`
+	Command       string    `json:"command"`
+	Context       string    `json:"context,omitempty"`
+	Kind          string    `json:"kind"`
+	Data          any       `json:"data"`
+	Warnings      []Warning `json:"warnings,omitempty"`
+	ExitCode      int       `json:"exitCode"`
 }
 
 func WriteEnvelope(out io.Writer, command Command, context string, kind Kind, data any, exitCode ExitCode) error {
+	return writeEnvelopeWithWarnings(out, command, context, kind, data, nil, exitCode)
+}
+
+func writeEnvelopeWithWarnings(out io.Writer, command Command, context string, kind Kind, data any, warnings []Warning, exitCode ExitCode) error {
 	return writeJSON(out, envelope{
 		SchemaVersion: 1,
 		Command:       string(command),
 		Context:       context,
 		Kind:          string(kind),
 		Data:          data,
+		Warnings:      warnings,
 		ExitCode:      int(exitCode),
 	})
+}
+
+func (r Renderer) writeWarnings(inv Invocation, warnings []Warning) error {
+	console := NewConsole(inv, r.errColor)
+	for _, warning := range warnings {
+		if _, err := io.WriteString(r.err, FormatConsoleWarning(console, warning)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func writeJSON(out io.Writer, value any) error {

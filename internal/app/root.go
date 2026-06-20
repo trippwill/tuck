@@ -34,6 +34,8 @@ func rootCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "json", Usage: "machine-readable output"},
 			&cli.BoolFlag{Name: "no-color", Usage: "disable colored output (implied by --json)"},
+			&cli.StringFlag{Name: "source", Aliases: []string{"s"}, Usage: "select active source for domain commands"},
+			&cli.BoolFlag{Name: "root", Usage: "use the root target context for domain commands"},
 		},
 		Commands: []*cli.Command{
 			adoptCommand(),

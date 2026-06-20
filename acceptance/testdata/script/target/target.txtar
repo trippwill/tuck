@@ -5,6 +5,10 @@ stderr 'no active source'
 wantstate public public $WORK/src true
 mkdir $WORK/root
 env TUCK_TEST_ROOT_DIR=$WORK/root
+exec tuck --root status /etc/hosts --no-color
+stdout 'context: root'
+stdout 'absent'
+stdout '/etc/hosts'
 exec tuck status --root /etc/hosts --no-color
 stdout 'context: root'
 stdout 'absent'

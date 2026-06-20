@@ -92,6 +92,7 @@ func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 		Name:        cmd.String("name"),
 		Description: cmd.String("description"),
 	})
+	outcome = output.WithWarnings(outcome, ignoredDomainSelectionWarnings(cmd, sourcecmd.CommandAdd))
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandAdd}, outcome)
 	return finish(exitCode, err)
 }
@@ -105,6 +106,7 @@ func sourceInitAction(_ context.Context, cmd *cli.Command) error {
 		Name:        cmd.String("name"),
 		Description: cmd.String("description"),
 	})
+	outcome = output.WithWarnings(outcome, ignoredDomainSelectionWarnings(cmd, sourcecmd.CommandInit))
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandInit}, outcome)
 	return finish(exitCode, err)
 }
@@ -114,6 +116,7 @@ func sourceListAction(_ context.Context, cmd *cli.Command) error {
 		return err
 	}
 	outcome := sourcecmd.List()
+	outcome = output.WithWarnings(outcome, ignoredDomainSelectionWarnings(cmd, sourcecmd.CommandList))
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandList}, outcome)
 	return finish(exitCode, err)
 }
@@ -123,6 +126,7 @@ func sourceRmAction(_ context.Context, cmd *cli.Command) error {
 		return err
 	}
 	outcome := sourcecmd.Rm(sourcecmd.IDRequest{ID: cmd.StringArgs("id")[0]})
+	outcome = output.WithWarnings(outcome, ignoredDomainSelectionWarnings(cmd, sourcecmd.CommandRm))
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandRm}, outcome)
 	return finish(exitCode, err)
 }
@@ -132,6 +136,7 @@ func sourceDefaultAction(_ context.Context, cmd *cli.Command) error {
 		return err
 	}
 	outcome := sourcecmd.Default(sourcecmd.IDRequest{ID: cmd.StringArgs("id")[0]})
+	outcome = output.WithWarnings(outcome, ignoredDomainSelectionWarnings(cmd, sourcecmd.CommandDefault))
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandDefault}, outcome)
 	return finish(exitCode, err)
 }

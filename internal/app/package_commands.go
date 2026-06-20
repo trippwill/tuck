@@ -26,7 +26,7 @@ func packageCommand() *cli.Command {
 				},
 				OnUsageError: commandUsageError,
 				Flags: append(
-					mutatingDomainFlags(),
+					mutatingFlags(),
 					&cli.BoolFlag{Name: "all", Usage: "activate all packages in the active source"},
 				),
 				Action: packageUseAction,
@@ -39,7 +39,7 @@ func packageCommand() *cli.Command {
 					variadicStringArgs("package", "<package>...", 1),
 				},
 				OnUsageError: commandUsageError,
-				Flags:        mutatingDomainFlags(),
+				Flags:        mutatingFlags(),
 				Action:       packageDropAction,
 			},
 			{
@@ -50,14 +50,13 @@ func packageCommand() *cli.Command {
 					variadicStringArgs("package", "<package>...", 1),
 				},
 				OnUsageError: commandUsageError,
-				Flags:        mutatingDomainFlags(),
+				Flags:        mutatingFlags(),
 				Action:       packageRefreshAction,
 			},
 			{
 				Name:    "list",
 				Aliases: []string{"ls"},
 				Usage:   "list packages in the active source",
-				Flags:   domainFlags(),
 				Action:  packageListAction,
 			},
 			{
@@ -69,7 +68,6 @@ func packageCommand() *cli.Command {
 					requiredStringArgs("package", "<package>"),
 				},
 				OnUsageError: commandUsageError,
-				Flags:        domainFlags(),
 				Action:       packageShowAction,
 			},
 			{
@@ -80,7 +78,6 @@ func packageCommand() *cli.Command {
 					optionalStringArgs("package", "[package]"),
 				},
 				OnUsageError: commandUsageError,
-				Flags:        domainFlags(),
 				Action:       packageStatusAction,
 			},
 		},

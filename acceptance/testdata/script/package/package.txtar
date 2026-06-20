@@ -170,6 +170,9 @@ stderr 'error: package use requires one or more package refs or --all'
 ! exec tuck pkg use zsh --all --no-color
 stderr 'error: package use accepts package refs or --all, not both'
 ! stdout .
+! exec tuck --apply pkg use zsh --no-color
+stderr 'flag provided but not defined: -apply'
+stdout 'GLOBAL OPTIONS'
 
 # package list aliases all show packages from the active source
 phase package-list-aliases fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home
@@ -249,6 +252,16 @@ stdout '1 package'
 phase package-list-source-selection fixtures/package/common/public-only
 wantstate public public $WORK/src true
 exec tuck source add $WORK/fixtures/package/list/private-source --no-color
+exec tuck --source private pkg list --no-color
+stdout 'source: private'
+stdout 'ssh'
+! stdout 'zsh'
+! stderr .
+exec tuck pkg --source private list --no-color
+stdout 'source: private'
+stdout 'ssh'
+! stdout 'zsh'
+! stderr .
 exec tuck pkg list --source private --no-color
 stdout 'source: private'
 stdout 'ssh'

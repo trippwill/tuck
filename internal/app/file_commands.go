@@ -29,7 +29,7 @@ func adoptCommand() *cli.Command {
 			},
 		},
 		OnUsageError: commandUsageError,
-		Flags:        mutatingDomainFlags(),
+		Flags:        mutatingFlags(),
 		Action:       adoptAction,
 	}
 }
@@ -49,7 +49,7 @@ func ejectCommand() *cli.Command {
 			},
 		},
 		OnUsageError: commandUsageError,
-		Flags:        mutatingDomainFlags(),
+		Flags:        mutatingFlags(),
 		Action:       ejectAction,
 	}
 }
@@ -69,7 +69,6 @@ func statusCommand() *cli.Command {
 			},
 		},
 		OnUsageError: commandUsageError,
-		Flags:        domainFlags(),
 		Action:       statusAction,
 	}
 }

@@ -32,7 +32,7 @@ func TestRunMetaJSONSupportsPerCommandHelp(t *testing.T) {
 		t.Fatalf("runMetaJSON() handled = false, want true")
 	}
 
-	want := `{"schemaVersion":1,"command":"package use","kind":"help","data":{"name":"tuck package use","usage":"create managed symlinks for packages","argsUsage":"<package>...","flags":[{"name":"root","usage":"use the root context (target /); default is home"},{"name":"source","aliases":["s"],"usage":"select active source by enabled id"},{"name":"apply","usage":"execute the plan instead of just printing it"},{"name":"all","usage":"activate all packages in the active source"},{"name":"help","aliases":["h"],"usage":"show help"}],"globalFlags":[{"name":"json","usage":"machine-readable output"},{"name":"no-color","usage":"disable colored output (implied by --json)"}]},"exitCode":0}` + "\n"
+	want := `{"schemaVersion":1,"command":"package use","kind":"help","data":{"name":"tuck package use","usage":"create managed symlinks for packages","argsUsage":"<package>...","flags":[{"name":"apply","usage":"execute the plan instead of just printing it"},{"name":"all","usage":"activate all packages in the active source"},{"name":"help","aliases":["h"],"usage":"show help"}],"globalFlags":[{"name":"json","usage":"machine-readable output"},{"name":"no-color","usage":"disable colored output (implied by --json)"},{"name":"source","aliases":["s"],"usage":"select active source for domain commands"},{"name":"root","usage":"use the root target context for domain commands"}]},"exitCode":0}` + "\n"
 	if got := out.String(); got != want {
 		t.Fatalf("runMetaJSON() output = %q, want %q", got, want)
 	}
@@ -81,16 +81,16 @@ func TestRunMetaJSONDoesNotHandleUnknownFlagHelp(t *testing.T) {
 	}
 }
 
-func TestRunMetaJSONDoesNotHandleOutOfScopeFlagHelp(t *testing.T) {
+func TestRunMetaJSONSupportsPersistentSelectorFlagHelp(t *testing.T) {
 	var out bytes.Buffer
 	handled, err := runMetaJSON([]string{"tuck", "--json", "--source", "public", "--help"}, &out)
 	if err != nil {
 		t.Fatalf("runMetaJSON() error = %v, want nil", err)
 	}
-	if handled {
-		t.Fatalf("runMetaJSON() handled = true, want false for out-of-scope flag")
+	if !handled {
+		t.Fatalf("runMetaJSON() handled = false, want true")
 	}
-	if out.Len() != 0 {
-		t.Fatalf("runMetaJSON() output = %q, want empty", out.String())
+	if got := out.String(); !strings.Contains(got, `"command":"tuck"`) || !strings.Contains(got, `"name":"source"`) {
+		t.Fatalf("runMetaJSON() output = %q, want root help with source global flag", got)
 	}
 }

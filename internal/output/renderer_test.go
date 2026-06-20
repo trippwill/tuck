@@ -32,6 +32,74 @@ func TestRendererDoesNotColorJSON(t *testing.T) {
 	}
 }
 
+func TestRendererIncludesWarningsInJSON(t *testing.T) {
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	renderer := NewRenderer(Options{
+		Format: JSON,
+		Out:    &out,
+		Err:    &stderr,
+	})
+
+	exitCode, err := renderer.Render(Invocation{Command: "command"}, OK(Result{
+		Kind:     "test",
+		Data:     map[string]string{"ok": "yes"},
+		ExitCode: ExitOK,
+		Warnings: []Warning{{
+			Code:    "ignored_flag",
+			Message: "command ignores --source",
+			Hint:    "use --source with domain commands",
+		}},
+		ConsoleString: func(Console, any) (string, error) { return "ok\n", nil },
+	}))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	if exitCode != ExitOK {
+		t.Fatalf("Render() exitCode = %d, want %d", exitCode, ExitOK)
+	}
+	got := out.String()
+	if !strings.Contains(got, `"warnings":[{"code":"ignored_flag","message":"command ignores --source","hint":"use --source with domain commands"}]`) {
+		t.Fatalf("Render() JSON output = %q, want warnings", got)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("Render() stderr = %q, want empty", stderr.String())
+	}
+}
+
+func TestRendererWritesWarningsToStderr(t *testing.T) {
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	renderer := NewRenderer(Options{
+		Format: Human,
+		Out:    &out,
+		Err:    &stderr,
+	})
+
+	exitCode, err := renderer.Render(Invocation{Command: "command"}, OK(Result{
+		Kind:     "test",
+		ExitCode: ExitOK,
+		Warnings: []Warning{{
+			Code:    "ignored_flag",
+			Message: "command ignores --source",
+			Hint:    "use --source with domain commands",
+		}},
+		ConsoleString: func(Console, any) (string, error) { return "ok\n", nil },
+	}))
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	if exitCode != ExitOK {
+		t.Fatalf("Render() exitCode = %d, want %d", exitCode, ExitOK)
+	}
+	if got := out.String(); got != "ok\n" {
+		t.Fatalf("Render() stdout = %q, want result", got)
+	}
+	if got := stderr.String(); got != "warning: command ignores --source\nhint: use --source with domain commands\n" {
+		t.Fatalf("Render() stderr = %q, want warning", got)
+	}
+}
+
 func TestRendererColorsErrorStreamWithErrColor(t *testing.T) {
 	var out bytes.Buffer
 	var stderr bytes.Buffer

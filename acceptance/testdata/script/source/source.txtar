@@ -190,11 +190,29 @@ stdout 'public +yes +yes +.*src'
 stdout 'disabled +no +no +.*missing-disabled'
 ! stderr .
 
+exec tuck --source public source list --no-color
+stdout 'ID +DEFAULT +ENABLED +PATH'
+stdout 'public +yes +yes +.*src'
+stderr 'warning: source list ignores --source'
+stderr 'hint: source commands manage the registry and do not select an active source'
+
+exec tuck --root source list --no-color
+stdout 'ID +DEFAULT +ENABLED +PATH'
+stdout 'public +yes +yes +.*src'
+stderr 'warning: source list ignores --root'
+stderr 'hint: source commands manage the registry and do not select a target context'
+
 exec tuck --json source ls
 stdout '"command":"source list"'
 stdout '"id":"disabled"'
 stdout '"enabled":false'
 stdout '"description":""'
+! stderr .
+
+exec tuck --json --source public source ls
+stdout '"command":"source list"'
+stdout '"warnings":\[\{"code":"ignored_flag","message":"source list ignores --source","hint":"source commands manage the registry and do not select an active source"\}\]'
+stdout '"exitCode":0'
 ! stderr .
 
 # absent state is a successful empty source list
