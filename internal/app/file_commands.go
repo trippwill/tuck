@@ -3,7 +3,8 @@ package app
 import (
 	"context"
 
-	"github.com/trippwill/tuck/internal/plan"
+	"github.com/trippwill/tuck/internal/command/filecmd"
+	"github.com/trippwill/tuck/internal/output"
 	statuspkg "github.com/trippwill/tuck/internal/status"
 	"github.com/urfave/cli/v3"
 )
@@ -78,42 +79,37 @@ func adoptAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "adopt", "adopt accepts exactly <file> <package>", "pass one target file and one package name"); err != nil {
 		return err
 	}
-	file := cmd.StringArgs("file")[0]
-	ref := cmd.StringArgs("package")[0]
-	adoptPlan, err := plan.BuildAdopt(plan.AdoptOptions{
-		File:     file,
-		Ref:      ref,
+	contextName := contextFromFlag(cmd)
+	outcome := filecmd.Adopt(filecmd.AdoptRequest{
+		File:     cmd.StringArgs("file")[0],
+		Ref:      cmd.StringArgs("package")[0],
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 		Apply:    cmd.Bool("apply"),
 	})
-	if err != nil {
-		if isPrivilegeRequired(err) {
-			return renderPlanError(cmd, adoptPlan, err)
-		}
-		return renderError(cmd, "adopt", err)
-	}
-	return renderPlan(cmd, adoptPlan)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: filecmd.CommandAdopt,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
 
 func ejectAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "eject", "eject accepts exactly one <file>", "pass exactly one target file"); err != nil {
 		return err
 	}
-	file := cmd.StringArgs("file")[0]
-	ejectPlan, err := plan.BuildEject(plan.EjectOptions{
-		File:     file,
+	contextName := contextFromFlag(cmd)
+	outcome := filecmd.Eject(filecmd.EjectRequest{
+		File:     cmd.StringArgs("file")[0],
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 		Apply:    cmd.Bool("apply"),
 	})
-	if err != nil {
-		if isPrivilegeRequired(err) {
-			return renderPlanError(cmd, ejectPlan, err)
-		}
-		return renderError(cmd, "eject", err)
-	}
-	return renderPlan(cmd, ejectPlan)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: filecmd.CommandEject,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
 
 func statusAction(_ context.Context, cmd *cli.Command) error {

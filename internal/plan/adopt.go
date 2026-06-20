@@ -22,7 +22,6 @@ type AdoptOptions struct {
 
 func BuildAdopt(options AdoptOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
-		Command:    "adopt",
 		Context:    options.Context,
 		TargetRoot: options.TargetRoot,
 		SourceID:   options.SourceID,

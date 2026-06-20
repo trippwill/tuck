@@ -81,7 +81,6 @@ type Privilege struct {
 }
 
 type Plan struct {
-	Command   string     `json:"-"`
 	Context   string     `json:"-"`
 	DryRun    bool       `json:"dryRun"`
 	Applied   bool       `json:"applied"`
@@ -93,7 +92,6 @@ type Plan struct {
 
 func BuildUse(options UseOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
-		Command:    "package use",
 		Context:    options.Context,
 		TargetRoot: options.TargetRoot,
 		SourceID:   options.SourceID,
@@ -165,7 +163,6 @@ func BuildUse(options UseOptions) (Plan, error) {
 
 func BuildDrop(options DropOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
-		Command:    "package drop",
 		Context:    options.Context,
 		TargetRoot: options.TargetRoot,
 		SourceID:   options.SourceID,
@@ -204,7 +201,6 @@ func BuildDrop(options DropOptions) (Plan, error) {
 
 func BuildRefresh(options RefreshOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
-		Command:    "package refresh",
 		Context:    options.Context,
 		TargetRoot: options.TargetRoot,
 		SourceID:   options.SourceID,

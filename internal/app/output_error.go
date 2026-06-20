@@ -59,10 +59,6 @@ func (r renderer) renderErrorRecord(command string, context string, appErr error
 	return cli.Exit("", ExitFail)
 }
 
-func isPrivilegeRequired(err error) bool {
-	return errors.Is(err, plan.ErrPrivilegeRequired)
-}
-
 func classifyError(err error) errorRecord {
 	var invalidArgs output.InvalidArgsError
 	if errors.As(err, &invalidArgs) {

@@ -20,7 +20,6 @@ type EjectOptions struct {
 
 func BuildEject(options EjectOptions) (Plan, error) {
 	op, err := newOperation(operationOptions{
-		Command:    "eject",
 		Context:    options.Context,
 		TargetRoot: options.TargetRoot,
 		SourceID:   options.SourceID,

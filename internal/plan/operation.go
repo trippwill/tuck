@@ -9,7 +9,6 @@ import (
 )
 
 type operationOptions struct {
-	Command    string
 	Context    string
 	TargetRoot string
 	SourceID   string
@@ -42,13 +41,12 @@ func newOperation(options operationOptions) (operation, error) {
 		scope:    selection.Scope,
 		registry: selection.Registry,
 		apply:    options.Apply,
-		plan:     newPlan(options.Command, selection.Scope.Context, options.Apply),
+		plan:     newPlan(selection.Scope.Context, options.Apply),
 	}, nil
 }
 
-func newPlan(command string, context string, apply bool) Plan {
+func newPlan(context string, apply bool) Plan {
 	return Plan{
-		Command:   command,
 		Context:   context,
 		DryRun:    !apply,
 		Applied:   false,

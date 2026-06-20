@@ -6,7 +6,6 @@ import (
 	"github.com/trippwill/tuck/internal/command/pkgcmd"
 	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/packages"
-	"github.com/trippwill/tuck/internal/plan"
 	statuspkg "github.com/trippwill/tuck/internal/status"
 	"github.com/urfave/cli/v3"
 )
@@ -107,37 +106,33 @@ func packageUseAction(_ context.Context, cmd *cli.Command) error {
 }
 
 func packageDropAction(_ context.Context, cmd *cli.Command) error {
-	refs := cmd.StringArgs("package")
-	dropPlan, err := plan.BuildDrop(plan.DropOptions{
-		Refs:     refs,
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.Drop(pkgcmd.DropRequest{
+		Refs:     cmd.StringArgs("package"),
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 		Apply:    cmd.Bool("apply"),
 	})
-	if err != nil {
-		if isPrivilegeRequired(err) {
-			return renderPlanError(cmd, dropPlan, err)
-		}
-		return renderError(cmd, "package drop", err)
-	}
-	return renderPlan(cmd, dropPlan)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandDrop,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
 
 func packageRefreshAction(_ context.Context, cmd *cli.Command) error {
-	refs := cmd.StringArgs("package")
-	refreshPlan, err := plan.BuildRefresh(plan.RefreshOptions{
-		Refs:     refs,
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.Refresh(pkgcmd.RefreshRequest{
+		Refs:     cmd.StringArgs("package"),
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 		Apply:    cmd.Bool("apply"),
 	})
-	if err != nil {
-		if isPrivilegeRequired(err) {
-			return renderPlanError(cmd, refreshPlan, err)
-		}
-		return renderError(cmd, "package refresh", err)
-	}
-	return renderPlan(cmd, refreshPlan)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandRefresh,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
 
 func packageListAction(_ context.Context, cmd *cli.Command) error {
