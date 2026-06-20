@@ -32,4 +32,4 @@ go.work.sum
 # .vscode/
 .understand-anything/
 cmd/tuck/tuck
-tuck
+/tuck
