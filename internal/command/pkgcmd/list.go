@@ -2,7 +2,7 @@ package pkgcmd
 
 import (
 	"fmt"
-	"io"
+	"strings"
 
 	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/packages"
@@ -29,44 +29,37 @@ func List(req ListRequest) output.Outcome {
 		Context:  req.Context,
 	})
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
 	packageNames := make([]string, len(listing.Packages))
 	copy(packageNames, listing.Packages)
-	return output.OK(ListPayload{
+	payload := ListPayload{
 		Source:   listing.Source,
 		Packages: packageNames,
+	}
+	return output.OK(output.Result{
+		Kind:          KindPackages,
+		Data:          payload,
+		ExitCode:      output.ExitOK,
+		ConsoleString: renderList,
 	})
 }
 
-func (p ListPayload) Kind() output.Kind {
-	return KindPackages
-}
-
-func (p ListPayload) ExitCode() output.ExitCode {
-	return output.ExitOK
-}
-
-func (p ListPayload) JSONData() any {
-	return p
-}
-
-func (p ListPayload) WriteHuman(w io.Writer, inv output.Invocation) error {
-	if _, err := fmt.Fprintf(w, "tuck %s   (context: %s, source: %s)\n\n", inv.Command, inv.Context, p.Source); err != nil {
-		return err
+func renderList(inv output.Invocation, data any) (string, error) {
+	p, ok := data.(ListPayload)
+	if !ok {
+		return "", fmt.Errorf("package list console renderer received %T", data)
 	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "tuck %s   (context: %s, source: %s)\n\n", inv.Command, inv.Context, p.Source)
 	for _, name := range p.Packages {
-		if _, err := fmt.Fprintln(w, name); err != nil {
-			return err
-		}
+		fmt.Fprintln(&b, name)
 	}
 	if len(p.Packages) > 0 {
-		if _, err := fmt.Fprintln(w); err != nil {
-			return err
-		}
+		fmt.Fprintln(&b)
 	}
-	_, err := fmt.Fprintf(w, "%d %s\n", len(p.Packages), packageNoun(len(p.Packages)))
-	return err
+	fmt.Fprintf(&b, "%d %s\n", len(p.Packages), packageNoun(len(p.Packages)))
+	return b.String(), nil
 }
 
 func packageNoun(count int) string {

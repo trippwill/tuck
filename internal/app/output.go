@@ -16,11 +16,10 @@ func rendererFor(cmd *cli.Command) output.Renderer {
 		format = output.JSON
 	}
 	return output.NewRenderer(output.Options{
-		Format:        format,
-		Color:         colorEnabled(cmd, jsonOutput),
-		Out:           root.Writer,
-		Err:           root.ErrWriter,
-		ClassifyError: classifyOutputError,
+		Format: format,
+		Color:  colorEnabled(cmd, jsonOutput),
+		Out:    root.Writer,
+		Err:    root.ErrWriter,
 	})
 }
 
@@ -40,13 +39,4 @@ func colorEnabled(cmd *cli.Command, jsonOutput bool) bool {
 
 func writeEnvelope(out io.Writer, command string, context string, kind string, data any, exitCode int) error {
 	return output.WriteEnvelope(out, output.Command(command), context, output.Kind(kind), data, output.ExitCode(exitCode))
-}
-
-func classifyOutputError(err error) output.Error {
-	appErr := classifyError(err)
-	return output.Error{
-		Code:    appErr.Code,
-		Message: appErr.Message,
-		Hint:    appErr.Hint,
-	}
 }

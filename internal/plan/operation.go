@@ -8,14 +8,14 @@ import (
 	"github.com/trippwill/tuck/internal/state"
 )
 
-type operationOptions struct {
+type OperationOptions struct {
 	Context    string
 	TargetRoot string
 	SourceID   string
 	Apply      bool
 }
 
-type operation struct {
+type Operation struct {
 	source   state.Source
 	scope    domain.TargetScope
 	registry state.Registry
@@ -23,7 +23,7 @@ type operation struct {
 	plan     Plan
 }
 
-func newOperation(options operationOptions) (operation, error) {
+func NewOperation(options OperationOptions) (Operation, error) {
 	selection, err := domain.SelectActive(domain.SelectionOptions{
 		SourceID:    options.SourceID,
 		Context:     options.Context,
@@ -32,20 +32,20 @@ func newOperation(options operationOptions) (operation, error) {
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrNoHome) {
-			return operation{}, AppErrMsg(ErrApply, err.Error())
+			return Operation{}, AppErrMsg(ErrApply, err.Error())
 		}
-		return operation{}, err
+		return Operation{}, err
 	}
-	return operation{
+	return Operation{
 		source:   selection.Source,
 		scope:    selection.Scope,
 		registry: selection.Registry,
 		apply:    options.Apply,
-		plan:     newPlan(selection.Scope.Context, options.Apply),
+		plan:     NewPlan(selection.Scope.Context, options.Apply),
 	}, nil
 }
 
-func newPlan(context string, apply bool) Plan {
+func NewPlan(context string, apply bool) Plan {
 	return Plan{
 		Context:   context,
 		DryRun:    !apply,
@@ -56,7 +56,19 @@ func newPlan(context string, apply bool) Plan {
 	}
 }
 
-func (op *operation) resolvePackages(refs []string, all bool) ([]packages.Resolved, error) {
+func (op Operation) Source() state.Source {
+	return op.source
+}
+
+func (op Operation) Scope() domain.TargetScope {
+	return op.scope
+}
+
+func (op Operation) Registry() state.Registry {
+	return op.registry
+}
+
+func (op *Operation) ResolvePackages(refs []string, all bool) ([]packages.Resolved, error) {
 	resolvedPackages, err := packages.Resolve(op.source, op.scope.Context, refs, all)
 	if err != nil {
 		return nil, err
@@ -65,13 +77,37 @@ func (op *operation) resolvePackages(refs []string, all bool) ([]packages.Resolv
 	return resolvedPackages, nil
 }
 
-func (op *operation) addPackages(resolvedPackages []packages.Resolved) {
+func (op *Operation) AddPackage(identity string) {
+	op.plan.Packages = append(op.plan.Packages, identity)
+}
+
+func (op *Operation) SetPackages(identities ...string) {
+	op.plan.Packages = append([]string(nil), identities...)
+}
+
+func (op *Operation) AddAction(action Action) {
+	op.plan.Actions = append(op.plan.Actions, action)
+}
+
+func (op *Operation) AddActions(actions ...Action) {
+	op.plan.Actions = append(op.plan.Actions, actions...)
+}
+
+func (op *Operation) AddConflict(conflict Conflict) {
+	op.plan.Conflicts = append(op.plan.Conflicts, conflict)
+}
+
+func (op Operation) HasConflicts() bool {
+	return len(op.plan.Conflicts) > 0
+}
+
+func (op *Operation) addPackages(resolvedPackages []packages.Resolved) {
 	for _, pkg := range resolvedPackages {
 		op.plan.Packages = append(op.plan.Packages, pkg.Identity.String())
 	}
 }
 
-func (op *operation) finalize() (Plan, error) {
+func (op *Operation) Finalize() (Plan, error) {
 	if len(op.plan.Conflicts) > 0 {
 		op.plan.Actions = []Action{}
 		return op.plan, nil
@@ -79,7 +115,7 @@ func (op *operation) finalize() (Plan, error) {
 	markPrivilege(&op.plan)
 	if op.apply {
 		if privilegeDenied(op.plan) {
-			return op.plan, AppErrMsg(ErrPrivilegeRequired, "root-context write requires elevated privileges")
+			return op.plan, nil
 		}
 		if err := Apply(op.plan); err != nil {
 			return op.plan, err
@@ -102,6 +138,6 @@ func markPrivilege(plan *Plan) {
 	}
 }
 
-func privilegeDenied(plan Plan) bool {
-	return plan.Privilege.Required && plan.Privilege.Satisfied != nil && !*plan.Privilege.Satisfied
+func privilegeDenied(planned Plan) bool {
+	return !planned.DryRun && planned.Privilege.Required && planned.Privilege.Satisfied != nil && !*planned.Privilege.Satisfied
 }

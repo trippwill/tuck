@@ -57,9 +57,8 @@ helpers or unexported typed constants where errors need stable identity.
 
 - `status` and `package status` command metadata exists in `internal/app`, but
   both actions are stubs.
-- `internal/plan/use.go` already has private package resolution, entry
-  enumeration, target classification, and symlink owner inference for `package
-  use`.
+- `internal/command/pkgcmd` owns package mutation plan assembly, using shared
+  package, target, and plan primitives.
 - `internal/pkgref` and `internal/pathutil` are available and should be reused.
 - JSON envelope infrastructure exists in `internal/app/output.go`.
 
@@ -83,8 +82,8 @@ Introduce or extract focused read-only engine packages:
   - all-package status summary;
   - JSON/human-facing status data structs.
 
-Avoid making read-only status depend on mutation planning. `internal/plan` should
-use the shared package/target APIs instead.
+Avoid making read-only status depend on mutation planning. Command-owned
+mutation planners should use the shared package/target APIs instead.
 
 ## Status mapping
 

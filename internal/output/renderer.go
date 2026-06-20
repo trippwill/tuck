@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 )
 
 type Format uint8
@@ -31,28 +32,33 @@ type Invocation struct {
 	Context string
 }
 
-type Outcome struct {
-	Payload Payload
-	Err     error
+type ConsoleStringFunc func(Invocation, any) (string, error)
+
+type Result struct {
+	Kind          Kind
+	Data          any
+	ExitCode      ExitCode
+	ConsoleString ConsoleStringFunc
 }
 
-func OK(payload Payload) Outcome {
-	return Outcome{Payload: payload}
+type Outcome struct {
+	Result *Result
+	Err    error
+}
+
+func OK(value any) Outcome {
+	switch v := value.(type) {
+	case Result:
+		return Outcome{Result: &v}
+	case *Result:
+		return Outcome{Result: v}
+	default:
+		return Outcome{Err: fmt.Errorf("unsupported output result %T", value)}
+	}
 }
 
 func Fail(err error) Outcome {
 	return Outcome{Err: err}
-}
-
-func FailWith(payload Payload, err error) Outcome {
-	return Outcome{Payload: payload, Err: err}
-}
-
-type Payload interface {
-	Kind() Kind
-	ExitCode() ExitCode
-	JSONData() any
-	WriteHuman(io.Writer, Invocation) error
 }
 
 type Error struct {
@@ -61,35 +67,77 @@ type Error struct {
 	Hint    string `json:"hint"`
 }
 
-type ErrorClassifier func(error) Error
+type ErrorData struct {
+	Error Error `json:"error"`
+}
+
+func ErrorResult(code, message, hint string) Result {
+	record := Error{Code: code, Message: message, Hint: hint}
+	return Result{
+		Kind:     KindError,
+		Data:     ErrorData{Error: record},
+		ExitCode: ExitFail,
+		ConsoleString: func(Invocation, any) (string, error) {
+			return FormatError(record), nil
+		},
+	}
+}
+
+func InvalidArgs(message string, hint string) Result {
+	return ErrorResult("invalid_args", message, hint)
+}
+
+func IOError(message string) Result {
+	return ErrorResult("io_error", message, "retry after fixing filesystem permissions or disk state")
+}
+
+func DetailMessage(err error, fallback string, sentinels ...error) string {
+	if err == nil {
+		return fallback
+	}
+	message := strings.TrimSpace(err.Error())
+	if message == "" {
+		return fallback
+	}
+	for _, sentinel := range sentinels {
+		if sentinel == nil {
+			continue
+		}
+		sentinelText := sentinel.Error()
+		if message == sentinelText {
+			return fallback
+		}
+		if after, ok := strings.CutPrefix(message, sentinelText+": "); ok && after != "" {
+			return after
+		}
+	}
+	return message
+}
+
+func FormatError(record Error) string {
+	return fmt.Sprintf("error: %s\ncode: %s\nhint: %s\n", record.Message, record.Code, record.Hint)
+}
 
 type Options struct {
-	Format        Format
-	Color         bool
-	Out           io.Writer
-	Err           io.Writer
-	ClassifyError ErrorClassifier
+	Format Format
+	Color  bool
+	Out    io.Writer
+	Err    io.Writer
 }
 
 type Renderer struct {
-	format        Format
-	color         bool
-	out           io.Writer
-	err           io.Writer
-	classifyError ErrorClassifier
+	format Format
+	color  bool
+	out    io.Writer
+	err    io.Writer
 }
 
 func NewRenderer(options Options) Renderer {
-	classifyError := options.ClassifyError
-	if classifyError == nil {
-		classifyError = fallbackError
-	}
 	return Renderer{
-		format:        options.Format,
-		color:         options.Color,
-		out:           options.Out,
-		err:           options.Err,
-		classifyError: classifyError,
+		format: options.Format,
+		color:  options.Color,
+		out:    options.Out,
+		err:    options.Err,
 	}
 }
 
@@ -97,40 +145,43 @@ func (r Renderer) Render(inv Invocation, outcome Outcome) (ExitCode, error) {
 	if outcome.Err != nil {
 		return r.renderError(inv, outcome)
 	}
-	if outcome.Payload == nil {
-		return ExitOK, nil
+	if outcome.Result != nil {
+		return r.renderResult(inv, *outcome.Result)
 	}
-	return r.renderPayload(inv, outcome.Payload)
+	return ExitOK, nil
 }
 
-func (r Renderer) renderPayload(inv Invocation, payload Payload) (ExitCode, error) {
-	exitCode := payload.ExitCode()
+func (r Renderer) renderResult(inv Invocation, result Result) (ExitCode, error) {
+	exitCode := result.ExitCode
 	if r.format == JSON {
-		return exitCode, WriteEnvelope(r.out, inv.Command, inv.Context, payload.Kind(), payload.JSONData(), exitCode)
+		context := inv.Context
+		if result.Kind == KindError {
+			context = ""
+		}
+		return exitCode, WriteEnvelope(r.out, inv.Command, context, result.Kind, result.Data, exitCode)
 	}
-	return exitCode, payload.WriteHuman(r.out, inv)
+	if result.ConsoleString == nil {
+		return ExitFail, fmt.Errorf("missing console renderer for %q result", result.Kind)
+	}
+	text, err := result.ConsoleString(inv, result.Data)
+	if err != nil {
+		return ExitFail, err
+	}
+	w := r.out
+	if result.Kind == KindError {
+		w = r.err
+	}
+	_, err = io.WriteString(w, text)
+	return exitCode, err
 }
 
 func (r Renderer) renderError(inv Invocation, outcome Outcome) (ExitCode, error) {
-	appErr := r.classifyError(outcome.Err)
+	appErr := fallbackError(outcome.Err)
 	if r.format == JSON {
-		context := ""
-		if outcome.Payload != nil {
-			context = inv.Context
-		}
-		return ExitFail, WriteEnvelope(r.out, inv.Command, context, KindError, errorData{Error: appErr}, ExitFail)
+		return ExitFail, WriteEnvelope(r.out, inv.Command, "", KindError, ErrorData{Error: appErr}, ExitFail)
 	}
-	if outcome.Payload != nil {
-		if _, err := r.renderPayload(inv, outcome.Payload); err != nil {
-			return ExitFail, err
-		}
-	}
-	_, err := fmt.Fprintf(r.err, "error: %s\ncode: %s\nhint: %s\n", appErr.Message, appErr.Code, appErr.Hint)
+	_, err := io.WriteString(r.err, FormatError(appErr))
 	return ExitFail, err
-}
-
-type errorData struct {
-	Error Error `json:"error"`
 }
 
 type envelope struct {
@@ -169,17 +220,4 @@ func fallbackError(err error) Error {
 		Message: message,
 		Hint:    "retry after fixing filesystem permissions or disk state",
 	}
-}
-
-type InvalidArgsError struct {
-	Message string
-	Hint    string
-}
-
-func InvalidArgs(message string, hint string) InvalidArgsError {
-	return InvalidArgsError{Message: message, Hint: hint}
-}
-
-func (e InvalidArgsError) Error() string {
-	return e.Message
 }

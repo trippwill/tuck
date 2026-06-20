@@ -20,7 +20,7 @@ func Status(req StatusRequest) output.Outcome {
 		Context:  req.Context,
 	})
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
 	return output.OK(statusout.FromResult(result))
 }

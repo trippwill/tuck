@@ -687,8 +687,7 @@ For root-context commands whose conflict-free plan contains write actions:
 - The plan is marked as requiring privilege (`privilege.required`).
 - A separate predicate determines whether privilege is satisfied.
 - When `--apply` is requested, privilege is required, and privilege is not
-  satisfied, `tuck` prints the plan, performs no mutation, exits `1`, and reports
-  `error.code = "privilege_required"`.
+  satisfied, `tuck` prints the plan, performs no mutation, and exits `1`.
 - Plan-only runs mark the requirement and exit `0`.
 - Read-only commands never require privilege.
 
@@ -784,7 +783,8 @@ Used by `adopt`, `eject`, `package use`, `package drop`, and
 }
 ```
 
-Conflicts are included in the plan data and make `exitCode` `1`.
+Conflicts and unsatisfied privilege requirements are included in the plan data
+and make `exitCode` `1`.
 
 #### 9.2.2 `kind: "packages"`
 
@@ -964,7 +964,7 @@ Stable error codes include:
   `package refresh` invocation selects packages that would write the same leaf
   target;
 - state validation: `state_checksum_mismatch`;
-- execution: `privilege_required`, `io_error`.
+- execution: `io_error`.
 
 `package status` exits `0` when the query succeeds, even if it reports conflicts
 inside the response body.
@@ -1511,9 +1511,14 @@ $ tuck pkg use sshd --root
 # dry-run by default
 
 $ tuck pkg use sshd --root --apply
-error: root-context write requires elevated privileges
-hint: re-run with sudo
-# exit 1; with --json, error.code is privilege_required
+plan:
+  + mkdir  /etc/ssh
+  + link   /etc/ssh/sshd_config -> /dotfiles/.root/sshd/etc/ssh/sshd_config
+
+privilege required: root-context write
+
+2 actions, 0 conflicts
+# exit 1; with --json, kind is "plan" and privilege.satisfied is false
 ```
 
 ### A.6 Copy deployment for symlink-hostile files

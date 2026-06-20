@@ -2,7 +2,7 @@ package pkgcmd
 
 import (
 	"fmt"
-	"io"
+	"strings"
 
 	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/packages"
@@ -42,52 +42,41 @@ func Show(req ShowRequest) output.Outcome {
 		Ref:      req.Ref,
 	})
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
-	return output.OK(TreePayload{
+	payload := TreePayload{
 		Source: tree.Source,
 		Package: TreePackage{
 			Identity: tree.Package.Identity,
 			Root:     tree.Package.Root,
 			Entries:  fromTreeEntries(tree.Package.Entries),
 		},
+	}
+	return output.OK(output.Result{
+		Kind:          KindTree,
+		Data:          payload,
+		ExitCode:      output.ExitOK,
+		ConsoleString: renderTree,
 	})
 }
 
-func (p TreePayload) Kind() output.Kind {
-	return KindTree
-}
-
-func (p TreePayload) ExitCode() output.ExitCode {
-	return output.ExitOK
-}
-
-func (p TreePayload) JSONData() any {
-	return p
-}
-
-func (p TreePayload) WriteHuman(w io.Writer, inv output.Invocation) error {
-	if _, err := fmt.Fprintf(w, "tuck %s   (context: %s, source: %s)\n\n", inv.Command, inv.Context, p.Source); err != nil {
-		return err
+func renderTree(inv output.Invocation, data any) (string, error) {
+	p, ok := data.(TreePayload)
+	if !ok {
+		return "", fmt.Errorf("package tree console renderer received %T", data)
 	}
-	if _, err := fmt.Fprintf(w, "package: %s\n", p.Package.Identity); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(w, "root: %s\n\n", p.Package.Root); err != nil {
-		return err
-	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "tuck %s   (context: %s, source: %s)\n\n", inv.Command, inv.Context, p.Source)
+	fmt.Fprintf(&b, "package: %s\n", p.Package.Identity)
+	fmt.Fprintf(&b, "root: %s\n\n", p.Package.Root)
 	for _, entry := range p.Package.Entries {
-		if _, err := fmt.Fprintf(w, "%-4s %s\n", entry.Type, entry.Rel); err != nil {
-			return err
-		}
+		fmt.Fprintf(&b, "%-4s %s\n", entry.Type, entry.Rel)
 	}
 	if len(p.Package.Entries) > 0 {
-		if _, err := fmt.Fprintln(w); err != nil {
-			return err
-		}
+		fmt.Fprintln(&b)
 	}
-	_, err := fmt.Fprintf(w, "%d %s\n", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))
-	return err
+	fmt.Fprintf(&b, "%d %s\n", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))
+	return b.String(), nil
 }
 
 func fromTreeEntries(entries []packages.TreeEntry) []TreeEntry {

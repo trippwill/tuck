@@ -1,4 +1,4 @@
-package plan
+package pkgcmd
 
 import (
 	"os"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/trippwill/tuck/internal/manifest"
+	"github.com/trippwill/tuck/internal/plan"
 	"github.com/trippwill/tuck/internal/state"
 )
 
@@ -21,17 +22,17 @@ func TestBuildRefreshRecreatesSelectedManagedSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := BuildRefresh(RefreshOptions{Refs: []string{"zsh"}})
+	got, err := buildRefresh(RefreshRequest{Refs: []string{"zsh"}})
 	if err != nil {
-		t.Fatalf("BuildRefresh() error = %v, want nil", err)
+		t.Fatalf("buildRefresh() error = %v, want nil", err)
 	}
 	if len(got.Actions) != 2 {
-		t.Fatalf("BuildRefresh() actions = %#v, want unlink and link", got.Actions)
+		t.Fatalf("buildRefresh() actions = %#v, want unlink and link", got.Actions)
 	}
-	if got.Actions[0].Type != ActionRemoveSymlink || got.Actions[0].Path != targetPath {
+	if got.Actions[0].Type != plan.ActionRemoveSymlink || got.Actions[0].Path != targetPath {
 		t.Fatalf("first action = %#v, want remove_symlink for target", got.Actions[0])
 	}
-	if got.Actions[1].Type != ActionSymlink || got.Actions[1].LinkPath != targetPath {
+	if got.Actions[1].Type != plan.ActionSymlink || got.Actions[1].LinkPath != targetPath {
 		t.Fatalf("second action = %#v, want symlink for target", got.Actions[1])
 	}
 	if got.Actions[1].Payload != "../../../src/zsh/.config/zsh/.zshrc" {
@@ -52,15 +53,15 @@ func TestBuildRefreshAccumulatesConflictsAndSuppressesActions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := BuildRefresh(RefreshOptions{Refs: []string{"zsh"}, Apply: true})
+	got, err := buildRefresh(RefreshRequest{Refs: []string{"zsh"}, Apply: true})
 	if err != nil {
-		t.Fatalf("BuildRefresh() error = %v, want nil plan with conflicts", err)
+		t.Fatalf("buildRefresh() error = %v, want nil plan with conflicts", err)
 	}
 	if len(got.Conflicts) != 2 {
-		t.Fatalf("BuildRefresh() conflicts = %#v, want two conflicts", got.Conflicts)
+		t.Fatalf("buildRefresh() conflicts = %#v, want two conflicts", got.Conflicts)
 	}
 	if len(got.Actions) != 0 {
-		t.Fatalf("BuildRefresh() actions = %#v, want none when conflicts exist", got.Actions)
+		t.Fatalf("buildRefresh() actions = %#v, want none when conflicts exist", got.Actions)
 	}
 }
 

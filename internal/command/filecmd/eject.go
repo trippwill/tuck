@@ -1,34 +1,24 @@
 package filecmd
 
 import (
-	"errors"
-
-	"github.com/trippwill/tuck/internal/command/planout"
+	"github.com/trippwill/tuck/internal/command/planconsole"
 	"github.com/trippwill/tuck/internal/output"
-	"github.com/trippwill/tuck/internal/plan"
 )
 
 const CommandEject output.Command = "eject"
 
 type EjectRequest struct {
-	File     string
-	SourceID string
-	Context  string
-	Apply    bool
+	File       string
+	SourceID   string
+	Context    string
+	TargetRoot string
+	Apply      bool
 }
 
 func Eject(req EjectRequest) output.Outcome {
-	planned, err := plan.BuildEject(plan.EjectOptions{
-		File:     req.File,
-		SourceID: req.SourceID,
-		Context:  req.Context,
-		Apply:    req.Apply,
-	})
+	planned, err := buildEject(req)
 	if err != nil {
-		if errors.Is(err, plan.ErrPrivilegeRequired) {
-			return output.FailWith(planout.FromPlan(planned), err)
-		}
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
-	return output.OK(planout.FromPlan(planned))
+	return output.OK(planconsole.Result(planned))
 }

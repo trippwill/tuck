@@ -78,12 +78,13 @@ the boundaries:
     real file/dir, special file, absent.
 - `internal/plan`
   - action and conflict model;
-  - build package-use plans;
   - apply conflict-free mkdir/symlink actions.
+- `internal/command/pkgcmd`
+  - compose package-use plans from package, target, and plan primitives.
 
-If splitting that finely creates churn, combine `pkgsrc`, `target`, and `plan`
-behind clear files in a single `internal/plan` package, but keep ref/path helpers
-separate because they will be reused by later verticals.
+If splitting that finely creates churn, combine related engine primitives behind
+clear files, but keep command-specific plan assembly in the command package and
+keep ref/path helpers separate because they will be reused by later verticals.
 
 ## Red/green test strategy
 

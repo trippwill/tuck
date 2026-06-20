@@ -2,7 +2,7 @@ package sourcecmd
 
 import (
 	"fmt"
-	"io"
+	"strings"
 
 	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/output"
@@ -39,10 +39,10 @@ type IDRequest struct {
 
 func Add(req AddRequest) output.Outcome {
 	if !req.Init && req.Name != "" {
-		return output.Fail(output.InvalidArgs("--name requires --init", "add --init when writing a new source manifest"))
+		return output.OK(output.InvalidArgs("--name requires --init", "add --init when writing a new source manifest"))
 	}
 	if !req.Init && req.Description != "" {
-		return output.Fail(output.InvalidArgs("--description requires --init", "add --init when writing a new source manifest"))
+		return output.OK(output.InvalidArgs("--description requires --init", "add --init when writing a new source manifest"))
 	}
 
 	var (
@@ -59,9 +59,9 @@ func Add(req AddRequest) output.Outcome {
 		registry, source, err = state.AddSource(req.Path, req.Default)
 	}
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
-	return output.OK(AddPayload{Registry: registry, Source: source})
+	return output.OK(addResult(AddPayload{Registry: registry, Source: source}))
 }
 
 func Init(req InitRequest) output.Outcome {
@@ -70,39 +70,39 @@ func Init(req InitRequest) output.Outcome {
 		Description: req.Description,
 	})
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
-	return output.OK(InitPayload{Initialized: initialized})
+	return output.OK(initResult(InitPayload{Initialized: initialized}))
 }
 
 func List() output.Outcome {
 	registry, err := state.Load()
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
-	return output.OK(ListPayload{Registry: registry})
+	return output.OK(listResult(ListPayload{Registry: registry}))
 }
 
 func Rm(req IDRequest) output.Outcome {
 	registry, removed, ok, err := state.RemoveSource(req.ID)
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
 	if !ok {
-		return output.Fail(resolve.ErrUnknownSource)
+		return errorOutcome(resolve.ErrUnknownSource)
 	}
-	return output.OK(RmPayload{Registry: registry, Source: removed})
+	return output.OK(rmResult(RmPayload{Registry: registry, Source: removed}))
 }
 
 func Default(req IDRequest) output.Outcome {
 	registry, source, ok, err := state.SetDefault(req.ID)
 	if err != nil {
-		return output.Fail(err)
+		return errorOutcome(err)
 	}
 	if !ok {
-		return output.Fail(resolve.ErrUnknownSource)
+		return errorOutcome(resolve.ErrUnknownSource)
 	}
-	return output.OK(DefaultPayload{Registry: registry, Source: source})
+	return output.OK(defaultResult(DefaultPayload{Registry: registry, Source: source}))
 }
 
 type AddPayload struct {
@@ -128,24 +128,52 @@ type DefaultPayload struct {
 	Source   state.Source
 }
 
-func (p AddPayload) Kind() output.Kind     { return KindSources }
-func (p InitPayload) Kind() output.Kind    { return KindSources }
-func (p ListPayload) Kind() output.Kind    { return KindSources }
-func (p RmPayload) Kind() output.Kind      { return KindSources }
-func (p DefaultPayload) Kind() output.Kind { return KindSources }
+func addResult(p AddPayload) output.Result {
+	return output.Result{
+		Kind:          KindSources,
+		Data:          buildSourcesData(p.Registry),
+		ExitCode:      output.ExitOK,
+		ConsoleString: func(output.Invocation, any) (string, error) { return renderAdd(p), nil },
+	}
+}
 
-func (p AddPayload) ExitCode() output.ExitCode     { return output.ExitOK }
-func (p InitPayload) ExitCode() output.ExitCode    { return output.ExitOK }
-func (p ListPayload) ExitCode() output.ExitCode    { return output.ExitOK }
-func (p RmPayload) ExitCode() output.ExitCode      { return output.ExitOK }
-func (p DefaultPayload) ExitCode() output.ExitCode { return output.ExitOK }
+func initResult(p InitPayload) output.Result {
+	return output.Result{
+		Kind:          KindSources,
+		Data:          initData(p),
+		ExitCode:      output.ExitOK,
+		ConsoleString: func(output.Invocation, any) (string, error) { return renderInit(p), nil },
+	}
+}
 
-func (p AddPayload) JSONData() any     { return buildSourcesData(p.Registry) }
-func (p ListPayload) JSONData() any    { return buildSourcesData(p.Registry) }
-func (p RmPayload) JSONData() any      { return buildSourcesData(p.Registry) }
-func (p DefaultPayload) JSONData() any { return buildSourcesData(p.Registry) }
+func listResult(p ListPayload) output.Result {
+	return output.Result{
+		Kind:          KindSources,
+		Data:          buildSourcesData(p.Registry),
+		ExitCode:      output.ExitOK,
+		ConsoleString: func(output.Invocation, any) (string, error) { return renderList(p), nil },
+	}
+}
 
-func (p InitPayload) JSONData() any {
+func rmResult(p RmPayload) output.Result {
+	return output.Result{
+		Kind:          KindSources,
+		Data:          buildSourcesData(p.Registry),
+		ExitCode:      output.ExitOK,
+		ConsoleString: func(output.Invocation, any) (string, error) { return renderRm(p), nil },
+	}
+}
+
+func defaultResult(p DefaultPayload) output.Result {
+	return output.Result{
+		Kind:          KindSources,
+		Data:          buildSourcesData(p.Registry),
+		ExitCode:      output.ExitOK,
+		ConsoleString: func(output.Invocation, any) (string, error) { return renderDefault(p), nil },
+	}
+}
+
+func initData(p InitPayload) sourcesData {
 	return buildSourcesData(state.Registry{Sources: []state.Source{{
 		ID:       p.Initialized.Manifest.Name,
 		Path:     p.Initialized.Root,
@@ -154,44 +182,30 @@ func (p InitPayload) JSONData() any {
 	}}})
 }
 
-func (p AddPayload) WriteHuman(w io.Writer, _ output.Invocation) error {
+func renderAdd(p AddPayload) string {
 	defaultValue := "no"
 	if p.Registry.Default == p.Source.ID {
 		defaultValue = "yes"
 	}
-	if _, err := fmt.Fprintf(w, "added source %s\n", p.Source.ID); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(w, "path: %s\n", p.Source.Path); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintf(w, "default: %s\n", defaultValue)
-	return err
+	return fmt.Sprintf("added source %s\npath: %s\ndefault: %s\n", p.Source.ID, p.Source.Path, defaultValue)
 }
 
-func (p InitPayload) WriteHuman(w io.Writer, _ output.Invocation) error {
-	if _, err := fmt.Fprintf(w, "initialized source %s\n", p.Initialized.Manifest.Name); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(w, "path: %s\n", p.Initialized.Path); err != nil {
-		return err
-	}
+func renderInit(p InitPayload) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "initialized source %s\n", p.Initialized.Manifest.Name)
+	fmt.Fprintf(&b, "path: %s\n", p.Initialized.Path)
 	if p.Initialized.Manifest.Description != "" {
-		if _, err := fmt.Fprintf(w, "description: %s\n", p.Initialized.Manifest.Description); err != nil {
-			return err
-		}
+		fmt.Fprintf(&b, "description: %s\n", p.Initialized.Manifest.Description)
 	}
-	return nil
+	return b.String()
 }
 
-func (p ListPayload) WriteHuman(w io.Writer, _ output.Invocation) error {
+func renderList(p ListPayload) string {
 	if len(p.Registry.Sources) == 0 {
-		_, err := fmt.Fprintln(w, "no sources enabled")
-		return err
+		return "no sources enabled\n"
 	}
-	if _, err := fmt.Fprintf(w, "%-8s %-8s %-8s %s\n", "ID", "DEFAULT", "ENABLED", "PATH"); err != nil {
-		return err
-	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%-8s %-8s %-8s %s\n", "ID", "DEFAULT", "ENABLED", "PATH")
 	for _, source := range p.Registry.Sources {
 		defaultValue := "no"
 		if p.Registry.Default == source.ID {
@@ -201,27 +215,17 @@ func (p ListPayload) WriteHuman(w io.Writer, _ output.Invocation) error {
 		if source.Enabled {
 			enabledValue = "yes"
 		}
-		if _, err := fmt.Fprintf(w, "%-8s %-8s %-8s %s\n", source.ID, defaultValue, enabledValue, source.Path); err != nil {
-			return err
-		}
+		fmt.Fprintf(&b, "%-8s %-8s %-8s %s\n", source.ID, defaultValue, enabledValue, source.Path)
 	}
-	return nil
+	return b.String()
 }
 
-func (p RmPayload) WriteHuman(w io.Writer, _ output.Invocation) error {
-	if _, err := fmt.Fprintf(w, "removed source %s\n", p.Source.ID); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintf(w, "path: %s\n", p.Source.Path)
-	return err
+func renderRm(p RmPayload) string {
+	return fmt.Sprintf("removed source %s\npath: %s\n", p.Source.ID, p.Source.Path)
 }
 
-func (p DefaultPayload) WriteHuman(w io.Writer, _ output.Invocation) error {
-	if _, err := fmt.Fprintf(w, "default source %s\n", p.Source.ID); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintf(w, "path: %s\n", p.Source.Path)
-	return err
+func renderDefault(p DefaultPayload) string {
+	return fmt.Sprintf("default source %s\npath: %s\n", p.Source.ID, p.Source.Path)
 }
 
 type sourcesData struct {

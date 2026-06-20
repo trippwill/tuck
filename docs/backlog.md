@@ -79,8 +79,8 @@ building every engine primitive before the first command runs._
 
 **Vertical F — Root context**
 
-26. [x] **M26** Operate in the `root` context (`--root`, package base `.root`, target `/`) with preflight privilege; error.code `privilege_required`; never self-escalate `[cmd]`
-27. [x] **M27** Root-context tests via the physical-root seam (`TUCK_TEST_ROOT_DIR`) with logical-path goldens; deterministic privilege tests via the injected predicate (`TUCK_TEST_PRIVILEGE`), covering `privilege_required` vs `io_error` `[test]`
+26. [x] **M26** Operate in the `root` context (`--root`, package base `.root`, target `/`) with preflight privilege; failed plans report unsatisfied privilege; never self-escalate `[cmd]`
+27. [x] **M27** Root-context tests via the physical-root seam (`TUCK_TEST_ROOT_DIR`) with logical-path goldens; deterministic privilege tests via the injected predicate (`TUCK_TEST_PRIVILEGE`), covering unsatisfied privilege vs `io_error` `[test]`
 28. [x] **M28** Build and run on the developer's platform `[eng]`
 
 <!-- ===================== MVP CUTOFF ===================== -->

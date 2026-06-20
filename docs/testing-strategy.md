@@ -234,10 +234,9 @@ is neither necessary nor sufficient — a plan may touch read-only subtrees, and
    deterministically — **no reliance on `chmod 0555`** (which root can bypass)
    or on the test runner's real euid.
 4. If `--apply` is given and privilege is **not** satisfied: print the plan,
-   **mutate nothing**, exit `1` with error.code `privilege_required`.
+   **mutate nothing**, and exit `1` with `privilege.satisfied = false`.
 5. Otherwise apply. A genuine filesystem error *during* apply is error.code
-   `io_error`, never `privilege_required` — the privilege failure path must
-   mutate nothing.
+   `io_error` — the privilege failure path must mutate nothing.
 
 This decoupling means redirecting the physical root (§5.2) never grants
 privilege, and forcing privilege never changes where bytes land.
@@ -253,7 +252,7 @@ non-root apply, output distinguishes *marker* from *enforcement*:
 
 - `required` — context is `root` and the plan has write actions (informational).
 - `satisfied` — the privilege predicate's result.
-- Failure with `error.code = "privilege_required"` ⟺ `--apply && required && !satisfied`.
+- Failed plan with `privilege.satisfied = false` ⟺ `--apply && required && !satisfied`.
 
 > This matches [§8.1](./cli-spec.md#81-privilege-root-context) (privilege as an
 > explicit preflight policy) and the `privilege` object in

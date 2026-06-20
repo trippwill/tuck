@@ -64,14 +64,15 @@ stdout '/etc/ssh/sshd_config'
 ! exec tuck pkg use sshd --root --apply --no-color
 stdout 'context: root, apply'
 stdout '/etc/ssh/sshd_config'
-stderr 'root-context write requires elevated privileges'
+stdout 'privilege required: root-context write'
+! stderr .
 ! exists $WORK/root/etc/ssh/sshd_config
 ! exec tuck --json pkg use sshd --root --apply
 stdout '"schemaVersion":1'
 stdout '"command":"package use"'
 stdout '"context":"root"'
-stdout '"kind":"error"'
-stdout '"code":"privilege_required"'
+stdout '"kind":"plan"'
+stdout '"privilege":{"required":true,"satisfied":false,"reason":"root-context write"}'
 stdout '"exitCode":1'
 
 # package use accumulates directory and real-file conflicts
@@ -352,7 +353,8 @@ stdout '/etc/ssh/sshd_config'
 ! exec tuck pkg refresh sshd --root --apply --no-color
 stdout 'context: root, apply'
 stdout '- unlink'
-stderr 'root-context write requires elevated privileges'
+stdout 'privilege required: root-context write'
+! stderr .
 readlink $WORK/root/etc/ssh/sshd_config $WORK/src/.root/sshd/etc/ssh/sshd_config
 
 # package show human output includes package tree entries
