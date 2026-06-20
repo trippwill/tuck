@@ -35,7 +35,7 @@
 
 - The CLI is spec-first. The important user model is one active source at a time: a committed `<repo>/.tuck.toml` manifest supplies the source id, while machine-local `${XDG_STATE_HOME:-~/.local/state}/tuck/sources.toml` records enabled paths/defaults.
 - Command depth mirrors operation frequency: file operations (`adopt`, `eject`, `status`) are top-level; package operations (`package use`, `package drop`, etc.) are grouped under the `package` (alias `pkg`) subcommand; source operations are grouped under the `source` subcommand.
-- No false globals: flags appear only on commands where they have meaning. `--json` and `--no-color` are truly universal (on the root command). `--source` and `--root` are scoped to domain commands (file ops + package subcommands). `--apply` is scoped to mutating commands only.
+- `--json` and `--no-color` are universal. `--source` and `--root` are root-level selectors for before-command placement, but only domain commands (file ops + package subcommands) use them; source commands warn when they are ignored. `--apply` is scoped to mutating commands only.
 - Exit codes are binary: `0` (success) or `1` (failure). Error classification lives in the `--json` error envelope (`error.code`) and stderr messages, not in distinct exit codes.
 - Package refs are plain package names only. Do not encode source or context in refs; source comes from `--source`/machine state and context comes from `--root` or default `home`.
 - Package-local `.tuck.toml` owns portable package/file policy. Use `[[file]]` metadata inside `<package-root>/.tuck.toml` for per-file deploy strategy and explicit modes; source-level `.tuck.toml` owns source identity only.
