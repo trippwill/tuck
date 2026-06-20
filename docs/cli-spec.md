@@ -101,7 +101,7 @@ Semantics:
   relative form.
 - `package list` -- list packages in the active source and context.
 - `package show` -- display one package's contents.
-- `package status` -- report managed/conflicting/absent state for package
+- `package status` -- report deployment state for package
   entries; without a package, summarize all packages in the active source.
 - `source add` -- register and enable a dotfiles repository on this machine.
 - `source init` -- create a repository manifest without registering the source.
@@ -186,8 +186,8 @@ warn before ignoring it; mutation flags remain command-local.
 | `--no-color` | | universal | Disable colored console output. |
 | `--help` | `-h` | universal | Print help for the program or command. |
 | `--version` | `-v` | root only | Print version. |
-| `--source <id>` | `-s` | global selector; used by domain commands | Select the active source by enabled id. |
-| `--root` | | global selector; used by domain commands | Select the root context. |
+| `--source <id>` | `-s` | global selector; used by file and package commands | Select the active source by enabled id. |
+| `--root` | | global selector; used by file and package commands | Select the root context. |
 | `--apply` | | mutating target-tree commands | Execute the plan. Without it, print the plan only. |
 | `--default` | | `source add` | Make the added source the machine-local default. |
 | `--init` | | `source add` | Create a missing `.tuck.toml` before registering the source. |

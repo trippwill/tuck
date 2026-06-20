@@ -12,14 +12,14 @@ func packageCommand() *cli.Command {
 	return &cli.Command{
 		Name:            "package",
 		Aliases:         []string{"pkg"},
-		Usage:           "manage package symlinks",
+		Usage:           "manage package deployments",
 		UsageText:       "tuck package <command> [args]",
 		HideHelpCommand: true,
 		CommandNotFound: commandNotFound,
 		Commands: []*cli.Command{
 			{
 				Name:      "use",
-				Usage:     "create managed symlinks for packages",
+				Usage:     "deploy package leaf entries (symlink or copy)",
 				ArgsUsage: "<package>...",
 				Arguments: []cli.Argument{
 					variadicStringArgs("package", "<package>...", 0),
@@ -33,7 +33,7 @@ func packageCommand() *cli.Command {
 			},
 			{
 				Name:      "drop",
-				Usage:     "remove managed symlinks for packages",
+				Usage:     "remove managed package deployments",
 				ArgsUsage: "<package>...",
 				Arguments: []cli.Argument{
 					variadicStringArgs("package", "<package>...", 1),
@@ -45,7 +45,7 @@ func packageCommand() *cli.Command {
 			{
 				Name:      "refresh",
 				Aliases:   []string{"fresh"},
-				Usage:     "re-sync managed symlinks (drop + use)",
+				Usage:     "rebuild package deployments (drop + use)",
 				ArgsUsage: "<package>...",
 				Arguments: []cli.Argument{
 					variadicStringArgs("package", "<package>...", 1),
@@ -74,7 +74,7 @@ func packageCommand() *cli.Command {
 			{
 				Name:      "status",
 				Aliases:   []string{"stat"},
-				Usage:     "show managed/conflict state for packages",
+				Usage:     "report deployment state for package entries",
 				ArgsUsage: "[package]",
 				Arguments: []cli.Argument{
 					optionalStringArgs("package", "[package]"),

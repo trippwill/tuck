@@ -11,7 +11,7 @@ import (
 func adoptCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "adopt",
-		Usage:     "move a real file into a package, then link it back",
+		Usage:     "move a real file into a package, then deploy it back",
 		Category:  "files",
 		ArgsUsage: "<file> <package>",
 		Arguments: []cli.Argument{
@@ -41,7 +41,7 @@ func adoptCommand() *cli.Command {
 func ejectCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "eject",
-		Usage:     "remove a managed link, restoring the real file",
+		Usage:     "stop managing a deployed file, leaving a real file in place",
 		Category:  "files",
 		ArgsUsage: "<file>",
 		Arguments: []cli.Argument{
@@ -62,7 +62,7 @@ func statusCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "status",
 		Aliases:   []string{"stat"},
-		Usage:     "classify a target path (managed/conflict/absent)",
+		Usage:     "report deployment state for a target path",
 		Category:  "files",
 		ArgsUsage: "<file>",
 		Arguments: []cli.Argument{

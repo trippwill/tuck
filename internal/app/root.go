@@ -27,15 +27,15 @@ func commandUsageError(_ context.Context, cmd *cli.Command, err error, _ bool) e
 func rootCommand() *cli.Command {
 	return &cli.Command{
 		Name:            "tuck",
-		Usage:           "manage dotfiles by linking package leaves into a target tree",
+		Usage:           "manage dotfiles by deploying package leaves into a target tree",
 		UsageText:       "tuck [global-flags] <command> [args]",
 		Version:         version,
 		HideHelpCommand: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "json", Usage: "machine-readable output"},
 			&cli.BoolFlag{Name: "no-color", Usage: "disable colored output (implied by --json)"},
-			&cli.StringFlag{Name: "source", Aliases: []string{"s"}, Usage: "select active source for domain commands"},
-			&cli.BoolFlag{Name: "root", Usage: "use the root target context for domain commands"},
+			&cli.StringFlag{Name: "source", Aliases: []string{"s"}, Usage: "select the active source (used by file and package commands)"},
+			&cli.BoolFlag{Name: "root", Usage: "use the root target context (used by file and package commands)"},
 		},
 		Commands: []*cli.Command{
 			adoptCommand(),
