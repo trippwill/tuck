@@ -7,6 +7,13 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+func entryNoun(count int) string {
+	if count == 1 {
+		return "entry"
+	}
+	return "entries"
+}
+
 func renderStatus(cmd *cli.Command, result statuspkg.Result) error {
 	r := newRenderer(cmd)
 	if r.json {

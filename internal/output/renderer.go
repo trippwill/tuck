@@ -114,7 +114,11 @@ func (r Renderer) renderPayload(inv Invocation, payload Payload) (ExitCode, erro
 func (r Renderer) renderError(inv Invocation, outcome Outcome) (ExitCode, error) {
 	appErr := r.classifyError(outcome.Err)
 	if r.format == JSON {
-		return ExitFail, WriteEnvelope(r.out, inv.Command, inv.Context, KindError, errorData{Error: appErr}, ExitFail)
+		context := ""
+		if outcome.Payload != nil {
+			context = inv.Context
+		}
+		return ExitFail, WriteEnvelope(r.out, inv.Command, context, KindError, errorData{Error: appErr}, ExitFail)
 	}
 	if outcome.Payload != nil {
 		if _, err := r.renderPayload(inv, outcome.Payload); err != nil {

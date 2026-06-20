@@ -5,7 +5,6 @@ import (
 
 	"github.com/trippwill/tuck/internal/command/pkgcmd"
 	"github.com/trippwill/tuck/internal/output"
-	"github.com/trippwill/tuck/internal/packages"
 	statuspkg "github.com/trippwill/tuck/internal/status"
 	"github.com/urfave/cli/v3"
 )
@@ -139,14 +138,16 @@ func packageListAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "package list", "package list accepts no arguments", "remove the extra argument and retry"); err != nil {
 		return err
 	}
-	listing, err := packages.List(packages.ListOptions{
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.List(pkgcmd.ListRequest{
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 	})
-	if err != nil {
-		return renderError(cmd, "package list", err)
-	}
-	return renderPackageList(cmd, listing)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandList,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
 
 func packageStatusAction(_ context.Context, cmd *cli.Command) error {
@@ -171,13 +172,15 @@ func packageShowAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "package show", "package show accepts exactly one package ref", "pass exactly one package name"); err != nil {
 		return err
 	}
-	tree, err := packages.Show(packages.ShowOptions{
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.Show(pkgcmd.ShowRequest{
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 		Ref:      cmd.StringArgs("package")[0],
 	})
-	if err != nil {
-		return renderError(cmd, "package show", err)
-	}
-	return renderPackageTree(cmd, tree)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandShow,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
