@@ -9,12 +9,11 @@ import (
 const CommandUse output.Command = "package use"
 
 type UseRequest struct {
-	Refs       []string
-	All        bool
-	SourceID   string
-	Context    string
-	TargetRoot string
-	Apply      bool
+	Refs     []string
+	All      bool
+	SourceID string
+	Context  string
+	Apply    bool
 }
 
 func Use(req UseRequest) output.Outcome {

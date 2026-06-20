@@ -16,9 +16,8 @@ const (
 )
 
 type Options struct {
-	SourceID   string
-	Context    string
-	TargetRoot string
+	SourceID string
+	Context  string
 }
 
 type Entry struct {

@@ -15,10 +15,9 @@ import (
 
 func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 	op, err := plan.NewOperation(plan.OperationOptions{
-		Context:    req.Context,
-		TargetRoot: req.TargetRoot,
-		SourceID:   req.SourceID,
-		Apply:      req.Apply,
+		Context:  req.Context,
+		SourceID: req.SourceID,
+		Apply:    req.Apply,
 	})
 	if err != nil {
 		return plan.Plan{}, err
@@ -84,10 +83,9 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 
 func buildEject(req EjectRequest) (plan.Plan, error) {
 	op, err := plan.NewOperation(plan.OperationOptions{
-		Context:    req.Context,
-		TargetRoot: req.TargetRoot,
-		SourceID:   req.SourceID,
-		Apply:      req.Apply,
+		Context:  req.Context,
+		SourceID: req.SourceID,
+		Apply:    req.Apply,
 	})
 	if err != nil {
 		return plan.Plan{}, err

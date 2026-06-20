@@ -9,11 +9,10 @@ import (
 const CommandRefresh output.Command = "package refresh"
 
 type RefreshRequest struct {
-	Refs       []string
-	SourceID   string
-	Context    string
-	TargetRoot string
-	Apply      bool
+	Refs     []string
+	SourceID string
+	Context  string
+	Apply    bool
 }
 
 func Refresh(req RefreshRequest) output.Outcome {

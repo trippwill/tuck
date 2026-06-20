@@ -25,7 +25,6 @@ type TargetScope struct {
 type SelectionOptions struct {
 	SourceID    string
 	Context     string
-	TargetRoot  string
 	RequireHome bool
 }
 
@@ -44,7 +43,7 @@ func ActiveSource(sourceID string) (state.Source, error) {
 }
 
 func SelectActive(options SelectionOptions) (ActiveSelection, error) {
-	scope, err := NewTargetScope(options.Context, options.TargetRoot, options.RequireHome)
+	scope, err := NewTargetScope(options.Context, options.RequireHome)
 	if err != nil {
 		return ActiveSelection{}, err
 	}
@@ -70,11 +69,8 @@ func NormalizeContext(context string) string {
 	return ContextHome
 }
 
-func TargetRoot(explicit string, requireHome bool) (string, error) {
-	targetRoot := explicit
-	if targetRoot == "" {
-		targetRoot = os.Getenv("HOME")
-	}
+func targetRoot(requireHome bool) (string, error) {
+	targetRoot := os.Getenv("HOME")
 	if targetRoot == "" {
 		if requireHome {
 			return "", ErrNoHome
@@ -84,21 +80,17 @@ func TargetRoot(explicit string, requireHome bool) (string, error) {
 	return filepath.Clean(targetRoot), nil
 }
 
-func NewTargetScope(context string, explicit string, requireHome bool) (TargetScope, error) {
+func NewTargetScope(context string, requireHome bool) (TargetScope, error) {
 	context = NormalizeContext(context)
 	if context == ContextRoot {
-		physicalRoot := explicit
-		if physicalRoot == "" {
-			physicalRoot = rootPhysicalRoot()
-		}
 		return TargetScope{
 			Context:      ContextRoot,
 			LogicalRoot:  string(filepath.Separator),
-			PhysicalRoot: filepath.Clean(physicalRoot),
+			PhysicalRoot: filepath.Clean(rootPhysicalRoot()),
 		}, nil
 	}
 
-	targetRoot, err := TargetRoot(explicit, requireHome)
+	targetRoot, err := targetRoot(requireHome)
 	if err != nil {
 		return TargetScope{}, err
 	}

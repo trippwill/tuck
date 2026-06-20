@@ -9,11 +9,10 @@ import (
 const CommandEject output.Command = "eject"
 
 type EjectRequest struct {
-	File       string
-	SourceID   string
-	Context    string
-	TargetRoot string
-	Apply      bool
+	File     string
+	SourceID string
+	Context  string
+	Apply    bool
 }
 
 func Eject(req EjectRequest) output.Outcome {

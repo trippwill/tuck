@@ -10,10 +10,9 @@ import (
 )
 
 type OperationOptions struct {
-	Context    string
-	TargetRoot string
-	SourceID   string
-	Apply      bool
+	Context  string
+	SourceID string
+	Apply    bool
 }
 
 type Operation struct {
@@ -28,7 +27,6 @@ func NewOperation(options OperationOptions) (Operation, error) {
 	selection, err := domain.SelectActive(domain.SelectionOptions{
 		SourceID:    options.SourceID,
 		Context:     options.Context,
-		TargetRoot:  options.TargetRoot,
 		RequireHome: true,
 	})
 	if err != nil {

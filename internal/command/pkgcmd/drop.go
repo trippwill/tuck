@@ -9,11 +9,10 @@ import (
 const CommandDrop output.Command = "package drop"
 
 type DropRequest struct {
-	Refs       []string
-	SourceID   string
-	Context    string
-	TargetRoot string
-	Apply      bool
+	Refs     []string
+	SourceID string
+	Context  string
+	Apply    bool
 }
 
 func Drop(req DropRequest) output.Outcome {

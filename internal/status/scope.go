@@ -10,7 +10,6 @@ func active(options Options) (state.Source, domain.TargetScope, error) {
 	selection, err := domain.SelectActive(domain.SelectionOptions{
 		SourceID:    options.SourceID,
 		Context:     options.Context,
-		TargetRoot:  options.TargetRoot,
 		RequireHome: false,
 	})
 	if err != nil {

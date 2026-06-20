@@ -9,12 +9,11 @@ import (
 const CommandAdopt output.Command = "adopt"
 
 type AdoptRequest struct {
-	File       string
-	Ref        string
-	SourceID   string
-	Context    string
-	TargetRoot string
-	Apply      bool
+	File     string
+	Ref      string
+	SourceID string
+	Context  string
+	Apply    bool
 }
 
 func Adopt(req AdoptRequest) output.Outcome {
