@@ -2,8 +2,9 @@ package plan
 
 import "github.com/trippwill/tuck/internal/target"
 
-//go:generate go run ../../cmd/errgen -type ErrPlan
 type ErrPlan string
+
+func (e ErrPlan) Error() string { return string(e) }
 
 const (
 	ErrApply ErrPlan = "plan apply failed"

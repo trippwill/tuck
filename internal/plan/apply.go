@@ -3,11 +3,13 @@ package plan
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/trippwill/tuck/internal/apperr"
 )
 
 func Apply(plan Plan) error {
 	if len(plan.Conflicts) > 0 {
-		return AppErrMsg(ErrApply, "cannot apply a plan with conflicts")
+		return apperr.AppErrMsg(ErrApply, "cannot apply a plan with conflicts")
 	}
 	// Preflight catches predictable failures before the first mutation. The
 	// execution switch still checks every action because the filesystem can
@@ -20,46 +22,46 @@ func Apply(plan Plan) error {
 		case ActionMkdir:
 			path := action.fsPath()
 			if err := os.MkdirAll(path, 0o755); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not create directory %q", action.Path)
+				return apperr.AppErrWrapf(ErrApply, err, "could not create directory %q", action.Path)
 			}
 		case ActionRmdir:
 			path := action.fsPath()
 			info, err := os.Lstat(path)
 			if err != nil {
-				return AppErrWrapf(ErrApply, err, "could not inspect directory %q", action.Path)
+				return apperr.AppErrWrapf(ErrApply, err, "could not inspect directory %q", action.Path)
 			}
 			if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-				return AppErrMsgf(ErrApply, "refusing to remove non-directory %q", action.Path)
+				return apperr.AppErrMsgf(ErrApply, "refusing to remove non-directory %q", action.Path)
 			}
 			if err := os.Remove(path); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not remove directory %q", action.Path)
+				return apperr.AppErrWrapf(ErrApply, err, "could not remove directory %q", action.Path)
 			}
 		case ActionSymlink:
 			linkPath := action.fsLinkPath()
 			if err := os.MkdirAll(filepath.Dir(linkPath), 0o755); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not create directory %q", filepath.Dir(action.LinkPath))
+				return apperr.AppErrWrapf(ErrApply, err, "could not create directory %q", filepath.Dir(action.LinkPath))
 			}
 			if err := os.Symlink(action.Payload, linkPath); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not create symlink %q", action.LinkPath)
+				return apperr.AppErrWrapf(ErrApply, err, "could not create symlink %q", action.LinkPath)
 			}
 		case ActionRemoveSymlink:
 			path := action.fsPath()
 			info, err := os.Lstat(path)
 			if err != nil {
-				return AppErrWrapf(ErrApply, err, "could not inspect symlink %q", action.Path)
+				return apperr.AppErrWrapf(ErrApply, err, "could not inspect symlink %q", action.Path)
 			}
 			if info.Mode()&os.ModeSymlink == 0 {
-				return AppErrMsgf(ErrApply, "refusing to remove non-symlink %q", action.Path)
+				return apperr.AppErrMsgf(ErrApply, "refusing to remove non-symlink %q", action.Path)
 			}
 			if err := os.Remove(path); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not remove symlink %q", action.Path)
+				return apperr.AppErrWrapf(ErrApply, err, "could not remove symlink %q", action.Path)
 			}
 		case ActionMove:
 			if err := os.Rename(action.fsSrc(), action.fsDst()); err != nil {
-				return AppErrWrapf(ErrApply, err, "could not move %q to %q", action.Src, action.Dst)
+				return apperr.AppErrWrapf(ErrApply, err, "could not move %q to %q", action.Src, action.Dst)
 			}
 		default:
-			return AppErrMsgf(ErrApply, "unknown plan action type %q", action.Type)
+			return apperr.AppErrMsgf(ErrApply, "unknown plan action type %q", action.Type)
 		}
 	}
 	return nil
@@ -113,7 +115,7 @@ func (p *applyPreflight) validate(action Action) error {
 	case ActionMove:
 		return p.validateMove(action)
 	default:
-		return AppErrMsgf(ErrApply, "unknown plan action type %q", action.Type)
+		return apperr.AppErrMsgf(ErrApply, "unknown plan action type %q", action.Type)
 	}
 }
 
@@ -138,11 +140,11 @@ func (p *applyPreflight) validateMkdir(path string, displayPath string) error {
 	for dir := path; ; dir = filepath.Dir(dir) {
 		exists, isDir, err := p.directoryState(dir)
 		if err != nil {
-			return AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
+			return apperr.AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
 		}
 		if exists {
 			if !isDir {
-				return AppErrMsgf(ErrApply, "could not create directory %q: %q is not a directory", displayPath, displayPath)
+				return apperr.AppErrMsgf(ErrApply, "could not create directory %q: %q is not a directory", displayPath, displayPath)
 			}
 			return nil
 		}
@@ -156,20 +158,20 @@ func (p *applyPreflight) validateRmdir(path string, displayPath string) error {
 	path = filepath.Clean(path)
 	kind, exists, err := p.pathKind(path)
 	if err != nil {
-		return AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
 	}
 	if !exists {
-		return AppErrMsgf(ErrApply, "could not inspect directory %q: path does not exist", displayPath)
+		return apperr.AppErrMsgf(ErrApply, "could not inspect directory %q: path does not exist", displayPath)
 	}
 	if kind != preflightDirectory {
-		return AppErrMsgf(ErrApply, "refusing to remove non-directory %q", displayPath)
+		return apperr.AppErrMsgf(ErrApply, "refusing to remove non-directory %q", displayPath)
 	}
 	empty, err := p.emptyDirectoryAfterPlannedRemovals(path)
 	if err != nil {
-		return AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
 	}
 	if !empty {
-		return AppErrMsgf(ErrApply, "could not remove directory %q: directory not empty", displayPath)
+		return apperr.AppErrMsgf(ErrApply, "could not remove directory %q: directory not empty", displayPath)
 	}
 	return nil
 }
@@ -182,10 +184,10 @@ func (p *applyPreflight) validateSymlink(action Action) error {
 	}
 	_, exists, err := p.pathKind(linkPath)
 	if err != nil {
-		return AppErrWrapf(ErrApply, err, "could not inspect symlink %q", action.LinkPath)
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect symlink %q", action.LinkPath)
 	}
 	if exists {
-		return AppErrMsgf(ErrApply, "could not create symlink %q: path already exists", action.LinkPath)
+		return apperr.AppErrMsgf(ErrApply, "could not create symlink %q: path already exists", action.LinkPath)
 	}
 	return nil
 }
@@ -194,13 +196,13 @@ func (p *applyPreflight) validateRemoveSymlink(path string, displayPath string) 
 	path = filepath.Clean(path)
 	kind, exists, err := p.pathKind(path)
 	if err != nil {
-		return AppErrWrapf(ErrApply, err, "could not inspect symlink %q", displayPath)
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect symlink %q", displayPath)
 	}
 	if !exists {
-		return AppErrMsgf(ErrApply, "could not inspect symlink %q: path does not exist", displayPath)
+		return apperr.AppErrMsgf(ErrApply, "could not inspect symlink %q: path does not exist", displayPath)
 	}
 	if kind != preflightSymlink {
-		return AppErrMsgf(ErrApply, "refusing to remove non-symlink %q", displayPath)
+		return apperr.AppErrMsgf(ErrApply, "refusing to remove non-symlink %q", displayPath)
 	}
 	return nil
 }
@@ -208,17 +210,17 @@ func (p *applyPreflight) validateRemoveSymlink(path string, displayPath string) 
 func (p *applyPreflight) validateMove(action Action) error {
 	_, exists, err := p.pathKind(action.fsSrc())
 	if err != nil {
-		return AppErrWrapf(ErrApply, err, "could not inspect move source %q", action.Src)
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect move source %q", action.Src)
 	}
 	if !exists {
-		return AppErrMsgf(ErrApply, "could not move %q to %q: source does not exist", action.Src, action.Dst)
+		return apperr.AppErrMsgf(ErrApply, "could not move %q to %q: source does not exist", action.Src, action.Dst)
 	}
 	_, exists, err = p.pathKind(action.fsDst())
 	if err != nil {
-		return AppErrWrapf(ErrApply, err, "could not inspect move destination %q", action.Dst)
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect move destination %q", action.Dst)
 	}
 	if exists {
-		return AppErrMsgf(ErrApply, "could not move %q to %q: destination already exists", action.Src, action.Dst)
+		return apperr.AppErrMsgf(ErrApply, "could not move %q to %q: destination already exists", action.Src, action.Dst)
 	}
 	if err := p.validateExistingDirectory(filepath.Dir(action.fsDst()), filepath.Dir(action.Dst)); err != nil {
 		return err
@@ -230,13 +232,13 @@ func (p *applyPreflight) validateExistingDirectory(path string, displayPath stri
 	path = filepath.Clean(path)
 	exists, isDir, err := p.directoryState(path)
 	if err != nil {
-		return AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
+		return apperr.AppErrWrapf(ErrApply, err, "could not inspect directory %q", displayPath)
 	}
 	if !exists {
-		return AppErrMsgf(ErrApply, "directory %q does not exist", displayPath)
+		return apperr.AppErrMsgf(ErrApply, "directory %q does not exist", displayPath)
 	}
 	if !isDir {
-		return AppErrMsgf(ErrApply, "%q is not a directory", displayPath)
+		return apperr.AppErrMsgf(ErrApply, "%q is not a directory", displayPath)
 	}
 	return nil
 }

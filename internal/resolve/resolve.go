@@ -2,8 +2,9 @@ package resolve
 
 import "github.com/trippwill/tuck/internal/state"
 
-//go:generate go run ../../cmd/errgen -type ErrSource
 type ErrSource string
+
+func (e ErrSource) Error() string { return string(e) }
 
 const (
 	ErrNoSource      ErrSource = "no source"

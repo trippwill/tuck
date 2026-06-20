@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/trippwill/tuck/internal/apperr"
 )
 
 func TestLoad(t *testing.T) {
@@ -103,16 +105,16 @@ func TestLoadErrors(t *testing.T) {
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("Load() error = %v, want errors.Is(..., %v)", err, tt.wantErr)
 			}
-			var manifestErr *Error
+			var manifestErr *apperr.Error[ErrManifest]
 			if !errors.As(err, &manifestErr) {
-				t.Fatalf("Load() error = %T, want errors.As(..., *manifest.Error)", err)
+				t.Fatalf("Load() error = %T, want errors.As(..., *apperr.Error[manifest.ErrManifest])", err)
 			}
 			if got := manifestErr.Sentinel(); got != tt.wantErr {
 				t.Fatalf("Load() error sentinel = %v, want %v", got, tt.wantErr)
 			}
-			asTypeErr, ok := errors.AsType[*Error](err)
+			asTypeErr, ok := errors.AsType[*apperr.Error[ErrManifest]](err)
 			if !ok {
-				t.Fatalf("Load() error = %T, want errors.AsType[*manifest.Error](...) ok", err)
+				t.Fatalf("Load() error = %T, want errors.AsType[*apperr.Error[manifest.ErrManifest]](...) ok", err)
 			}
 			if got := asTypeErr.Sentinel(); got != tt.wantErr {
 				t.Fatalf("Load() AsType error sentinel = %v, want %v", got, tt.wantErr)
@@ -195,12 +197,12 @@ func TestInitRejectsInvalidNameAndExistingManifest(t *testing.T) {
 	}
 }
 
-func TestGeneratedErrorAliasSupportsTypedInspection(t *testing.T) {
-	err := AppErrMsgf(ErrInvalid, "invalid manifest name %q", "bad/name")
+func TestGenericAppErrorSupportsTypedInspection(t *testing.T) {
+	err := apperr.AppErrMsgf(ErrInvalid, "invalid manifest name %q", "bad/name")
 
-	var manifestErr *Error
+	var manifestErr *apperr.Error[ErrManifest]
 	if !errors.As(err, &manifestErr) {
-		t.Fatalf("errors.As(err, *manifest.Error) = false, want true")
+		t.Fatalf("errors.As(err, *apperr.Error[manifest.ErrManifest]) = false, want true")
 	}
 	if got := manifestErr.Sentinel(); got != ErrInvalid {
 		t.Fatalf("Sentinel() = %v, want %v", got, ErrInvalid)

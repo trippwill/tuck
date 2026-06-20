@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/trippwill/tuck/internal/apperr"
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pathutil"
 	"github.com/trippwill/tuck/internal/plan"
@@ -30,7 +31,7 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 
 	targetPath, err := pathutil.ExpandInput(req.File)
 	if err != nil {
-		return plan.Plan{}, plan.AppErrWrapf(plan.ErrApply, err, "could not resolve target path")
+		return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not resolve target path")
 	}
 	scope := op.Scope()
 	if !pathutil.Inside(targetPath, scope.LogicalRoot) {
@@ -60,7 +61,7 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 		op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
 		return op.Finalize()
 	} else if !errors.Is(err, fs.ErrNotExist) {
-		return plan.Plan{}, plan.AppErrWrapf(plan.ErrApply, err, "could not inspect package path %q", packagePath)
+		return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if !pathutil.Inside(packagePath, identity.Root) {
 		op.AddConflict(plan.NewConflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
@@ -93,7 +94,7 @@ func buildEject(req EjectRequest) (plan.Plan, error) {
 	}
 	targetPath, err := pathutil.ExpandInput(req.File)
 	if err != nil {
-		return plan.Plan{}, plan.AppErrWrapf(plan.ErrApply, err, "could not resolve target path")
+		return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not resolve target path")
 	}
 
 	scope := op.Scope()
@@ -123,7 +124,7 @@ func buildEject(req EjectRequest) (plan.Plan, error) {
 			op.AddConflict(plan.NewConflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package file does not exist"))
 			return op.Finalize()
 		}
-		return plan.Plan{}, plan.AppErrWrapf(plan.ErrApply, err, "could not inspect package path %q", packagePath)
+		return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if info.IsDir() {
 		op.AddConflict(plan.NewConflict(target.ConflictNotManagedSymlink, packagePath, owner.Identity.String(), "package path is a directory"))
@@ -178,11 +179,11 @@ func pruneAfterEject(packageRoot, packagePath string) ([]string, error) {
 
 	for dir := filepath.Dir(packagePath); dir != packageRoot; dir = filepath.Dir(dir) {
 		if !pathutil.Inside(dir, packageRoot) {
-			return nil, plan.AppErrMsgf(plan.ErrApply, "package path %q escapes package root %q", packagePath, packageRoot)
+			return nil, apperr.AppErrMsgf(plan.ErrApply, "package path %q escapes package root %q", packagePath, packageRoot)
 		}
 		entries, err := os.ReadDir(dir)
 		if err != nil {
-			return nil, plan.AppErrWrapf(plan.ErrApply, err, "could not inspect package directory %q", dir)
+			return nil, apperr.AppErrWrapf(plan.ErrApply, err, "could not inspect package directory %q", dir)
 		}
 		emptyAfterPlannedRemovals := true
 		for _, entry := range entries {

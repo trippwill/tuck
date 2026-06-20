@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
+	"github.com/trippwill/tuck/internal/apperr"
 )
 
-//go:generate go run ../../cmd/errgen -type ErrManifest
 type ErrManifest string
+
+func (e ErrManifest) Error() string { return string(e) }
 
 const (
 	ErrInvalid ErrManifest = "invalid manifest"
@@ -52,12 +54,12 @@ func Init(repoRoot string, options InitOptions) (Initialized, error) {
 	}
 
 	if err := os.MkdirAll(root, 0o755); err != nil {
-		return Initialized{}, AppErrWrapf(ErrInvalid, err, "could not create source directory %q", root)
+		return Initialized{}, apperr.AppErrWrapf(ErrInvalid, err, "could not create source directory %q", root)
 	}
 	if _, err := os.Lstat(manifestPath); err == nil {
-		return Initialized{}, AppErrMsgf(ErrExists, "manifest already exists at %q", manifestPath)
+		return Initialized{}, apperr.AppErrMsgf(ErrExists, "manifest already exists at %q", manifestPath)
 	} else if !os.IsNotExist(err) {
-		return Initialized{}, AppErrWrapf(ErrInvalid, err, "could not inspect manifest %q", manifestPath)
+		return Initialized{}, apperr.AppErrWrapf(ErrInvalid, err, "could not inspect manifest %q", manifestPath)
 	}
 
 	if err := writeNewManifest(manifestPath, marshal(sourceManifest)); err != nil {
@@ -74,7 +76,7 @@ func Load(repoRoot string) (Manifest, error) {
 	manifestPath := filepath.Join(repoRoot, ManifestFilename)
 	contents, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return Manifest{}, AppErrWrapf(ErrMissing, err, "could not read manifest %q", manifestPath)
+		return Manifest{}, apperr.AppErrWrapf(ErrMissing, err, "could not read manifest %q", manifestPath)
 	}
 
 	manifest := struct {
@@ -83,7 +85,7 @@ func Load(repoRoot string) (Manifest, error) {
 	}{}
 
 	if err := toml.Unmarshal(contents, &manifest); err != nil {
-		return Manifest{}, AppErrWrapf(ErrInvalid, err, "could not parse manifest %q", manifestPath)
+		return Manifest{}, apperr.AppErrWrapf(ErrInvalid, err, "could not parse manifest %q", manifestPath)
 	}
 
 	loaded := Manifest{
@@ -98,20 +100,20 @@ func Load(repoRoot string) (Manifest, error) {
 
 func initRoot(repoRoot string) (string, error) {
 	if strings.TrimSpace(repoRoot) == "" {
-		return "", AppErrMsg(ErrInvalid, "source path is empty")
+		return "", apperr.AppErrMsg(ErrInvalid, "source path is empty")
 	}
 	cleanPath := filepath.Clean(repoRoot)
 	if cleanPath == "~" || strings.HasPrefix(cleanPath, "~"+string(os.PathSeparator)) {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return "", AppErrWrap(ErrInvalid, err)
+			return "", apperr.AppErrWrap(ErrInvalid, err)
 		}
 		cleanPath = filepath.Join(home, strings.TrimPrefix(cleanPath, "~"))
 	}
 	if !filepath.IsAbs(cleanPath) {
 		absPath, err := filepath.Abs(cleanPath)
 		if err != nil {
-			return "", AppErrWrap(ErrInvalid, err)
+			return "", apperr.AppErrWrap(ErrInvalid, err)
 		}
 		cleanPath = absPath
 	}
@@ -120,7 +122,7 @@ func initRoot(repoRoot string) (string, error) {
 
 func validate(manifest Manifest, manifestPath string) error {
 	if strings.TrimSpace(manifest.Name) == "" || strings.ContainsAny(manifest.Name, "/:") {
-		return AppErrMsgf(ErrInvalid, "invalid manifest name %q in %q: must be non-empty and cannot contain '/' or ':'", manifest.Name, manifestPath)
+		return apperr.AppErrMsgf(ErrInvalid, "invalid manifest name %q in %q: must be non-empty and cannot contain '/' or ':'", manifest.Name, manifestPath)
 	}
 	return nil
 }
@@ -142,7 +144,7 @@ func writeNewManifest(manifestPath string, contents []byte) error {
 	dir := filepath.Dir(manifestPath)
 	tempFile, err := os.CreateTemp(dir, ManifestFilename+".*")
 	if err != nil {
-		return AppErrWrapf(ErrInvalid, err, "could not create temporary manifest in %q", dir)
+		return apperr.AppErrWrapf(ErrInvalid, err, "could not create temporary manifest in %q", dir)
 	}
 	tempPath := tempFile.Name()
 	removeTemp := true
@@ -154,24 +156,24 @@ func writeNewManifest(manifestPath string, contents []byte) error {
 
 	if _, err := tempFile.Write(contents); err != nil {
 		_ = tempFile.Close()
-		return AppErrWrapf(ErrInvalid, err, "could not write temporary manifest %q", tempPath)
+		return apperr.AppErrWrapf(ErrInvalid, err, "could not write temporary manifest %q", tempPath)
 	}
 	if err := tempFile.Chmod(0o644); err != nil {
 		_ = tempFile.Close()
-		return AppErrWrapf(ErrInvalid, err, "could not set manifest permissions %q", tempPath)
+		return apperr.AppErrWrapf(ErrInvalid, err, "could not set manifest permissions %q", tempPath)
 	}
 	if err := tempFile.Close(); err != nil {
-		return AppErrWrapf(ErrInvalid, err, "could not close temporary manifest %q", tempPath)
+		return apperr.AppErrWrapf(ErrInvalid, err, "could not close temporary manifest %q", tempPath)
 	}
 	if err := os.Link(tempPath, manifestPath); err != nil {
 		if os.IsExist(err) {
-			return AppErrMsgf(ErrExists, "manifest already exists at %q", manifestPath)
+			return apperr.AppErrMsgf(ErrExists, "manifest already exists at %q", manifestPath)
 		}
-		return AppErrWrapf(ErrInvalid, err, "could not create manifest %q", manifestPath)
+		return apperr.AppErrWrapf(ErrInvalid, err, "could not create manifest %q", manifestPath)
 	}
 	removeTemp = false
 	if err := os.Remove(tempPath); err != nil {
-		return AppErrWrapf(ErrInvalid, err, "could not remove temporary manifest %q", tempPath)
+		return apperr.AppErrWrapf(ErrInvalid, err, "could not remove temporary manifest %q", tempPath)
 	}
 	return nil
 }

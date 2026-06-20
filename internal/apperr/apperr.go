@@ -5,10 +5,8 @@
 // const values. Error unwraps to both the sentinel and the wrapped cause, so
 // callers normally classify failures with errors.Is and the package sentinel.
 //
-// Callers that need typed app-error metadata should prefer the generated
-// package-local Error aliases, such as *manifest.Error, rather than naming
-// *apperr.Error[S] directly. Direct use of Error[S] is primarily for this
-// package and generic helpers.
+// Callers that need typed app-error metadata can name *apperr.Error[pkg.ErrKind]
+// directly.
 package apperr
 
 import "fmt"

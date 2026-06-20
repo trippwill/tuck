@@ -315,23 +315,12 @@ add unit tests that compile and fail because the behavior is missing. Acceptance
 tests should also be added early for command slices because they prove the
 user-observable CLI compiles and fails before command wiring is implemented.
 
-Generated code follows the same compile-first rule. For typed application error
-sentinels, add a small string type and constants, then generate the boilerplate
-with:
-
-```go
-//go:generate go run ../../cmd/errgen -type ErrKind
-```
-
-`errgen` supplies sentinel `Error()` methods, a package-local
-`type Error = apperr.Error[ErrKind]` alias, and non-generic helpers named for
-their two axes: `AppErrMsg` / `AppErrMsgf` for context-only errors and
-`AppErrWrap` / `AppErrWrapf` for errors that preserve a cause. Keep tests red
-for generated behavior, not for missing generated symbols: add the production
-compile seam or run the generator before asserting behavior that depends on
-generated helpers.
-Run `mise run generate` when adding or changing generated helpers, and use
-`mise run check` for the full gate.
+Typed application error sentinels follow the same compile-first rule. Add a
+small string type, constants, and a one-line `Error()` method, then call
+`internal/apperr` helpers directly: `AppErrMsg` / `AppErrMsgf` for context-only
+errors and `AppErrWrap` / `AppErrWrapf` for errors that preserve a cause.
+Use `*apperr.Error[pkg.ErrKind]` when tests need typed app-error metadata.
+Use `mise run check` for the full gate.
 
 This pairs naturally with **plan-by-default**: a single script first runs the
 command **without `--apply`** and asserts the filetree is **unchanged** (the

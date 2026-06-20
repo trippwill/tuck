@@ -32,8 +32,9 @@ type Manifest struct {
 	Description string
 }
 
-type Error = apperr.Error[ErrManifest]
 type ErrManifest string
+
+func (e ErrManifest) Error() string { return string(e) }
 
 const (
 	ErrInvalid ErrManifest = "invalid manifest"

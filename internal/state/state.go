@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
+	"github.com/trippwill/tuck/internal/apperr"
 	"github.com/trippwill/tuck/internal/manifest"
 )
 
@@ -31,8 +32,9 @@ func (r Registry) EnabledSources() []Source {
 	return enabled
 }
 
-//go:generate go run ../../cmd/errgen -type ErrState
 type ErrState string
+
+func (e ErrState) Error() string { return string(e) }
 
 const (
 	ErrInvalid    ErrState = "invalid state"
@@ -47,7 +49,7 @@ func Load() (Registry, error) {
 		if os.IsNotExist(err) {
 			return Registry{}, nil
 		}
-		return Registry{}, AppErrWrapf(ErrInvalid, err, "could not read state file %q", sourcesPath)
+		return Registry{}, apperr.AppErrWrapf(ErrInvalid, err, "could not read state file %q", sourcesPath)
 	}
 
 	file := struct {
@@ -60,7 +62,7 @@ func Load() (Registry, error) {
 	}{}
 
 	if err := toml.Unmarshal(contents, &file); err != nil {
-		return Registry{}, AppErrWrapf(ErrInvalid, err, "could not parse state file %q", sourcesPath)
+		return Registry{}, apperr.AppErrWrapf(ErrInvalid, err, "could not parse state file %q", sourcesPath)
 	}
 
 	sources := make([]Source, len(file.Sources))
@@ -92,12 +94,12 @@ func Save(registry Registry) error {
 	sourcesPath := sourcesFile()
 	stateDir := filepath.Dir(sourcesPath)
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
-		return AppErrWrapf(ErrWrite, err, "could not create state directory %q", stateDir)
+		return apperr.AppErrWrapf(ErrWrite, err, "could not create state directory %q", stateDir)
 	}
 
 	tempFile, err := os.CreateTemp(stateDir, ".sources.toml.*")
 	if err != nil {
-		return AppErrWrapf(ErrWrite, err, "could not create temporary state file in %q", stateDir)
+		return apperr.AppErrWrapf(ErrWrite, err, "could not create temporary state file in %q", stateDir)
 	}
 	tempPath := tempFile.Name()
 	removeTemp := true
@@ -109,13 +111,13 @@ func Save(registry Registry) error {
 
 	if _, err := tempFile.Write(contents); err != nil {
 		_ = tempFile.Close()
-		return AppErrWrapf(ErrWrite, err, "could not write temporary state file %q", tempPath)
+		return apperr.AppErrWrapf(ErrWrite, err, "could not write temporary state file %q", tempPath)
 	}
 	if err := tempFile.Close(); err != nil {
-		return AppErrWrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
+		return apperr.AppErrWrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
 	}
 	if err := os.Rename(tempPath, sourcesPath); err != nil {
-		return AppErrWrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
+		return apperr.AppErrWrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
 	}
 	removeTemp = false
 	return nil
@@ -124,7 +126,7 @@ func Save(registry Registry) error {
 func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 	rootPath, err := canonicalRoot(path)
 	if err != nil {
-		return Registry{}, Source{}, AppErrWrapf(ErrSourceRoot, err, "invalid source root %q", path)
+		return Registry{}, Source{}, apperr.AppErrWrapf(ErrSourceRoot, err, "invalid source root %q", path)
 	}
 	sourceManifest, err := manifest.Load(rootPath)
 	if err != nil {
@@ -146,10 +148,10 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 			}
 			existingPath, err := canonicalRoot(existing.Path)
 			if err != nil {
-				return Registry{}, false, AppErrWrapf(ErrInvalid, err, "existing source %q has invalid path %q", existing.ID, existing.Path)
+				return Registry{}, false, apperr.AppErrWrapf(ErrInvalid, err, "existing source %q has invalid path %q", existing.ID, existing.Path)
 			}
 			if existingPath != rootPath {
-				return Registry{}, false, AppErrMsgf(ErrInvalid, "source id %q already exists at %q", existing.ID, existingPath)
+				return Registry{}, false, apperr.AppErrMsgf(ErrInvalid, "source id %q already exists at %q", existing.ID, existingPath)
 			}
 			registry.Sources[i] = added
 			found = true

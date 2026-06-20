@@ -3,6 +3,7 @@ package plan
 import (
 	"errors"
 
+	"github.com/trippwill/tuck/internal/apperr"
 	"github.com/trippwill/tuck/internal/domain"
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/state"
@@ -32,7 +33,7 @@ func NewOperation(options OperationOptions) (Operation, error) {
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrNoHome) {
-			return Operation{}, AppErrMsg(ErrApply, err.Error())
+			return Operation{}, apperr.AppErrMsg(ErrApply, err.Error())
 		}
 		return Operation{}, err
 	}

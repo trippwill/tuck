@@ -8,13 +8,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/trippwill/tuck/internal/apperr"
 	"github.com/trippwill/tuck/internal/domain"
 	"github.com/trippwill/tuck/internal/pkgref"
 	"github.com/trippwill/tuck/internal/state"
 )
 
-//go:generate go run ../../cmd/errgen -type ErrPackage
 type ErrPackage string
+
+func (e ErrPackage) Error() string { return string(e) }
 
 const ErrPackageNotFound ErrPackage = "package not found"
 
@@ -174,12 +176,12 @@ func ResolveOne(source state.Source, context string, name string) (Resolved, err
 	info, err := os.Stat(root)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return Resolved{}, AppErrMsgf(ErrPackageNotFound, "package %q not found in source %q", name, source.ID)
+			return Resolved{}, apperr.AppErrMsgf(ErrPackageNotFound, "package %q not found in source %q", name, source.ID)
 		}
-		return Resolved{}, AppErrWrapf(ErrPackageNotFound, err, "could not inspect package %q in source %q", name, source.ID)
+		return Resolved{}, apperr.AppErrWrapf(ErrPackageNotFound, err, "could not inspect package %q in source %q", name, source.ID)
 	}
 	if !info.IsDir() {
-		return Resolved{}, AppErrMsgf(ErrPackageNotFound, "package %q not found in source %q", name, source.ID)
+		return Resolved{}, apperr.AppErrMsgf(ErrPackageNotFound, "package %q not found in source %q", name, source.ID)
 	}
 	entries, err := Enumerate(root)
 	if err != nil {
