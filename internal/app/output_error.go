@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/trippwill/tuck/internal/manifest"
+	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/pkgref"
 	"github.com/trippwill/tuck/internal/plan"
@@ -63,6 +64,14 @@ func isPrivilegeRequired(err error) bool {
 }
 
 func classifyError(err error) errorRecord {
+	var invalidArgs output.InvalidArgsError
+	if errors.As(err, &invalidArgs) {
+		return errorRecord{
+			Code:    "invalid_args",
+			Message: invalidArgs.Message,
+			Hint:    invalidArgs.Hint,
+		}
+	}
 	switch {
 	case errors.Is(err, state.ErrSourceRoot):
 		return errorRecord{

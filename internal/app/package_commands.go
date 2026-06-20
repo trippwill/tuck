@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 
+	"github.com/trippwill/tuck/internal/command/pkgcmd"
+	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/plan"
 	statuspkg "github.com/trippwill/tuck/internal/status"
@@ -89,27 +91,19 @@ func packageCommand() *cli.Command {
 }
 
 func packageUseAction(_ context.Context, cmd *cli.Command) error {
-	refs := cmd.StringArgs("package")
-	if err := invalidArgsIf(len(refs) == 0 && !cmd.Bool("all"), cmd, "package use", "package use requires one or more package refs or --all", "pass one or more package names, or use --all"); err != nil {
-		return err
-	}
-	if err := invalidArgsIf(len(refs) > 0 && cmd.Bool("all"), cmd, "package use", "package use accepts package refs or --all, not both", "choose package refs or --all"); err != nil {
-		return err
-	}
-	usePlan, err := plan.BuildUse(plan.UseOptions{
-		Refs:     refs,
+	contextName := contextFromFlag(cmd)
+	outcome := pkgcmd.Use(pkgcmd.UseRequest{
+		Refs:     cmd.StringArgs("package"),
 		All:      cmd.Bool("all"),
 		SourceID: cmd.String("source"),
-		Context:  contextFromFlag(cmd),
+		Context:  contextName,
 		Apply:    cmd.Bool("apply"),
 	})
-	if err != nil {
-		if isPrivilegeRequired(err) {
-			return renderPlanError(cmd, usePlan, err)
-		}
-		return renderError(cmd, "package use", err)
-	}
-	return renderPlan(cmd, usePlan)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{
+		Command: pkgcmd.CommandUse,
+		Context: contextName,
+	}, outcome)
+	return finish(exitCode, err)
 }
 
 func packageDropAction(_ context.Context, cmd *cli.Command) error {
