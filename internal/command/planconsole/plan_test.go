@@ -37,11 +37,29 @@ func TestConsoleStringReportsUnsatisfiedPrivilege(t *testing.T) {
 		Actions: []plan.Action{plan.MkdirAction("/etc/ssh", "")},
 	}
 
-	got, err := ConsoleString(output.Invocation{Command: "command", Context: "root"}, planned)
+	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "root"}, false), planned)
 	if err != nil {
 		t.Fatalf("ConsoleString() error = %v", err)
 	}
 	if !strings.Contains(got, "privilege required: root-context write") {
 		t.Fatalf("ConsoleString() = %q, want privilege requirement", got)
+	}
+}
+
+func TestConsoleStringStylesConflictsWhenColorEnabled(t *testing.T) {
+	planned := plan.Plan{
+		DryRun: true,
+		Conflicts: []plan.Conflict{{
+			Code: "target_exists",
+			Path: "~/.zshrc",
+		}},
+	}
+
+	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "home"}, true), planned)
+	if err != nil {
+		t.Fatalf("ConsoleString() error = %v", err)
+	}
+	if !strings.Contains(got, "\x1b[31;1m!\x1b[0m \x1b[31;1mtarget_exists\x1b[0m ~/.zshrc") {
+		t.Fatalf("ConsoleString() = %q, want styled conflict marker and code", got)
 	}
 }

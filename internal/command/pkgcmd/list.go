@@ -45,20 +45,21 @@ func List(req ListRequest) output.Outcome {
 	})
 }
 
-func renderList(inv output.Invocation, data any) (string, error) {
+func renderList(console output.Console, data any) (string, error) {
 	p, ok := data.(ListPayload)
 	if !ok {
 		return "", fmt.Errorf("package list console renderer received %T", data)
 	}
+	inv := console.Invocation
 	var b strings.Builder
 	fmt.Fprintf(&b, "tuck %s   (context: %s, source: %s)\n\n", inv.Command, inv.Context, p.Source)
 	for _, name := range p.Packages {
-		fmt.Fprintln(&b, name)
+		fmt.Fprintln(&b, console.Style(output.StylePackage, name))
 	}
 	if len(p.Packages) > 0 {
 		fmt.Fprintln(&b)
 	}
-	fmt.Fprintf(&b, "%d %s\n", len(p.Packages), packageNoun(len(p.Packages)))
+	fmt.Fprintf(&b, "%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d %s", len(p.Packages), packageNoun(len(p.Packages)))))
 	return b.String(), nil
 }
 

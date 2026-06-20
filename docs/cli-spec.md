@@ -176,7 +176,7 @@ No flag is global unless it is meaningful for every command.
 | Flag | Alias | Scope | Meaning |
 | --- | --- | --- | --- |
 | `--json` | | universal | Emit one JSON document instead of human output. |
-| `--no-color` | | universal | Disable colored output. Kept for now; may later defer to `NO_COLOR` only. |
+| `--no-color` | | universal | Disable colored console output. |
 | `--help` | `-h` | universal | Print help for the program or command. |
 | `--version` | `-v` | root only | Print version. |
 | `--source <id>` | `-s` | domain commands | Select the active source by enabled id. |
@@ -197,6 +197,8 @@ Flag interaction rules:
 - Mutating target-tree commands build and print a plan unless `--apply` is
   given.
 - `--json` implies `--no-color`.
+- Console color is enabled only when the destination stream is a terminal and
+  `NO_COLOR` is unset. `--no-color` disables color on all console streams.
 - `package use` requires either one or more package refs or `--all`, but not
   both.
 
@@ -701,11 +703,14 @@ Every command supports human output (default) and `--json`.
 to stdout. Diagnostics -- error messages and hints -- go to stderr. With
 `--json`, exactly one JSON document is written to stdout and stderr stays empty.
 
-### 9.1 Human output
+### 9.1 Console output
 
 A plan renders as a header, a `plan:` block, optional `conflicts:` block, and
-summary. Exact glyphs and color are not locked down yet; color decisions are
-deferred until color output is implemented.
+summary. Console output may use ANSI color for semantic emphasis when writing to
+a terminal: successes and additive plan actions, warnings and dry-run hints,
+errors and conflicts, muted secondary information, and identifiers/paths. Exact
+glyphs and color codes are not stable API. `--no-color`, `NO_COLOR`, redirected
+streams, and `--json` all produce colorless output.
 
 Example:
 

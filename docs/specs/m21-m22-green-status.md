@@ -48,7 +48,7 @@ Out of scope:
 - Copy deployment status and drift detection.
 - `package list`, `package show`, `package drop`, `adopt`, and `eject`, except
   for shared primitives that they will later reuse.
-- Color behavior beyond respecting existing `--no-color`/`--json` conventions.
+- Additional color behavior beyond the shared console color policy.
 
 No new exported variable sentinels should be added. Use generated app-error
 helpers or unexported typed constants where errors need stable identity.

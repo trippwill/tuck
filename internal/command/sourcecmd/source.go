@@ -133,7 +133,7 @@ func addResult(p AddPayload) output.Result {
 		Kind:          KindSources,
 		Data:          buildSourcesData(p.Registry),
 		ExitCode:      output.ExitOK,
-		ConsoleString: func(output.Invocation, any) (string, error) { return renderAdd(p), nil },
+		ConsoleString: func(console output.Console, _ any) (string, error) { return renderAdd(console, p), nil },
 	}
 }
 
@@ -142,7 +142,7 @@ func initResult(p InitPayload) output.Result {
 		Kind:          KindSources,
 		Data:          initData(p),
 		ExitCode:      output.ExitOK,
-		ConsoleString: func(output.Invocation, any) (string, error) { return renderInit(p), nil },
+		ConsoleString: func(console output.Console, _ any) (string, error) { return renderInit(console, p), nil },
 	}
 }
 
@@ -151,7 +151,7 @@ func listResult(p ListPayload) output.Result {
 		Kind:          KindSources,
 		Data:          buildSourcesData(p.Registry),
 		ExitCode:      output.ExitOK,
-		ConsoleString: func(output.Invocation, any) (string, error) { return renderList(p), nil },
+		ConsoleString: func(console output.Console, _ any) (string, error) { return renderList(console, p), nil },
 	}
 }
 
@@ -160,7 +160,7 @@ func rmResult(p RmPayload) output.Result {
 		Kind:          KindSources,
 		Data:          buildSourcesData(p.Registry),
 		ExitCode:      output.ExitOK,
-		ConsoleString: func(output.Invocation, any) (string, error) { return renderRm(p), nil },
+		ConsoleString: func(console output.Console, _ any) (string, error) { return renderRm(console, p), nil },
 	}
 }
 
@@ -169,7 +169,7 @@ func defaultResult(p DefaultPayload) output.Result {
 		Kind:          KindSources,
 		Data:          buildSourcesData(p.Registry),
 		ExitCode:      output.ExitOK,
-		ConsoleString: func(output.Invocation, any) (string, error) { return renderDefault(p), nil },
+		ConsoleString: func(console output.Console, _ any) (string, error) { return renderDefault(console, p), nil },
 	}
 }
 
@@ -182,30 +182,35 @@ func initData(p InitPayload) sourcesData {
 	}}})
 }
 
-func renderAdd(p AddPayload) string {
+func renderAdd(console output.Console, p AddPayload) string {
 	defaultValue := "no"
 	if p.Registry.Default == p.Source.ID {
 		defaultValue = "yes"
 	}
-	return fmt.Sprintf("added source %s\npath: %s\ndefault: %s\n", p.Source.ID, p.Source.Path, defaultValue)
+	return fmt.Sprintf("added source %s\npath: %s\ndefault: %s\n", console.Style(output.StylePackage, p.Source.ID), console.Style(output.StylePath, p.Source.Path), styledBool(console, defaultValue))
 }
 
-func renderInit(p InitPayload) string {
+func renderInit(console output.Console, p InitPayload) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "initialized source %s\n", p.Initialized.Manifest.Name)
-	fmt.Fprintf(&b, "path: %s\n", p.Initialized.Path)
+	fmt.Fprintf(&b, "initialized source %s\n", console.Style(output.StylePackage, p.Initialized.Manifest.Name))
+	fmt.Fprintf(&b, "path: %s\n", console.Style(output.StylePath, p.Initialized.Path))
 	if p.Initialized.Manifest.Description != "" {
 		fmt.Fprintf(&b, "description: %s\n", p.Initialized.Manifest.Description)
 	}
 	return b.String()
 }
 
-func renderList(p ListPayload) string {
+func renderList(console output.Console, p ListPayload) string {
 	if len(p.Registry.Sources) == 0 {
 		return "no sources enabled\n"
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "%-8s %-8s %-8s %s\n", "ID", "DEFAULT", "ENABLED", "PATH")
+	fmt.Fprintf(&b, "%s %s %s %s\n",
+		styledField(console, output.StyleAccent, "ID", 8),
+		styledField(console, output.StyleAccent, "DEFAULT", 8),
+		styledField(console, output.StyleAccent, "ENABLED", 8),
+		console.Style(output.StyleAccent, "PATH"),
+	)
 	for _, source := range p.Registry.Sources {
 		defaultValue := "no"
 		if p.Registry.Default == source.ID {
@@ -215,17 +220,41 @@ func renderList(p ListPayload) string {
 		if source.Enabled {
 			enabledValue = "yes"
 		}
-		fmt.Fprintf(&b, "%-8s %-8s %-8s %s\n", source.ID, defaultValue, enabledValue, source.Path)
+		fmt.Fprintf(&b, "%s %s %s %s\n",
+			styledField(console, output.StylePackage, source.ID, 8),
+			styledBoolField(console, defaultValue, 8),
+			styledBoolField(console, enabledValue, 8),
+			console.Style(output.StylePath, source.Path),
+		)
 	}
 	return b.String()
 }
 
-func renderRm(p RmPayload) string {
-	return fmt.Sprintf("removed source %s\npath: %s\n", p.Source.ID, p.Source.Path)
+func renderRm(console output.Console, p RmPayload) string {
+	return fmt.Sprintf("removed source %s\npath: %s\n", console.Style(output.StylePackage, p.Source.ID), console.Style(output.StylePath, p.Source.Path))
 }
 
-func renderDefault(p DefaultPayload) string {
-	return fmt.Sprintf("default source %s\npath: %s\n", p.Source.ID, p.Source.Path)
+func renderDefault(console output.Console, p DefaultPayload) string {
+	return fmt.Sprintf("default source %s\npath: %s\n", console.Style(output.StylePackage, p.Source.ID), console.Style(output.StylePath, p.Source.Path))
+}
+
+func styledBool(console output.Console, value string) string {
+	if value == "yes" {
+		return console.Style(output.StyleSuccess, value)
+	}
+	return console.Style(output.StyleMuted, value)
+}
+
+func styledBoolField(console output.Console, value string, width int) string {
+	style := output.StyleMuted
+	if value == "yes" {
+		style = output.StyleSuccess
+	}
+	return styledField(console, style, value, width)
+}
+
+func styledField(console output.Console, style output.Style, value string, width int) string {
+	return console.Style(style, fmt.Sprintf("%-*s", width, value))
 }
 
 type sourcesData struct {

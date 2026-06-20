@@ -179,7 +179,7 @@ create the target root) and sets a scrubbed environment:
 | `TUCK_TEST_STATE_DIR` | `$WORK/state` | deterministic machine-state discovery (build tag `tuck_testhooks`) |
 | `XDG_STATE_HOME` | `$WORK/state` | prevent fallback to a real XDG state path |
 | `XDG_CONFIG_HOME` | `$WORK/xdg` | prevent fallback to a real XDG path |
-| `NO_COLOR` | `1` | stable output (tests also pass `--no-color`) |
+| `NO_COLOR` | `1` | stable colorless output (tests also pass `--no-color`) |
 | `TERM` | `dumb` | no terminal escape sequences |
 | `LANG` / `LC_ALL` | `C` | stable sorting and messages |
 | `TUCK_TEST_ROOT_DIR` | unset (home tests) / `$WORK/root` (root tests) | §5 |
@@ -264,7 +264,7 @@ non-root apply, output distinguishes *marker* from *enforcement*:
    expected failure. Since process exits are binary (`0`/`1`), tests assert
    detailed failure classification via stderr or the JSON `error.code` /
    `exitCode` fields rather than a custom exit-code command.
-2. **Stdout** — golden human text (`--no-color`) or a golden JSON document.
+2. **Stdout** — golden console text (`--no-color`) or a golden JSON document.
    Primary results only (plans, listings, status, the JSON envelope).
 3. **Stderr** — diagnostics (`error:`/`hint:` lines, usage text) land on
    **stderr**, not stdout ([§9](./cli-spec.md#9-output-formats)). Error scripts

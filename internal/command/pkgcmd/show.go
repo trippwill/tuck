@@ -60,22 +60,23 @@ func Show(req ShowRequest) output.Outcome {
 	})
 }
 
-func renderTree(inv output.Invocation, data any) (string, error) {
+func renderTree(console output.Console, data any) (string, error) {
 	p, ok := data.(TreePayload)
 	if !ok {
 		return "", fmt.Errorf("package tree console renderer received %T", data)
 	}
+	inv := console.Invocation
 	var b strings.Builder
 	fmt.Fprintf(&b, "tuck %s   (context: %s, source: %s)\n\n", inv.Command, inv.Context, p.Source)
-	fmt.Fprintf(&b, "package: %s\n", p.Package.Identity)
-	fmt.Fprintf(&b, "root: %s\n\n", p.Package.Root)
+	fmt.Fprintf(&b, "%s %s\n", console.Style(output.StyleAccent, "package:"), console.Style(output.StylePackage, p.Package.Identity))
+	fmt.Fprintf(&b, "%s %s\n\n", console.Style(output.StyleAccent, "root:"), console.Style(output.StylePath, p.Package.Root))
 	for _, entry := range p.Package.Entries {
-		fmt.Fprintf(&b, "%-4s %s\n", entry.Type, entry.Rel)
+		fmt.Fprintf(&b, "%s %s\n", console.Style(output.StyleMuted, fmt.Sprintf("%-4s", entry.Type)), entry.Rel)
 	}
 	if len(p.Package.Entries) > 0 {
 		fmt.Fprintln(&b)
 	}
-	fmt.Fprintf(&b, "%d %s\n", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))
+	fmt.Fprintf(&b, "%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d %s", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))))
 	return b.String(), nil
 }
 

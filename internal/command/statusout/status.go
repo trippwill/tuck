@@ -39,26 +39,27 @@ func FromResult(result statuspkg.Result) output.Result {
 	}
 }
 
-func renderStatus(inv output.Invocation, data any) (string, error) {
+func renderStatus(console output.Console, data any) (string, error) {
 	p, ok := data.(Payload)
 	if !ok {
 		return "", fmt.Errorf("status console renderer received %T", data)
 	}
+	inv := console.Invocation
 	var b strings.Builder
 	fmt.Fprintf(&b, "tuck %s   (context: %s, source: %s)\n\n", inv.Command, inv.Context, p.Source)
 	for _, entry := range p.Entries {
-		fmt.Fprintf(&b, "%-14s %s", entry.State, entry.TargetPath)
+		fmt.Fprintf(&b, "%s %s", console.Style(statusStyle(entry.State), fmt.Sprintf("%-14s", entry.State)), entry.TargetPath)
 		if entry.Package != "" {
-			fmt.Fprintf(&b, " package=%s", entry.Package)
+			fmt.Fprintf(&b, " package=%s", console.Style(output.StylePackage, entry.Package))
 		}
 		if entry.Entry != "" {
 			fmt.Fprintf(&b, " entry=%s", entry.Entry)
 		}
 		if entry.Owner != "" && entry.Owner != entry.Package {
-			fmt.Fprintf(&b, " owner=%s", entry.Owner)
+			fmt.Fprintf(&b, " owner=%s", console.Style(output.StylePackage, entry.Owner))
 		}
 		if entry.Code != "" {
-			fmt.Fprintf(&b, " code=%s", entry.Code)
+			fmt.Fprintf(&b, " code=%s", console.Style(output.StyleDanger, entry.Code))
 		}
 		if entry.Message != "" {
 			fmt.Fprintf(&b, " (%s)", entry.Message)
@@ -67,6 +68,21 @@ func renderStatus(inv output.Invocation, data any) (string, error) {
 	}
 	fmt.Fprintf(&b, "\n%d %s\n", len(p.Entries), entryNoun(len(p.Entries)))
 	return b.String(), nil
+}
+
+func statusStyle(state string) output.Style {
+	switch state {
+	case statuspkg.StateDeployed:
+		return output.StyleSuccess
+	case statuspkg.StateAbsent:
+		return output.StyleWarning
+	case statuspkg.StateConflict, statuspkg.StateMismatch, statuspkg.StateOwnedByOther:
+		return output.StyleDanger
+	case statuspkg.StateUnmanaged:
+		return output.StyleWarning
+	default:
+		return output.StyleMuted
+	}
 }
 
 func fromEntries(entries []statuspkg.Entry) []Entry {

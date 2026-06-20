@@ -32,7 +32,7 @@ type Invocation struct {
 	Context string
 }
 
-type ConsoleStringFunc func(Invocation, any) (string, error)
+type ConsoleStringFunc func(Console, any) (string, error)
 
 type Result struct {
 	Kind          Kind
@@ -77,8 +77,8 @@ func ErrorResult(code, message, hint string) Result {
 		Kind:     KindError,
 		Data:     ErrorData{Error: record},
 		ExitCode: ExitFail,
-		ConsoleString: func(Invocation, any) (string, error) {
-			return FormatError(record), nil
+		ConsoleString: func(console Console, _ any) (string, error) {
+			return FormatConsoleError(console, record), nil
 		},
 	}
 }
@@ -115,29 +115,43 @@ func DetailMessage(err error, fallback string, sentinels ...error) string {
 }
 
 func FormatError(record Error) string {
-	return fmt.Sprintf("error: %s\ncode: %s\nhint: %s\n", record.Message, record.Code, record.Hint)
+	return FormatConsoleError(Console{}, record)
+}
+
+func FormatConsoleError(console Console, record Error) string {
+	return fmt.Sprintf("%s %s\n%s %s\n%s %s\n",
+		console.Style(StyleDanger, "error:"),
+		record.Message,
+		console.Style(StyleMuted, "code:"),
+		console.Style(StyleMuted, record.Code),
+		console.Style(StyleWarning, "hint:"),
+		record.Hint,
+	)
 }
 
 type Options struct {
-	Format Format
-	Color  bool
-	Out    io.Writer
-	Err    io.Writer
+	Format   Format
+	Color    bool
+	ErrColor bool
+	Out      io.Writer
+	Err      io.Writer
 }
 
 type Renderer struct {
-	format Format
-	color  bool
-	out    io.Writer
-	err    io.Writer
+	format   Format
+	color    bool
+	errColor bool
+	out      io.Writer
+	err      io.Writer
 }
 
 func NewRenderer(options Options) Renderer {
 	return Renderer{
-		format: options.Format,
-		color:  options.Color,
-		out:    options.Out,
-		err:    options.Err,
+		format:   options.Format,
+		color:    options.Color,
+		errColor: options.ErrColor,
+		out:      options.Out,
+		err:      options.Err,
 	}
 }
 
@@ -163,7 +177,11 @@ func (r Renderer) renderResult(inv Invocation, result Result) (ExitCode, error) 
 	if result.ConsoleString == nil {
 		return ExitFail, fmt.Errorf("missing console renderer for %q result", result.Kind)
 	}
-	text, err := result.ConsoleString(inv, result.Data)
+	console := NewConsole(inv, r.color)
+	if result.Kind == KindError {
+		console.Color = r.errColor
+	}
+	text, err := result.ConsoleString(console, result.Data)
 	if err != nil {
 		return ExitFail, err
 	}
@@ -180,7 +198,7 @@ func (r Renderer) renderError(inv Invocation, outcome Outcome) (ExitCode, error)
 	if r.format == JSON {
 		return ExitFail, WriteEnvelope(r.out, inv.Command, "", KindError, ErrorData{Error: appErr}, ExitFail)
 	}
-	_, err := io.WriteString(r.err, FormatError(appErr))
+	_, err := io.WriteString(r.err, FormatConsoleError(NewConsole(inv, r.errColor), appErr))
 	return ExitFail, err
 }
 
