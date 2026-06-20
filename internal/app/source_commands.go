@@ -3,9 +3,8 @@ package app
 import (
 	"context"
 
-	"github.com/trippwill/tuck/internal/manifest"
-	"github.com/trippwill/tuck/internal/resolve"
-	"github.com/trippwill/tuck/internal/state"
+	"github.com/trippwill/tuck/internal/command/sourcecmd"
+	"github.com/trippwill/tuck/internal/output"
 	"github.com/urfave/cli/v3"
 )
 
@@ -86,87 +85,53 @@ func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "source add", "source add accepts exactly one <path>", "pass exactly one source repository path"); err != nil {
 		return err
 	}
-	if err := invalidArgsIf(!cmd.Bool("init") && cmd.String("name") != "", cmd, "source add", "--name requires --init", "add --init when writing a new source manifest"); err != nil {
-		return err
-	}
-	if err := invalidArgsIf(!cmd.Bool("init") && cmd.String("description") != "", cmd, "source add", "--description requires --init", "add --init when writing a new source manifest"); err != nil {
-		return err
-	}
-	path := cmd.StringArgs("path")[0]
-
-	var (
-		registry state.Registry
-		source   state.Source
-		err      error
-	)
-	if cmd.Bool("init") {
-		registry, source, err = state.AddSourceWithInit(path, cmd.Bool("default"), manifest.InitOptions{
-			Name:        cmd.String("name"),
-			Description: cmd.String("description"),
-		})
-	} else {
-		registry, source, err = state.AddSource(path, cmd.Bool("default"))
-	}
-	if err != nil {
-		return renderError(cmd, "source add", err)
-	}
-
-	return renderSourceAdd(cmd, registry, source)
+	outcome := sourcecmd.Add(sourcecmd.AddRequest{
+		Path:        cmd.StringArgs("path")[0],
+		Default:     cmd.Bool("default"),
+		Init:        cmd.Bool("init"),
+		Name:        cmd.String("name"),
+		Description: cmd.String("description"),
+	})
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandAdd}, outcome)
+	return finish(exitCode, err)
 }
 
 func sourceInitAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "source init", "source init accepts exactly one <path>", "pass exactly one source repository path"); err != nil {
 		return err
 	}
-	path := cmd.StringArgs("path")[0]
-	initialized, err := manifest.Init(path, manifest.InitOptions{
+	outcome := sourcecmd.Init(sourcecmd.InitRequest{
+		Path:        cmd.StringArgs("path")[0],
 		Name:        cmd.String("name"),
 		Description: cmd.String("description"),
 	})
-	if err != nil {
-		return renderError(cmd, "source init", err)
-	}
-	return renderSourceInit(cmd, initialized)
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandInit}, outcome)
+	return finish(exitCode, err)
 }
 
 func sourceListAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "source list", "source list accepts no arguments", "remove the extra argument and retry"); err != nil {
 		return err
 	}
-	registry, err := state.Load()
-	if err != nil {
-		return renderError(cmd, "source list", err)
-	}
-
-	return renderSourceList(cmd, registry)
+	outcome := sourcecmd.List()
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandList}, outcome)
+	return finish(exitCode, err)
 }
 
 func sourceRmAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "source rm", "source rm accepts exactly one <id>", "pass exactly one enabled source id"); err != nil {
 		return err
 	}
-	id := cmd.StringArgs("id")[0]
-	registry, removed, ok, err := state.RemoveSource(id)
-	if err != nil {
-		return renderError(cmd, "source rm", err)
-	}
-	if !ok {
-		return renderError(cmd, "source rm", resolve.ErrUnknownSource)
-	}
-	return renderSourceRm(cmd, registry, removed)
+	outcome := sourcecmd.Rm(sourcecmd.IDRequest{ID: cmd.StringArgs("id")[0]})
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandRm}, outcome)
+	return finish(exitCode, err)
 }
 
 func sourceDefaultAction(_ context.Context, cmd *cli.Command) error {
 	if err := noExtraArgs(cmd, "source default", "source default accepts exactly one <id>", "pass exactly one enabled source id"); err != nil {
 		return err
 	}
-	id := cmd.StringArgs("id")[0]
-	registry, source, ok, err := state.SetDefault(id)
-	if err != nil {
-		return renderError(cmd, "source default", err)
-	}
-	if !ok {
-		return renderError(cmd, "source default", resolve.ErrUnknownSource)
-	}
-	return renderSourceDefault(cmd, registry, source)
+	outcome := sourcecmd.Default(sourcecmd.IDRequest{ID: cmd.StringArgs("id")[0]})
+	exitCode, err := rendererFor(cmd).Render(output.Invocation{Command: sourcecmd.CommandDefault}, outcome)
+	return finish(exitCode, err)
 }
