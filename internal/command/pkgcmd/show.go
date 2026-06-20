@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/trippwill/tuck/internal/command"
 	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/packages"
 )
@@ -42,7 +43,7 @@ func Show(req ShowRequest) output.Outcome {
 		Ref:      req.Ref,
 	})
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	payload := TreePayload{
 		Source: tree.Source,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/trippwill/tuck/internal/command"
 	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/resolve"
@@ -59,7 +60,7 @@ func Add(req AddRequest) output.Outcome {
 		registry, source, err = state.AddSource(req.Path, req.Default)
 	}
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	return output.OK(addResult(AddPayload{Registry: registry, Source: source}))
 }
@@ -70,7 +71,7 @@ func Init(req InitRequest) output.Outcome {
 		Description: req.Description,
 	})
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	return output.OK(initResult(InitPayload{Initialized: initialized}))
 }
@@ -78,7 +79,7 @@ func Init(req InitRequest) output.Outcome {
 func List() output.Outcome {
 	registry, err := state.Load()
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	return output.OK(listResult(ListPayload{Registry: registry}))
 }
@@ -86,10 +87,10 @@ func List() output.Outcome {
 func Rm(req IDRequest) output.Outcome {
 	registry, removed, ok, err := state.RemoveSource(req.ID)
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	if !ok {
-		return errorOutcome(resolve.ErrUnknownSource)
+		return command.ErrorOutcome(resolve.ErrUnknownSource)
 	}
 	return output.OK(rmResult(RmPayload{Registry: registry, Source: removed}))
 }
@@ -97,10 +98,10 @@ func Rm(req IDRequest) output.Outcome {
 func Default(req IDRequest) output.Outcome {
 	registry, source, ok, err := state.SetDefault(req.ID)
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	if !ok {
-		return errorOutcome(resolve.ErrUnknownSource)
+		return command.ErrorOutcome(resolve.ErrUnknownSource)
 	}
 	return output.OK(defaultResult(DefaultPayload{Registry: registry, Source: source}))
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/trippwill/tuck/internal/command"
 	"github.com/trippwill/tuck/internal/output"
 	"github.com/trippwill/tuck/internal/packages"
 )
@@ -29,7 +30,7 @@ func List(req ListRequest) output.Outcome {
 		Context:  req.Context,
 	})
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	packageNames := make([]string, len(listing.Packages))
 	copy(packageNames, listing.Packages)

@@ -1,6 +1,7 @@
 package pkgcmd
 
 import (
+	"github.com/trippwill/tuck/internal/command"
 	"github.com/trippwill/tuck/internal/command/statusout"
 	"github.com/trippwill/tuck/internal/output"
 	statuspkg "github.com/trippwill/tuck/internal/status"
@@ -20,7 +21,7 @@ func Status(req StatusRequest) output.Outcome {
 		Context:  req.Context,
 	})
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	return output.OK(statusout.FromResult(result))
 }

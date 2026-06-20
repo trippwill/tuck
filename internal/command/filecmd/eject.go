@@ -1,6 +1,7 @@
 package filecmd
 
 import (
+	"github.com/trippwill/tuck/internal/command"
 	"github.com/trippwill/tuck/internal/command/planconsole"
 	"github.com/trippwill/tuck/internal/output"
 )
@@ -18,7 +19,7 @@ type EjectRequest struct {
 func Eject(req EjectRequest) output.Outcome {
 	planned, err := buildEject(req)
 	if err != nil {
-		return errorOutcome(err)
+		return command.ErrorOutcome(err)
 	}
 	return output.OK(planconsole.Result(planned))
 }

@@ -98,6 +98,10 @@ func IOError(message string) Result {
 	return ErrorResult("io_error", message, "retry after fixing filesystem permissions or disk state")
 }
 
+func RuntimeError(message string) Result {
+	return ErrorResult("runtime_error", message, "retry, or report this unexpected failure if it persists")
+}
+
 func DetailMessage(err error, fallback string, sentinels ...error) string {
 	if err == nil {
 		return fallback
@@ -283,8 +287,8 @@ func fallbackError(err error) Error {
 		message = err.Error()
 	}
 	return Error{
-		Code:    "io_error",
+		Code:    "runtime_error",
 		Message: message,
-		Hint:    "retry after fixing filesystem permissions or disk state",
+		Hint:    "retry, or report this unexpected failure if it persists",
 	}
 }

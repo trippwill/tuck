@@ -1001,7 +1001,7 @@ Stable error codes include:
   `package refresh` invocation selects packages that would write the same leaf
   target;
 - state validation: `state_checksum_mismatch`;
-- execution: `io_error`.
+- execution: `io_error`, `runtime_error`.
 
 `package status` exits `0` when the query succeeds, even if it reports conflicts
 inside the response body.

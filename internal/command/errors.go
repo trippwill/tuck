@@ -1,4 +1,4 @@
-package filecmd
+package command
 
 import (
 	"errors"
@@ -12,11 +12,11 @@ import (
 	"github.com/trippwill/tuck/internal/state"
 )
 
-func errorOutcome(err error) output.Outcome {
-	return output.OK(errorResult(err))
+func ErrorOutcome(err error) output.Outcome {
+	return output.OK(ErrorResult(err))
 }
 
-func errorResult(err error) output.Result {
+func ErrorResult(err error) output.Result {
 	switch {
 	case errors.Is(err, state.ErrSourceRoot):
 		return output.ErrorResult(
@@ -77,6 +77,6 @@ func errorResult(err error) output.Result {
 	case errors.Is(err, resolve.ErrUnknownSource):
 		return output.ErrorResult("unknown_source", "source is not enabled or does not exist", "run tuck source list to see enabled sources")
 	default:
-		return output.IOError(output.DetailMessage(err, "runtime error"))
+		return output.RuntimeError(output.DetailMessage(err, "runtime error"))
 	}
 }
