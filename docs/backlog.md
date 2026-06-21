@@ -131,7 +131,7 @@ distributed builds, and docs._
 31. [x] **R31** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
 32. [x] **R32** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
 33. [x] **R33** Write a README with installation and quickstart `[docs]`
-34. [ ] **R34** Publish a documentation website (spec, guides, worked examples) `[docs]`
+34. [x] **R34** Publish a documentation website (spec, guides, worked examples) `[docs]`
 
 <!-- ================= FIRST RELEASE CUTOFF ================= -->
 

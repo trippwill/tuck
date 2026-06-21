@@ -1,0 +1,7 @@
+title: tuck
+description: Dotfile package manager inspired by GNU Stow
+theme: jekyll-theme-cayman
+header_pages:
+  - quickstart.md
+  - examples.md
+  - cli-spec.md

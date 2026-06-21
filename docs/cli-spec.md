@@ -1,3 +1,7 @@
+---
+title: CLI Specification
+---
+
 # `tuck` CLI -- Implementation Specification
 
 Status: authoritative for the command-line interface.

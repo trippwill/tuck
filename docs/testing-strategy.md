@@ -1,8 +1,11 @@
+---
+title: Testing Strategy
+---
+
 # tuck — Testing Strategy
 
-Status: design (no implementation yet). Companion to
-[`cli-spec.md`](./cli-spec.md), which is authoritative for behavior; this
-document is authoritative for **how that behavior is tested**.
+Companion to [`cli-spec.md`](./cli-spec.md), which is authoritative for behavior;
+this document is authoritative for **how that behavior is tested**.
 
 ## 1. Goals
 
