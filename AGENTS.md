@@ -15,6 +15,8 @@
 - Run the full local gate: `mise run check`
 - Print unit coverage without enforcing a threshold: `mise run coverage`
 - Vet/format gates individually: `mise run vet` and `mise run fmt`
+- For release preparation, follow `.github/skills/tuck-release/SKILL.md`.
+- Keep `CHANGELOG.md` user-facing; move Unreleased entries into a `vX.Y.Z` section before tagging releases.
 
 ## Commit messages
 
