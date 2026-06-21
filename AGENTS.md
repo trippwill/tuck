@@ -13,6 +13,7 @@
 - Run a single unit test: `go test -run TestRunMetaJSONUsesSharedEnvelope ./internal/app`
 - Run one acceptance suite directly: `go test -tags tuck_testhooks -run TestSuites/source ./acceptance/...`
 - Run the full local gate: `mise run check`
+- Print unit coverage without enforcing a threshold: `mise run coverage`
 - Vet/format gates individually: `mise run vet` and `mise run fmt`
 
 ## Commit messages

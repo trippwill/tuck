@@ -25,6 +25,9 @@ run = "go test -tags tuck_testhooks -run TestSuites/package ./acceptance/..."
 [tasks."test:accept:target"]
 run = "go test -tags tuck_testhooks -run TestSuites/target ./acceptance/..."
 
+[tasks.coverage]
+run = "go test -coverprofile=coverage.out ./internal/... ./cmd/... && go tool cover -func=coverage.out"
+
 [tasks.generate]
 run = "go generate ./..."
 

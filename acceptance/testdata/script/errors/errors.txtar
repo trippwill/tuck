@@ -1,0 +1,62 @@
+# stable command error codes not already covered by feature suites
+phase command-error-codes fixtures/errors/public
+! exec tuck source init $WORK/src --name other --no-color
+stderr 'code: manifest_exists'
+! stdout .
+! exec tuck source add $WORK/missing --no-color
+stderr 'code: source_root_missing'
+! stdout .
+wantstate public public $WORK/src true
+! exec tuck --json pkg use ../bad
+stdout '"code":"invalid_ref"'
+! stderr .
+! exec tuck --json pkg use missing
+stdout '"code":"package_not_found"'
+! stderr .
+
+# package config write failures are surfaced as io_error
+phase io-error fixtures/errors/public fixtures/errors/zsh
+wantstate public public $WORK/src true
+exec chmod a-w $WORK/src/zsh
+! exec tuck pkg config set zsh .config/zsh/.zshrc --deploy copy --no-color
+stderr 'code: io_error'
+! stdout .
+exec chmod u+w $WORK/src/zsh
+
+# special filesystem entries are package-use conflicts
+phase special-file-conflict fixtures/errors/public fixtures/errors/zsh
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+exec mkfifo $WORK/home/.config/zsh/.zshrc
+! exec tuck pkg use zsh --no-color
+stdout 'special_file'
+stdout '0 actions, 1 conflicts'
+! stderr .
+
+# both-sided copied-file drift is reported and blocks refresh
+phase copy-drift fixtures/errors/public fixtures/errors/copy-app
+wantstate public public $WORK/src true
+exec tuck pkg use app --apply --no-color
+cp fixtures/errors/config-v2 $WORK/src/app/.config/app/config
+cp fixtures/errors/config-target $WORK/home/.config/app/config
+exec tuck pkg status app --no-color
+stdout 'copy_drift'
+! exec tuck pkg refresh app --apply --no-color
+stdout 'copy_drift'
+! stderr .
+
+-- fixtures/errors/public/.tuck.toml --
+name = "public"
+-- fixtures/errors/zsh/zsh/.config/zsh/.zshrc --
+# zshrc
+-- fixtures/errors/copy-app/app/.config/app/config --
+v1
+-- fixtures/errors/copy-app/app/.tuck.toml --
+[[file]]
+path = ".config/app/config"
+deploy = "copy"
+-- fixtures/errors/config-v2 --
+v2
+-- fixtures/errors/config-target --
+target

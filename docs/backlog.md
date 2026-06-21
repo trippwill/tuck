@@ -123,7 +123,7 @@ distributed builds, and docs._
 
 24. [x] **R24** Validate text machine state with a generated checksum sidecar and report `state_checksum_mismatch` with repair guidance `[engine]`
 25. [x] **R25** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
-26. [ ] **R26** Acceptance coverage for each error code and each conflict rule `[test]`
+26. [x] **R26** Acceptance coverage for each error code and each conflict rule `[test]`
 27. [x] **R27** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
 28. [x] **R28** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
 29. [x] **R29** Enforce lint/format gates in CI `[build]`

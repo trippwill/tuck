@@ -10,6 +10,7 @@ func TestSuites(t *testing.T) {
 		suite string
 	}{
 		{name: "foundation", suite: "foundation"},
+		{name: "errors", suite: "errors"},
 		{name: "json", suite: "json"},
 		{name: "package", suite: "package"},
 		{name: "rendering", suite: "rendering"},
