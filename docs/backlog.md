@@ -121,7 +121,7 @@ distributed builds, and docs._
 
 **Release hardening**
 
-24. [ ] **R24** Validate text machine state with a generated checksum sidecar and report `state_checksum_mismatch` with repair guidance `[engine]`
+24. [x] **R24** Validate text machine state with a generated checksum sidecar and report `state_checksum_mismatch` with repair guidance `[engine]`
 25. [x] **R25** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
 26. [ ] **R26** Acceptance coverage for each error code and each conflict rule `[test]`
 27. [ ] **R27** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`

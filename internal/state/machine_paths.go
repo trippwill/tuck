@@ -50,3 +50,7 @@ func tuckStateDir() string {
 func sourcesFile() string {
 	return filepath.Join(tuckStateDir(), "sources.toml")
 }
+
+func sourcesChecksumFile() string {
+	return sourcesFile() + ".sha256"
+}

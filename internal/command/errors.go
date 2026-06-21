@@ -24,6 +24,12 @@ func ErrorResult(err error) output.Result {
 			output.DetailMessage(err, "source root is missing or invalid", state.ErrSourceRoot),
 			"pass the path to an existing source repository",
 		)
+	case errors.Is(err, state.ErrChecksumMismatch):
+		return output.ErrorResult(
+			"state_checksum_mismatch",
+			output.DetailMessage(err, "machine source state checksum does not match sources.toml", state.ErrChecksumMismatch),
+			"inspect sources.toml; if the edit was intentional, recreate state with tuck source add or remove the corrupted state file",
+		)
 	case errors.Is(err, state.ErrInvalid):
 		return output.ErrorResult(
 			"state_invalid",

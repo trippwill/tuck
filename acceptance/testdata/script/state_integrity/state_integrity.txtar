@@ -1,0 +1,29 @@
+# state writes a checksum sidecar and accepts matching state
+phase sidecar-valid fixtures/source/public
+exec tuck source add $WORK/src --default --no-color
+stdout 'added source public'
+exists $WORK/state/sidecar-valid/tuck/sources.toml
+exists $WORK/state/sidecar-valid/tuck/sources.toml.sha256
+exec cat $WORK/state/sidecar-valid/tuck/sources.toml.sha256
+stdout 'sha256:'
+exec tuck source list --no-color
+stdout 'public'
+! stderr .
+
+# edited state with an existing sidecar reports state_checksum_mismatch
+phase sidecar-mismatch fixtures/source/public
+exec tuck source add $WORK/src --default --no-color
+exec sh -c 'printf "\n# manual edit\n" >> "$TUCK_TEST_STATE_DIR/tuck/sources.toml"'
+! exec tuck source list --no-color
+stderr 'state checksum'
+stderr 'code: state_checksum_mismatch'
+stderr 'hint:'
+! stdout .
+! exec tuck --json source list
+stdout '"kind":"error"'
+stdout '"code":"state_checksum_mismatch"'
+stdout '"exitCode":1'
+! stderr .
+
+-- fixtures/source/public/.tuck.toml --
+name = "public"

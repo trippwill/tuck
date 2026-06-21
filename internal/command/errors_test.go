@@ -10,6 +10,7 @@ import (
 	"github.com/trippwill/tuck/internal/packages"
 	"github.com/trippwill/tuck/internal/plan"
 	"github.com/trippwill/tuck/internal/resolve"
+	"github.com/trippwill/tuck/internal/state"
 )
 
 func TestErrorResultMapsSentinels(t *testing.T) {
@@ -37,6 +38,11 @@ func TestErrorResultMapsSentinels(t *testing.T) {
 			err:     resolve.ErrUnknownSource,
 			code:    "unknown_source",
 			message: "source is not enabled or does not exist",
+		},
+		"state checksum": {
+			err:     apperr.AppErrMsg(state.ErrChecksumMismatch, "machine source state checksum does not match sources.toml"),
+			code:    "state_checksum_mismatch",
+			message: "machine source state checksum does not match sources.toml",
 		},
 		"fallback": {
 			err:     errors.New("boom"),

@@ -73,6 +73,28 @@ func TestLoadSources(t *testing.T) {
 	}
 }
 
+func TestLoadAllowsMissingChecksumSidecar(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "")
+	writeSources(t, stateRoot, stateFile("public", sourceBlock("public", repo, nil)))
+
+	if _, err := Load(); err != nil {
+		t.Fatalf("Load() error = %v, want nil for pre-checksum state", err)
+	}
+}
+
+func TestLoadRejectsChecksumMismatch(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "")
+	writeSources(t, stateRoot, stateFile("public", sourceBlock("public", repo, nil)))
+	writeFile(t, filepath.Join(stateRoot, "tuck", "sources.toml.sha256"), "sha256:bad\n")
+
+	_, err := Load()
+	if !errors.Is(err, ErrChecksumMismatch) {
+		t.Fatalf("Load() error = %v, want errors.Is(..., %v)", err, ErrChecksumMismatch)
+	}
+}
+
 func TestLoadAllowsSiblingPrefixPaths(t *testing.T) {
 	stateRoot := withStateHome(t)
 	base := t.TempDir()

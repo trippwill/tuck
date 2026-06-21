@@ -45,6 +45,30 @@ enabled = false
 	}
 }
 
+func TestSaveWritesChecksumSidecar(t *testing.T) {
+	stateRoot := withStateHome(t)
+	publicRepo := writeSourceRepo(t, "public", "")
+
+	if err := Save(Registry{
+		Default: "public",
+		Sources: []Source{
+			{ID: "public", Path: publicRepo, Enabled: true},
+		},
+	}); err != nil {
+		t.Fatalf("Save() error = %v, want nil", err)
+	}
+
+	sourcesPath := filepath.Join(stateRoot, "tuck", "sources.toml")
+	want, err := FileChecksum(sourcesPath)
+	if err != nil {
+		t.Fatalf("checksum sources.toml: %v", err)
+	}
+	got := readFile(t, filepath.Join(stateRoot, "tuck", "sources.toml.sha256"))
+	if got != want+"\n" {
+		t.Fatalf("sources.toml.sha256 = %q, want %q", got, want+"\n")
+	}
+}
+
 func TestSaveDoesNotReplaceExistingStateOnValidationFailure(t *testing.T) {
 	stateRoot := withStateHome(t)
 	originalRepo := writeSourceRepo(t, "public", "")
@@ -351,9 +375,15 @@ func TestSetDefaultUnknownOrDisabledLeavesStateUnchanged(t *testing.T) {
 func readSourcesFile(t *testing.T, stateRoot string) string {
 	t.Helper()
 
-	contents, err := os.ReadFile(filepath.Join(stateRoot, "tuck", "sources.toml"))
+	return readFile(t, filepath.Join(stateRoot, "tuck", "sources.toml"))
+}
+
+func readFile(t *testing.T, path string) string {
+	t.Helper()
+
+	contents, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("read sources.toml: %v", err)
+		t.Fatalf("read %s: %v", path, err)
 	}
 	return string(contents)
 }

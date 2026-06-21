@@ -1,9 +1,12 @@
 package state
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/pelletier/go-toml/v2"
@@ -50,9 +53,10 @@ type ErrState string
 func (e ErrState) Error() string { return string(e) }
 
 const (
-	ErrInvalid    ErrState = "invalid state"
-	ErrSourceRoot ErrState = "source root"
-	ErrWrite      ErrState = "state write"
+	ErrInvalid          ErrState = "invalid state"
+	ErrChecksumMismatch ErrState = "state checksum mismatch"
+	ErrSourceRoot       ErrState = "source root"
+	ErrWrite            ErrState = "state write"
 )
 
 func Load() (Registry, error) {
@@ -63,6 +67,9 @@ func Load() (Registry, error) {
 			return Registry{}, nil
 		}
 		return Registry{}, apperr.AppErrWrapf(ErrInvalid, err, "could not read state file %q", sourcesPath)
+	}
+	if err := validateStateChecksum(contents); err != nil {
+		return Registry{}, err
 	}
 
 	file := struct {
@@ -123,6 +130,26 @@ func Load() (Registry, error) {
 	})
 }
 
+func validateStateChecksum(contents []byte) error {
+	checksumPath := sourcesChecksumFile()
+	recorded, err := os.ReadFile(checksumPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return apperr.AppErrWrapf(ErrChecksumMismatch, err, "could not read state checksum sidecar %q", checksumPath)
+	}
+	if got, want := strings.TrimSpace(string(recorded)), stateChecksum(contents); got != want {
+		return apperr.AppErrMsgf(ErrChecksumMismatch, "machine source state checksum does not match sources.toml")
+	}
+	return nil
+}
+
+func stateChecksum(contents []byte) string {
+	sum := sha256.Sum256(contents)
+	return fmt.Sprintf("sha256:%x", sum)
+}
+
 func Save(registry Registry) error {
 	normalized, err := normalizeRegistry(registry)
 	if err != nil {
@@ -135,9 +162,29 @@ func Save(registry Registry) error {
 		return apperr.AppErrWrapf(ErrWrite, err, "could not create state directory %q", stateDir)
 	}
 
-	tempFile, err := os.CreateTemp(stateDir, ".sources.toml.*")
+	tempPath, err := writeStateTemp(stateDir, ".sources.toml.*", contents)
 	if err != nil {
-		return apperr.AppErrWrapf(ErrWrite, err, "could not create temporary state file in %q", stateDir)
+		return err
+	}
+	defer os.Remove(tempPath)
+	checksumTempPath, err := writeStateTemp(stateDir, ".sources.toml.sha256.*", []byte(stateChecksum(contents)+"\n"))
+	if err != nil {
+		return err
+	}
+	defer os.Remove(checksumTempPath)
+	if err := os.Rename(tempPath, sourcesPath); err != nil {
+		return apperr.AppErrWrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
+	}
+	if err := os.Rename(checksumTempPath, sourcesChecksumFile()); err != nil {
+		return apperr.AppErrWrapf(ErrWrite, err, "could not replace state checksum sidecar %q", sourcesChecksumFile())
+	}
+	return nil
+}
+
+func writeStateTemp(stateDir string, pattern string, contents []byte) (string, error) {
+	tempFile, err := os.CreateTemp(stateDir, pattern)
+	if err != nil {
+		return "", apperr.AppErrWrapf(ErrWrite, err, "could not create temporary state file in %q", stateDir)
 	}
 	tempPath := tempFile.Name()
 	removeTemp := true
@@ -149,19 +196,16 @@ func Save(registry Registry) error {
 
 	if _, err := tempFile.Write(contents); err != nil {
 		_ = tempFile.Close()
-		return apperr.AppErrWrapf(ErrWrite, err, "could not write temporary state file %q", tempPath)
+		return "", apperr.AppErrWrapf(ErrWrite, err, "could not write temporary state file %q", tempPath)
 	}
 	if err := tempFile.Close(); err != nil {
-		return apperr.AppErrWrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
+		return "", apperr.AppErrWrapf(ErrWrite, err, "could not close temporary state file %q", tempPath)
 	}
 	if err := chownStateTemp(tempPath, stateDir); err != nil {
-		return err
-	}
-	if err := os.Rename(tempPath, sourcesPath); err != nil {
-		return apperr.AppErrWrapf(ErrWrite, err, "could not replace state file %q", sourcesPath)
+		return "", err
 	}
 	removeTemp = false
-	return nil
+	return tempPath, nil
 }
 
 func chownStateTemp(tempPath string, stateDir string) error {
