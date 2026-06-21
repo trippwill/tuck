@@ -124,11 +124,11 @@ distributed builds, and docs._
 24. [x] **R24** Validate text machine state with a generated checksum sidecar and report `state_checksum_mismatch` with repair guidance `[engine]`
 25. [x] **R25** Auto-detect color; disable with `--no-color` (implied by `--json`) `[output]`
 26. [ ] **R26** Acceptance coverage for each error code and each conflict rule `[test]`
-27. [ ] **R27** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
-28. [ ] **R28** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
-29. [ ] **R29** Enforce lint/format gates in CI `[build]`
-30. [ ] **R30** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
-31. [ ] **R31** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
+27. [x] **R27** Configure reproducible release builds with version stamping; maintain a changelog and `--version` output `[build]`
+28. [x] **R28** Run CI on PRs (build, unit + acceptance tests, vet) `[build]`
+29. [x] **R29** Enforce lint/format gates in CI `[build]`
+30. [x] **R30** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
+31. [x] **R31** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
 32. [ ] **R32** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
 33. [ ] **R33** Write a README with installation and quickstart `[docs]`
 34. [ ] **R34** Publish a documentation website (spec, guides, worked examples) `[docs]`
