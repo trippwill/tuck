@@ -26,11 +26,15 @@ func commandUsageError(_ context.Context, cmd *cli.Command, err error, _ bool) e
 
 func rootCommand() *cli.Command {
 	return &cli.Command{
-		Name:            "tuck",
-		Usage:           "manage dotfiles by deploying package leaves into a target tree",
-		UsageText:       "tuck [global-flags] <command> [args]",
-		Version:         version,
-		HideHelpCommand: true,
+		Name:                  "tuck",
+		Usage:                 "manage dotfiles by deploying package leaves into a target tree",
+		UsageText:             "tuck [global-flags] <command> [args]",
+		Version:               version,
+		HideHelpCommand:       true,
+		EnableShellCompletion: true,
+		ConfigureShellCompletionCommand: func(cmd *cli.Command) {
+			cmd.Hidden = false
+		},
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "json", Usage: "machine-readable output"},
 			&cli.BoolFlag{Name: "no-color", Usage: "disable colored output (implied by --json)"},

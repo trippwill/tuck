@@ -2,9 +2,11 @@
 phase help
 exec tuck --help
 stdout 'USAGE'
+stdout 'completion'
 
 exec tuck --help --json
 stdout 'USAGE'
+stdout 'completion'
 ! stdout '"kind":"help"'
 
 # representative leaf command help includes scoped arguments and flags

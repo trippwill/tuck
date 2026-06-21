@@ -59,8 +59,9 @@ func sourceCommand() *cli.Command {
 				Arguments: []cli.Argument{
 					requiredStringArgs("id", "<id>"),
 				},
-				OnUsageError: commandUsageError,
-				Action:       sourceRmAction,
+				OnUsageError:  commandUsageError,
+				ShellComplete: completeAllSources,
+				Action:        sourceRmAction,
 			},
 			{
 				Name:    "list",
@@ -75,8 +76,9 @@ func sourceCommand() *cli.Command {
 				Arguments: []cli.Argument{
 					requiredStringArgs("id", "<id>"),
 				},
-				OnUsageError: commandUsageError,
-				Action:       sourceDefaultAction,
+				OnUsageError:  commandUsageError,
+				ShellComplete: completeEnabledSources,
+				Action:        sourceDefaultAction,
 			},
 		},
 	}

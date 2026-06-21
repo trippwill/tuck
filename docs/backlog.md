@@ -145,7 +145,7 @@ _Unordered idea bucket; IDs are for reference only._
 2. [ ] **P2** Support nested package names `[engine]`
 3. [ ] **P3** Allow user-configurable contexts beyond `home`/`root` `[engine]`
 4. [ ] **P4** Make the apply/plan default configurable (machine-local preference) and reintroduce `--dry-run` `[cmd]`
-5. [ ] **P5** Generate shell completions (bash/zsh/fish) `[cmd]`
+5. [x] **P5** Generate shell completions (bash/zsh/fish) `[cmd]`
 6. [ ] **P6** Generate man pages `[docs]`
 7. [ ] **P7** Provide an `adopt`-on-conflict shortcut from a `package use` conflict `[cmd]`
 8. [ ] **P8** Re-introduce verbose/quiet output modes if needed `[output]`

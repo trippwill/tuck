@@ -29,7 +29,8 @@ func packageCommand() *cli.Command {
 					mutatingFlags(),
 					&cli.BoolFlag{Name: "all", Usage: "activate all packages in the active source"},
 				),
-				Action: packageUseAction,
+				ShellComplete: completePackages,
+				Action:        packageUseAction,
 			},
 			{
 				Name:      "drop",
@@ -38,9 +39,10 @@ func packageCommand() *cli.Command {
 				Arguments: []cli.Argument{
 					variadicStringArgs("package", "<package>...", 1),
 				},
-				OnUsageError: commandUsageError,
-				Flags:        mutatingFlags(),
-				Action:       packageDropAction,
+				OnUsageError:  commandUsageError,
+				Flags:         mutatingFlags(),
+				ShellComplete: completePackages,
+				Action:        packageDropAction,
 			},
 			{
 				Name:      "refresh",
@@ -50,9 +52,10 @@ func packageCommand() *cli.Command {
 				Arguments: []cli.Argument{
 					variadicStringArgs("package", "<package>...", 1),
 				},
-				OnUsageError: commandUsageError,
-				Flags:        mutatingFlags(),
-				Action:       packageRefreshAction,
+				OnUsageError:  commandUsageError,
+				Flags:         mutatingFlags(),
+				ShellComplete: completePackages,
+				Action:        packageRefreshAction,
 			},
 			{
 				Name:    "list",
@@ -68,8 +71,9 @@ func packageCommand() *cli.Command {
 				Arguments: []cli.Argument{
 					requiredStringArgs("package", "<package>"),
 				},
-				OnUsageError: commandUsageError,
-				Action:       packageShowAction,
+				OnUsageError:  commandUsageError,
+				ShellComplete: completeFirstPackage,
+				Action:        packageShowAction,
 			},
 			{
 				Name:      "status",
@@ -79,8 +83,9 @@ func packageCommand() *cli.Command {
 				Arguments: []cli.Argument{
 					optionalStringArgs("package", "[package]"),
 				},
-				OnUsageError: commandUsageError,
-				Action:       packageStatusAction,
+				OnUsageError:  commandUsageError,
+				ShellComplete: completeFirstPackage,
+				Action:        packageStatusAction,
 			},
 			{
 				Name:            "config",
@@ -101,8 +106,9 @@ func packageCommand() *cli.Command {
 								Max:       2,
 							},
 						},
-						OnUsageError: commandUsageError,
-						Action:       packageConfigShowAction,
+						OnUsageError:  commandUsageError,
+						ShellComplete: completeFirstPackage,
+						Action:        packageConfigShowAction,
 					},
 					{
 						Name:      "set",
@@ -120,8 +126,9 @@ func packageCommand() *cli.Command {
 							&cli.StringFlag{Name: "deploy", Usage: "deployment strategy: symlink or copy"},
 							&cli.StringFlag{Name: "mode", Usage: "octal mode for copied files"},
 						},
-						OnUsageError: commandUsageError,
-						Action:       packageConfigSetAction,
+						OnUsageError:  commandUsageError,
+						ShellComplete: completeFirstPackage,
+						Action:        packageConfigSetAction,
 					},
 					{
 						Name:      "unset",
@@ -139,8 +146,9 @@ func packageCommand() *cli.Command {
 							&cli.BoolFlag{Name: "deploy", Usage: "unset deploy for the file"},
 							&cli.BoolFlag{Name: "mode", Usage: "unset mode for the file"},
 						},
-						OnUsageError: commandUsageError,
-						Action:       packageConfigUnsetAction,
+						OnUsageError:  commandUsageError,
+						ShellComplete: completeFirstPackage,
+						Action:        packageConfigUnsetAction,
 					},
 				},
 			},

@@ -11,6 +11,25 @@ exists $WORK/home/.config/zsh/.zshrc
 ! exists $WORK/home/secret
 ! stderr .
 
+# shell completion uses urfave/cli scripts and active source candidates
+phase shell-completion fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home
+wantstate public public $WORK/src true
+exec tuck completion bash
+stdout '__tuck_bash_autocomplete'
+stdout '--generate-shell-completion'
+! stderr .
+exec tuck pkg use --generate-shell-completion
+stdout 'git'
+stdout 'zsh'
+! stderr .
+exec tuck pkg use z --generate-shell-completion
+stdout 'zsh'
+! stdout 'git'
+! stderr .
+exec tuck source default --generate-shell-completion
+stdout 'public'
+! stderr .
+
 # package use --apply creates directories and relative symlinks
 phase package-use-apply fixtures/package/common/public-only fixtures/package/common/zsh-config
 wantstate public public $WORK/src true
