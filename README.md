@@ -111,3 +111,12 @@ source <(tuck completion bash)
   specification.
 - [`docs/testing-strategy.md`](docs/testing-strategy.md) explains how behavior is
   tested.
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+
+## AI disclosure
+
+This repository has been developed with substantial AI assistance. The human
+maintainer sets product direction, reviews changes, runs the gates, and owns the
+final commits. AI is used as an implementation pair for code, tests, docs,
+release plumbing, and review.

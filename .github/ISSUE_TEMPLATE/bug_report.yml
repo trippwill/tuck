@@ -1,0 +1,44 @@
+name: Bug report
+description: Report broken or surprising tuck behavior.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include the command, output, and filesystem result.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Smallest source layout and commands that show the issue.
+      render: sh
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: tuck version
+      placeholder: tuck version v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and shell
+      placeholder: Fedora 44, zsh
+  - type: textarea
+    id: json
+    attributes:
+      label: JSON output, if available
+      description: Re-run with --json when the command supports it.
+      render: json

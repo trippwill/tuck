@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest a tuck workflow improvement.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Desired workflow
+      description: Show the commands or UX you wish existed.
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Why existing commands are not enough
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety or data-loss concerns
+      description: Note anything involving root writes, overwrites, copies, or state repair.
