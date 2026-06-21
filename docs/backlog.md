@@ -129,7 +129,7 @@ distributed builds, and docs._
 29. [x] **R29** Enforce lint/format gates in CI `[build]`
 30. [x] **R30** Produce cross-platform / cross-arch binaries (linux+macos, amd64+arm64) `[build]`
 31. [x] **R31** Publish releases with attached binaries and checksums (GitHub Releases) `[build]`
-32. [ ] **R32** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
+32. [x] **R32** Provide an install script and/or package-manager tap (e.g. Homebrew) `[build]`
 33. [ ] **R33** Write a README with installation and quickstart `[docs]`
 34. [ ] **R34** Publish a documentation website (spec, guides, worked examples) `[docs]`
 
