@@ -1,6 +1,8 @@
 package pkgcmd
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -168,7 +170,12 @@ func packageCreateActions(op *plan.Operation, resolvedPackages []packages.Resolv
 					}
 				case target.CopyUnchanged:
 				default:
-					op.AddConflict(plan.NewConflict(copyClass.ConflictCode(), targetEntry.TargetPath, targetEntry.PackageID, copyMessage(copyClass)))
+					code := copyClass.ConflictCode()
+					conflict := plan.NewConflict(code, targetEntry.TargetPath, targetEntry.PackageID, copyMessage(copyClass))
+					if !refresh && code == target.ConflictRealFile {
+						conflict.Hint = adoptReplaceHint(targetEntry)
+					}
+					op.AddConflict(conflict)
 				}
 				continue
 			}
@@ -189,11 +196,27 @@ func packageCreateActions(op *plan.Operation, resolvedPackages []packages.Resolv
 					}
 				}
 			default:
-				op.AddConflict(plan.NewConflict(class.ConflictCode(), targetEntry.TargetPath, targetEntry.PackageID, class.Message))
+				conflict := plan.NewConflict(class.ConflictCode(), targetEntry.TargetPath, targetEntry.PackageID, class.Message)
+				if !refresh && class.Kind == target.RealFile {
+					conflict.Hint = adoptReplaceHint(targetEntry)
+				}
+				op.AddConflict(conflict)
 			}
 		}
 	}
 	return removeActions, createActions
+}
+
+func adoptReplaceHint(targetEntry target.PackageEntry) string {
+	info, err := os.Lstat(targetEntry.Entry.Path)
+	if err != nil || !info.Mode().IsRegular() {
+		return ""
+	}
+	flags := fmt.Sprintf("--source %s --replace", targetEntry.Identity.Source)
+	if targetEntry.Identity.Context == packages.ContextRoot {
+		flags = "--root " + flags
+	}
+	return fmt.Sprintf("tuck adopt %s %s %s", flags, targetEntry.TargetPath, targetEntry.Identity.Name)
 }
 
 func refreshCopyRemoval(op *plan.Operation, targetEntry target.PackageEntry, refresh bool) (target.CopyClass, bool) {

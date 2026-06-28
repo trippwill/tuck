@@ -8,7 +8,59 @@ import (
 	"github.com/trippwill/tuck/internal/manifest"
 	"github.com/trippwill/tuck/internal/plan"
 	"github.com/trippwill/tuck/internal/state"
+	"github.com/trippwill/tuck/internal/target"
 )
+
+func TestBuildUseRealFileConflictIncludesAdoptReplaceHint(t *testing.T) {
+	home, source := setupRefreshSource(t)
+	writeRefreshFile(t, filepath.Join(source, "zsh/.zshrc"))
+	targetPath := filepath.Join(home, ".zshrc")
+	writeRefreshFile(t, targetPath)
+
+	got, err := buildUse(UseRequest{Refs: []string{"zsh"}})
+	if err != nil {
+		t.Fatalf("buildUse() error = %v, want nil plan with conflicts", err)
+	}
+	if len(got.Conflicts) != 1 {
+		t.Fatalf("buildUse() conflicts = %#v, want one conflict", got.Conflicts)
+	}
+	conflict := got.Conflicts[0]
+	if conflict.Code != target.ConflictRealFile {
+		t.Fatalf("buildUse() conflict code = %q, want real_file", conflict.Code)
+	}
+	wantHint := "tuck adopt --source public --replace " + targetPath + " zsh"
+	if conflict.Hint != wantHint {
+		t.Fatalf("buildUse() conflict hint = %q, want %q", conflict.Hint, wantHint)
+	}
+	if len(got.Actions) != 0 {
+		t.Fatalf("buildUse() actions = %#v, want none when conflicts exist", got.Actions)
+	}
+}
+
+func TestBuildUseRealFileConflictOmitsHintForNonRegularPackagePath(t *testing.T) {
+	home, source := setupRefreshSource(t)
+	packagePath := filepath.Join(source, "zsh/.zshrc")
+	writeRefreshFile(t, filepath.Join(source, "target"))
+	if err := os.MkdirAll(filepath.Dir(packagePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("../target", packagePath); err != nil {
+		t.Fatal(err)
+	}
+	targetPath := filepath.Join(home, ".zshrc")
+	writeRefreshFile(t, targetPath)
+
+	got, err := buildUse(UseRequest{Refs: []string{"zsh"}})
+	if err != nil {
+		t.Fatalf("buildUse() error = %v, want nil plan with conflicts", err)
+	}
+	if len(got.Conflicts) != 1 {
+		t.Fatalf("buildUse() conflicts = %#v, want one conflict", got.Conflicts)
+	}
+	if got.Conflicts[0].Hint != "" {
+		t.Fatalf("buildUse() conflict hint = %q, want no hint", got.Conflicts[0].Hint)
+	}
+}
 
 func TestBuildRefreshRecreatesSelectedManagedSymlink(t *testing.T) {
 	home, source := setupRefreshSource(t)

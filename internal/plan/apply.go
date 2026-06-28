@@ -261,12 +261,28 @@ func (p *applyPreflight) validateCopy(action Action) error {
 	if err := p.validateMkdir(filepath.Dir(action.fsDst()), filepath.Dir(action.Dst)); err != nil {
 		return err
 	}
-	_, exists, err = p.pathKind(action.fsDst())
+	kind, exists, err = p.pathKind(action.fsDst())
 	if err != nil {
 		return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy destination %q", action.Dst)
 	}
-	if exists && !action.overwrite {
-		return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination already exists", action.Src, action.Dst)
+	if exists {
+		if action.overwrite {
+			if plannedKind, planned := p.paths[filepath.Clean(action.fsDst())]; !planned || plannedKind != preflightNonDirectory {
+				info, err := os.Lstat(action.fsDst())
+				if err != nil && !os.IsNotExist(err) {
+					return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy destination %q", action.Dst)
+				}
+				if err == nil && !info.Mode().IsRegular() {
+					return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination is not a regular file", action.Src, action.Dst)
+				}
+			}
+		}
+		if kind != preflightNonDirectory {
+			return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination is not a regular file", action.Src, action.Dst)
+		}
+		if !action.overwrite {
+			return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination already exists", action.Src, action.Dst)
+		}
 	}
 	return nil
 }
@@ -354,6 +370,20 @@ func copyAction(action Action) error {
 	if !info.Mode().IsRegular() {
 		return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: source is not a regular file", action.Src, action.Dst)
 	}
+	if action.overwrite {
+		outputInfo, err := os.Lstat(dst)
+		if err != nil && !os.IsNotExist(err) {
+			return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy destination %q", action.Dst)
+		}
+		if err == nil {
+			if !outputInfo.Mode().IsRegular() {
+				return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination is not a regular file", action.Src, action.Dst)
+			}
+			if os.SameFile(info, outputInfo) {
+				return finishCopyAction(action, dst)
+			}
+		}
+	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return apperr.AppErrWrapf(ErrApply, err, "could not create directory %q", filepath.Dir(action.Dst))
 	}
@@ -374,6 +404,10 @@ func copyAction(action Action) error {
 	if err := output.Close(); err != nil {
 		return apperr.AppErrWrapf(ErrApply, err, "could not close copy destination %q", action.Dst)
 	}
+	return finishCopyAction(action, dst)
+}
+
+func finishCopyAction(action Action, dst string) error {
 	if action.Mode != "" {
 		mode, err := strconv.ParseUint(action.Mode, 8, 32)
 		if err != nil {

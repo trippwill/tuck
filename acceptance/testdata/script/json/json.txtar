@@ -68,7 +68,7 @@ cmpenv copy-plan.got copy-plan.want
 -- status.want --
 {"schemaVersion":1,"command":"status","context":"home","kind":"status","data":{"source":"public","entries":[{"targetPath":"$WORK/home/definitely-not-tuck-json-missing","state":"absent"}]},"exitCode":0}
 -- plan.want --
-{"schemaVersion":1,"command":"package use","context":"root","kind":"plan","data":{"dryRun":true,"applied":false,"packages":["public:root:sshd"],"privilege":{"required":false},"actions":[],"conflicts":[{"code":"real_file","path":"/etc/ssh/sshd_config","message":"target is a real file","package":"public:root:sshd"}]},"exitCode":1}
+{"schemaVersion":1,"command":"package use","context":"root","kind":"plan","data":{"dryRun":true,"applied":false,"packages":["public:root:sshd"],"privilege":{"required":false},"actions":[],"conflicts":[{"code":"real_file","path":"/etc/ssh/sshd_config","message":"target is a real file","package":"public:root:sshd","hint":"tuck adopt --root --source public --replace /etc/ssh/sshd_config sshd"}]},"exitCode":1}
 -- config.want --
 {"schemaVersion":1,"command":"package config show","context":"home","kind":"config","data":{"source":"public","package":"public:home:app","manifestPath":"$WORK/src/app/.tuck.toml","files":[{"path":".config/app/config","deploy":"copy","mode":"0600","configured":true}]},"exitCode":0}
 -- copy-plan.want --

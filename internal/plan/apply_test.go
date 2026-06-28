@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/trippwill/tuck/internal/state"
 	"github.com/trippwill/tuck/internal/target"
 )
 
@@ -118,6 +119,81 @@ func TestApplyMovesFile(t *testing.T) {
 	}
 	if string(got) != "contents" {
 		t.Fatalf("moved contents = %q", got)
+	}
+}
+
+func TestApplyCopyOverwriteRejectsSymlinkDestination(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "src")
+	dst := filepath.Join(root, "dst")
+	outside := filepath.Join(root, "outside")
+	if err := os.WriteFile(src, []byte("new"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(outside, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	err := Apply(Plan{Actions: []Action{CopyAction(src, "", dst, "", "", true, state.Copy{})}})
+	if err == nil || !strings.Contains(err.Error(), "destination is not a regular file") {
+		t.Fatalf("Apply() error = %v, want non-regular destination error", err)
+	}
+	got, err := os.ReadFile(outside)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "old" {
+		t.Fatalf("symlink target contents = %q, want unchanged", got)
+	}
+}
+
+func TestApplyCopyOverwriteRejectsSpecialDestinationBeforeMutation(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "src")
+	dst := filepath.Join(root, "dst")
+	marker := filepath.Join(root, "marker")
+	if err := os.WriteFile(src, []byte("new"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Mkfifo(dst, 0o600); err != nil {
+		t.Skipf("fifo unavailable: %v", err)
+	}
+
+	err := Apply(Plan{Actions: []Action{
+		MkdirAction(marker, ""),
+		CopyAction(src, "", dst, "", "", true, state.Copy{}),
+	}})
+	if err == nil || !strings.Contains(err.Error(), "destination is not a regular file") {
+		t.Fatalf("Apply() error = %v, want non-regular destination error", err)
+	}
+	if _, err := os.Lstat(marker); !os.IsNotExist(err) {
+		t.Fatalf("marker exists after failed preflight, err = %v", err)
+	}
+}
+
+func TestApplyCopyOverwriteSameFileDoesNotTruncate(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "src")
+	dst := filepath.Join(root, "dst")
+	if err := os.WriteFile(src, []byte("contents"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(src, dst); err != nil {
+		t.Skipf("hardlink unavailable: %v", err)
+	}
+
+	if err := Apply(Plan{Actions: []Action{CopyAction(src, "", dst, "", "", true, state.Copy{})}}); err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+	got, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "contents" {
+		t.Fatalf("source contents = %q, want unchanged", got)
 	}
 }
 

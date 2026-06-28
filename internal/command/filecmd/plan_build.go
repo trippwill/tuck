@@ -58,14 +58,20 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 		op.AddConflict(plan.NewConflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
 		return op.Finalize()
 	}
+	var packagePathInfo fs.FileInfo
 	packagePathExists := false
-	if _, err := os.Lstat(packagePath); err == nil {
+	if info, err := os.Lstat(packagePath); err == nil {
 		packagePathExists = true
+		packagePathInfo = info
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not inspect package path %q", packagePath)
 	}
 	if !pathutil.Inside(packagePath, identity.Root) {
 		op.AddConflict(plan.NewConflict(target.ConflictPathMismatch, packagePath, identity.String(), "package path escapes package root"))
+		return op.Finalize()
+	}
+	if req.Replace && packagePathExists && !packagePathInfo.Mode().IsRegular() {
+		op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path is not a regular file"))
 		return op.Finalize()
 	}
 	deployCopy, mode := adoptDeployCopy(&op, identity, rel)
@@ -86,6 +92,7 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 			mode = targetMode
 		}
 		configActions := []plan.Action{}
+		stateActions := []plan.Action{}
 		if req.Copy {
 			configAction, err := adoptCopyConfigAction(identity, rel, mode, req.SetMode)
 			if err != nil {
@@ -94,10 +101,17 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 			configActions = append(configActions, configAction)
 		}
 		if packagePathExists {
-			record, ok := op.Registry().CopyByTarget(op.Source().ID, scope.Context, targetPath)
-			if !ok || record.Package != identity.Name || record.Path != rel {
-				op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
-				return op.Finalize()
+			if !req.Replace {
+				record, ok := op.Registry().CopyByTarget(op.Source().ID, scope.Context, targetPath)
+				if !ok || record.Package != identity.Name || record.Path != rel {
+					op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
+					return op.Finalize()
+				}
+			}
+			if req.Replace {
+				if record, ok := op.Registry().CopyByTarget(op.Source().ID, scope.Context, targetPath); ok {
+					stateActions = append(stateActions, plan.ForgetCopyAction(targetPath, record))
+				}
 			}
 			copyToPackage := plan.CopyAction(targetPath, physicalTargetPath, packagePath, "", mode, true, state.Copy{})
 			copyBack, ok := trackedCopyFromTarget(identity, rel, packagePath, targetPath, physicalTargetPath, mode, true)
@@ -105,7 +119,9 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 				op.AddConflict(plan.NewConflict(target.ConflictGeneric, targetPath, identity.String(), "could not plan copy"))
 				return op.Finalize()
 			}
-			op.AddActions(append([]plan.Action{copyToPackage, copyBack}, configActions...)...)
+			actions := append([]plan.Action{copyToPackage}, stateActions...)
+			actions = append(actions, copyBack)
+			op.AddActions(append(actions, configActions...)...)
 			return op.Finalize()
 		}
 		copyBack, ok := trackedCopyFromTarget(identity, rel, packagePath, targetPath, physicalTargetPath, mode, false)
@@ -122,7 +138,24 @@ func buildAdopt(req AdoptRequest) (plan.Plan, error) {
 		return op.Finalize()
 	}
 	if packagePathExists {
-		op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
+		if !req.Replace {
+			op.AddConflict(plan.NewConflict(target.ConflictPackagePathExists, packagePath, identity.String(), "destination package path already exists"))
+			return op.Finalize()
+		}
+		payload, err := pathutil.SymlinkPayload(physicalTargetPath, packagePath)
+		if err != nil {
+			op.AddConflict(plan.NewConflict(target.ConflictPathMismatch, targetPath, identity.String(), err.Error()))
+			return op.Finalize()
+		}
+		targetMode, err := packages.ModeFromFile(physicalTargetPath)
+		if err != nil {
+			return plan.Plan{}, apperr.AppErrWrapf(plan.ErrApply, err, "could not inspect target mode %q", targetPath)
+		}
+		op.AddActions(
+			plan.CopyAction(targetPath, physicalTargetPath, packagePath, "", targetMode, true, state.Copy{}),
+			plan.RemoveFileAction(targetPath, physicalTargetPath),
+			plan.SymlinkAction(targetPath, physicalTargetPath, payload, packagePath),
+		)
 		return op.Finalize()
 	}
 	payload, err := pathutil.SymlinkPayload(physicalTargetPath, packagePath)

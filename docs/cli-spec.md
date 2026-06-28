@@ -449,7 +449,7 @@ is found, it prints conflicts and mutates nothing.
 ### 7.1 `adopt`
 
 ```text
-tuck [--json] adopt [--source <id>] [--root] [--apply] [--copy] [--mode <mode>] <file> <package-ref>
+tuck [--json] adopt [--source <id>] [--root] [--apply] [--copy] [--mode <mode>] [--replace] <file> <package-ref>
 ```
 
 - **Arguments:** one existing real target file and one package name. The package
@@ -458,18 +458,21 @@ tuck [--json] adopt [--source <id>] [--root] [--apply] [--copy] [--mode <mode>] 
   outside the target root or inside any enabled source repository; reject unless
   it is a real file. Convert the target path to the destination package path and
   load package metadata for that path. For symlink deployments, reject if the
-  package path already exists; then plan: make package parents, move
-  target-to-package, symlink target-to-package. For copy deployments, `adopt` is
-  the target-wins reconciliation path: if the target is already a tracked copy
-  for that package path, plan to copy the target bytes into the package source
-  and update copied-file state; if the package path does not exist, plan to move
+  package path already exists unless `--replace` is set; without replacement,
+  plan: make package parents, move target-to-package, symlink target-to-package.
+  With `--replace`, require the existing package path to be a regular file, copy
+  target-to-package, remove the target, and symlink target-to-package. For copy
+  deployments, `adopt` is the target-wins reconciliation path: if the package
+  path already exists, accept it only for an already tracked copy or when
+  `--replace` is set; copy target bytes into the package source and update
+  copied-file state. If the package path does not exist, plan to move
   target-to-package and copy it back to the target. `--copy` forces this copy
   deployment path and writes per-file `[[file]] deploy = "copy"` package config
   during apply. `--mode` is valid only with `--copy`; it sets the copied target
   mode and writes the normalized octal mode to package config. Without `--mode`,
   no explicit mode is written; the moved package source keeps the target's
   current mode and copied-file state records the applied mode. Other existing
-  package paths still conflict.
+  non-regular package paths still conflict.
 - **Execution:** dry-run by default; mutates only with `--apply`.
 
 ### 7.2 `eject`
@@ -517,8 +520,10 @@ tuck [--json] package use [--source <id>] [--root] [--apply] --all
 - **Behavior:** enumerate package entries; plan `mkdir` for absent directory
   entries and deploy leaf entries according to package metadata. Default leaf
   deployment is `symlink`; `deploy = "copy"` plans a real copied target. `package
-  use` is conservative: it does not overwrite or reconcile existing drifted
-  copied targets. Symlink payloads are relative.
+  use` is conservative: it does not overwrite or reconcile existing real-file
+  targets or drifted copied targets. Real-file conflicts include a hint to run
+  `tuck adopt --replace` with the selected source/context when the target should
+  win. Symlink payloads are relative.
 - **Execution:** dry-run by default; mutates only with `--apply`.
 
 ### 7.5 `package drop`
@@ -863,7 +868,9 @@ Used by `adopt`, `eject`, `package use`, `package drop`, and
 ```
 
 Conflicts and unsatisfied privilege requirements are included in the plan data
-and make `exitCode` `1`.
+and make `exitCode` `1`. A conflict may include an optional `hint` string when
+there is one safe next command, for example a `real_file` `package use` conflict
+that can be resolved with `tuck adopt --replace`.
 
 #### 9.2.2 `kind: "packages"`
 
@@ -1291,11 +1298,13 @@ non-directory special file.
 
 **Adopt.** Requires: target exists, is a real file, is inside the selected target
 root, and is not inside any enabled source repository. For symlink deployment,
-the destination package path must not already exist. For copy deployment, a
-missing destination package path is created from the target; an existing
-destination package path is accepted only when the target is already a tracked
-copy for the same source/context/package/path, making `adopt` the explicit
-target-wins reconciliation command.
+the destination package path must not already exist unless `--replace` is set;
+`--replace` accepts only an existing regular package file, copies the target
+over it, removes the target, and links the target back to the package file. For
+copy deployment, a missing destination package path is created from the target;
+an existing destination package path is accepted only when the target is already
+a tracked copy for the same source/context/package/path or when `--replace` is
+set, making `adopt --replace` the explicit target-wins reconciliation command.
 
 **Eject.** For symlink deployments, requires a managed symlink in the selected
 context, a matching package-relative target path, and an existing non-directory

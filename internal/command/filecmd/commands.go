@@ -24,6 +24,7 @@ type AdoptRequest struct {
 	Copy     bool
 	Mode     string
 	SetMode  bool
+	Replace  bool
 }
 
 type EjectRequest struct {
