@@ -32,6 +32,7 @@ func sourceCommand() *cli.Command {
 				Flags: []cli.Flag{
 					&cli.BoolFlag{Name: "default", Usage: "make this the default source"},
 					&cli.BoolFlag{Name: "init", Usage: "create a missing source manifest before registering"},
+					&cli.StringFlag{Name: "id", Usage: "machine-local source id override"},
 					&cli.StringFlag{Name: "name", Usage: "manifest source id to write with --init"},
 					&cli.StringFlag{Name: "description", Usage: "manifest description to write with --init"},
 				},
@@ -92,6 +93,8 @@ func sourceAddAction(_ context.Context, cmd *cli.Command) error {
 		Path:        cmd.StringArgs("path")[0],
 		Default:     cmd.Bool("default"),
 		Init:        cmd.Bool("init"),
+		ID:          cmd.String("id"),
+		SetID:       cmd.IsSet("id"),
 		Name:        cmd.String("name"),
 		Description: cmd.String("description"),
 	})

@@ -90,6 +90,11 @@ func TestLoadErrors(t *testing.T) {
 			contents: new("name = \"public:home\"\n"),
 			wantErr:  ErrInvalid,
 		},
+		{
+			name:     "reserved manifest filename",
+			contents: new("name = \".tuck.toml\"\n"),
+			wantErr:  ErrInvalid,
+		},
 	}
 
 	for _, tt := range tests {

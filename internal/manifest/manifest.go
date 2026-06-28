@@ -121,8 +121,8 @@ func initRoot(repoRoot string) (string, error) {
 }
 
 func validate(manifest Manifest, manifestPath string) error {
-	if strings.TrimSpace(manifest.Name) == "" || strings.ContainsAny(manifest.Name, "/:") {
-		return apperr.AppErrMsgf(ErrInvalid, "invalid manifest name %q in %q: must be non-empty and cannot contain '/' or ':'", manifest.Name, manifestPath)
+	if strings.TrimSpace(manifest.Name) == "" || manifest.Name == ManifestFilename || strings.ContainsAny(manifest.Name, "/:") {
+		return apperr.AppErrMsgf(ErrInvalid, "invalid manifest name %q in %q: must be non-empty, cannot be %q, and cannot contain '/' or ':'", manifest.Name, manifestPath, ManifestFilename)
 	}
 	return nil
 }
