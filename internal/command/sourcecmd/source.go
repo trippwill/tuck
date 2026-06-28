@@ -48,7 +48,7 @@ func Add(req AddRequest) output.Outcome {
 		return output.OK(output.InvalidArgs("--description requires --init", "add --init when writing a new source manifest"))
 	}
 	if req.SetID && !validSourceID(req.ID) {
-		return output.OK(output.InvalidArgs(fmt.Sprintf("invalid source id %q", req.ID), "pass a non-empty id that is not .tuck.toml and does not contain '/' or ':'"))
+		return output.OK(output.InvalidArgs(fmt.Sprintf("invalid source id %q", req.ID), "pass a non-empty id without surrounding whitespace that is not .tuck.toml and does not contain '/' or ':'"))
 	}
 
 	var (
@@ -268,7 +268,7 @@ func styledField(console output.Console, style output.Style, value string, width
 }
 
 func validSourceID(id string) bool {
-	return id != "" && id != manifest.ManifestFilename && !strings.ContainsAny(id, "/:")
+	return id != "" && strings.TrimSpace(id) == id && id != manifest.ManifestFilename && !strings.ContainsAny(id, "/:")
 }
 
 type sourcesData struct {
