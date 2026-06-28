@@ -4,6 +4,9 @@ Thanks for helping improve tuck.
 
 ## Development
 
+`main` is protected. Develop on a branch and open a pull request back to `main`;
+do not commit directly to `main`.
+
 Use the repo's mise tasks:
 
 ```sh
@@ -32,4 +35,3 @@ mise run coverage
 AI assistance is welcome, but contributors are responsible for the result. Review
 the diff, run the relevant checks, and disclose material AI assistance when it is
 useful context for reviewers.
-

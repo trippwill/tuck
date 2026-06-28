@@ -18,6 +18,10 @@
 - For release preparation, follow `.github/skills/tuck-release/SKILL.md`.
 - Keep `CHANGELOG.md` user-facing; move Unreleased entries into a `vX.Y.Z` section before tagging releases.
 
+## Workflow
+
+- `main` is protected. Develop on a branch and use pull requests for changes.
+
 ## Commit messages
 
 - Use Conventional Commits: `<type>(<scope>): <summary>`, for example `feat(cli): add source add`.

@@ -154,3 +154,4 @@ _Unordered idea bucket; IDs are for reference only._
 11. [ ] **P11** Add a machine-local source-id override (e.g. `source add --id <id>`) to resolve manifest-name collisions between repos `[cmd]`
 12. [ ] **P12** Optionally prune now-empty intermediate directories left behind after `package drop` `[cmd]`
 13. [ ] **P15** Add interactive first-run init on `no_source`: prompt for a repo path and run `source add --init` when needed (TTY only; non-interactive still errors) `[cmd]`
+14. [ ] **P16** Explore one lightweight public trust signal, such as published coverage, release provenance, or install verification docs, and adopt it only if it improves user confidence without badge/process bloat `[build/docs]`
