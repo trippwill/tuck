@@ -13,17 +13,17 @@ func adoptCommand() *cli.Command {
 		Name:      "adopt",
 		Usage:     "move a real file into a package, then deploy it back",
 		Category:  "files",
-		ArgsUsage: "<file> <package>",
+		ArgsUsage: "<package> <file>",
 		Arguments: []cli.Argument{
 			&cli.StringArgs{
-				Name:      "file",
-				UsageText: "<file>",
+				Name:      "package",
+				UsageText: "<package>",
 				Min:       1,
 				Max:       1,
 			},
 			&cli.StringArgs{
-				Name:      "package",
-				UsageText: "<package>",
+				Name:      "file",
+				UsageText: "<file>",
 				Min:       1,
 				Max:       1,
 			},
@@ -80,13 +80,13 @@ func statusCommand() *cli.Command {
 }
 
 func adoptAction(_ context.Context, cmd *cli.Command) error {
-	if err := noExtraArgs(cmd, "adopt", "adopt accepts exactly <file> <package>", "pass one target file and one package name"); err != nil {
+	if err := noExtraArgs(cmd, "adopt", "adopt accepts exactly <package> <file>", "pass one package name and one target file"); err != nil {
 		return err
 	}
 	contextName := contextFromFlag(cmd)
 	outcome := filecmd.Adopt(filecmd.AdoptRequest{
-		File:     cmd.StringArgs("file")[0],
 		Ref:      cmd.StringArgs("package")[0],
+		File:     cmd.StringArgs("file")[0],
 		SourceID: cmd.String("source"),
 		Context:  contextName,
 		Apply:    cmd.Bool("apply"),

@@ -59,7 +59,7 @@ Synopsis:
 
 ```text
 # File operations (top-level)
-tuck adopt  <file> <package-ref>
+tuck adopt  <package-ref> <file>
 tuck eject  <file>
 tuck status <file>
 
@@ -439,7 +439,7 @@ Resolution rules:
 - `package use`, `package drop`, `package refresh`, `package show`, and
   `package status <ref>` require the package to exist in the active source and
   context, else `package_not_found`.
-- `adopt <file> <ref>` may create the package if absent. The source is still
+- `adopt <ref> <file>` may create the package if absent. The source is still
   fixed by active-source resolution.
 
 ---
@@ -452,10 +452,10 @@ is found, it prints conflicts and mutates nothing.
 ### 7.1 `adopt`
 
 ```text
-tuck [--json] adopt [--source <id>] [--root] [--apply] [--copy] [--mode <mode>] [--replace] <file> <package-ref>
+tuck [--json] adopt [--source <id>] [--root] [--apply] [--copy] [--mode <mode>] [--replace] <package-ref> <file>
 ```
 
-- **Arguments:** one existing real target file and one package name. The package
+- **Arguments:** one package name and one existing real target file. The package
   may already exist or be created in the active source.
 - **Behavior:** expand `<file>` without following the final symlink; reject if
   outside the target root or inside any enabled source repository; reject unless
@@ -1026,7 +1026,7 @@ Copy drift hints should preserve the command model:
 - `copy_target_modified`: the copied target changed outside `tuck`. Hint: if the
   package source should win, remove the target and run
   `tuck package use <pkg> --apply`; if the target should win, run
-  `tuck adopt <target> <pkg> --apply`.
+  `tuck adopt <pkg> <target> --apply`.
 - `copy_drift`: both package source and copied target changed. Hint: compare and
   reconcile them, then choose the source-wins path (remove target, then
   `package use`) or the target-wins path (`adopt`).
@@ -1529,12 +1529,12 @@ re-run with --apply to execute
 ### A.2 Adopt a file
 
 ```text
-$ tuck adopt ~/.gitconfig git
+$ tuck adopt git ~/.gitconfig
 plan:
   ~ move   ~/.gitconfig -> ~/.dotfiles/git/.gitconfig
   + link   ~/.gitconfig -> ~/.dotfiles/git/.gitconfig
 
-$ tuck adopt ~/.gitconfig git --apply
+$ tuck adopt git ~/.gitconfig --apply
 applied
 ```
 
@@ -1620,8 +1620,9 @@ Deliberate changes:
 2. **Package verbs changed.** `deploy`/`undeploy`/`redeploy` became
    `package use`/`package drop`/`package refresh`. A package is a collection of
    files; it does not itself get "linked".
-3. **File operations are file-first.** `adopt <pkg> <file>` became
-   `adopt <file> <pkg>`. The file is the subject of the command.
+3. **Adopt is package-first.** `adopt <package> <file>` reads as "put this file
+   into this package"; `eject` and `status` stay file-first because they start
+   from an existing target.
 4. **Status split by level.** File status is `tuck status <file>`. Package status
    is `tuck package status [pkg]`.
 5. **Source commands aligned with package commands.** `source enable` became

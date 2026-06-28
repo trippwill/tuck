@@ -28,7 +28,7 @@ func TestBuildUseRealFileConflictIncludesAdoptReplaceHint(t *testing.T) {
 	if conflict.Code != target.ConflictRealFile {
 		t.Fatalf("buildUse() conflict code = %q, want real_file", conflict.Code)
 	}
-	wantHint := "tuck adopt --source public --replace " + targetPath + " zsh"
+	wantHint := "tuck adopt --source public --replace zsh " + targetPath
 	if conflict.Hint != wantHint {
 		t.Fatalf("buildUse() conflict hint = %q, want %q", conflict.Hint, wantHint)
 	}

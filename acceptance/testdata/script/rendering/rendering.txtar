@@ -86,7 +86,7 @@ plan:
 
 conflicts:
   ! real_file $WORK/home/.config/zsh/.zshrc (target is a real file)
-    hint: tuck adopt --source public --replace $WORK/home/.config/zsh/.zshrc zsh
+    hint: tuck adopt --source public --replace zsh $WORK/home/.config/zsh/.zshrc
 
 0 actions, 1 conflicts
 -- status.want --

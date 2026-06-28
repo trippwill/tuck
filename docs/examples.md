@@ -15,8 +15,8 @@ tuck source list
 ## Adopt a shell config
 
 ```sh
-tuck adopt ~/.zshrc zsh
-tuck adopt ~/.zshrc zsh --apply
+tuck adopt zsh ~/.zshrc
+tuck adopt zsh ~/.zshrc --apply
 tuck package show zsh
 ```
 
@@ -35,8 +35,8 @@ Root-context package files live under `.root` inside the source and deploy under
 `/`:
 
 ```sh
-tuck adopt --root /etc/ssh/sshd_config sshd
-sudo tuck adopt --root /etc/ssh/sshd_config sshd --apply
+tuck adopt --root sshd /etc/ssh/sshd_config
+sudo tuck adopt --root sshd /etc/ssh/sshd_config --apply
 tuck package use --root sshd
 sudo tuck package use --root sshd --apply
 ```

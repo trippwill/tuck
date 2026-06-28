@@ -216,7 +216,7 @@ func adoptReplaceHint(targetEntry target.PackageEntry) string {
 	if targetEntry.Identity.Context == packages.ContextRoot {
 		flags = "--root " + flags
 	}
-	return fmt.Sprintf("tuck adopt %s %s %s", flags, targetEntry.TargetPath, targetEntry.Identity.Name)
+	return fmt.Sprintf("tuck adopt %s %s %s", flags, targetEntry.Identity.Name, targetEntry.TargetPath)
 }
 
 func refreshCopyRemoval(op *plan.Operation, targetEntry target.PackageEntry, refresh bool) (target.CopyClass, bool) {
