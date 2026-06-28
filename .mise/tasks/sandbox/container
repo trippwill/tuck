@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+#MISE description="Open a sudo-capable Fedora sandbox with local tuck and copied dotfiles"
+set -eu
+
+command -v podman >/dev/null || {
+  echo "podman is required for sandbox:container" >&2
+  exit 1
+}
+
+dotfiles="${TUCK_SANDBOX_DOTFILES:-${DOTFILES:-$HOME/dotfiles}}"
+if [ ! -d "$dotfiles" ]; then
+  echo "dotfiles directory not found: $dotfiles" >&2
+  echo "set TUCK_SANDBOX_DOTFILES=/path/to/dotfiles" >&2
+  exit 1
+fi
+
+tmp="$(mktemp -d)"
+name="tuck-sandbox-$$"
+cleanup() {
+  podman rm -f "$name" >/dev/null 2>&1 || true
+  rm -rf "$tmp"
+}
+trap cleanup EXIT
+
+go build -o "$tmp/tuck" ./cmd/tuck
+
+cat >"$tmp/Containerfile" <<'EOF'
+FROM fedora:latest
+RUN dnf -y install sudo && dnf clean all \
+ && useradd -m -G wheel test \
+ && echo '%wheel ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/wheel \
+ && chmod 0440 /etc/sudoers.d/wheel
+COPY tuck /usr/local/bin/tuck
+WORKDIR /home/test
+EOF
+
+podman build -q -t tuck-sandbox-local "$tmp" >/dev/null
+podman create --name "$name" tuck-sandbox-local sleep infinity >/dev/null
+podman start "$name" >/dev/null
+podman cp "$dotfiles" "$name:/home/test/dotfiles"
+podman exec --user root "$name" chown -R test:test /home/test/dotfiles
+
+cat <<'EOF'
+Sandbox ready.
+
+Try:
+  tuck source add ~/dotfiles --default
+  tuck pkg list
+  tuck pkg use <pkg> --apply
+  sudo tuck --root pkg use <pkg> --apply
+
+EOF
+
+podman exec -it --user test "$name" bash -l
