@@ -70,7 +70,7 @@ func TestConsoleStringPrintsConflictHint(t *testing.T) {
 		Conflicts: []plan.Conflict{{
 			Code: "real_file",
 			Path: "~/.zshrc",
-			Hint: "tuck adopt --replace ~/.zshrc zsh",
+			Hint: "tuck adopt --replace zsh ~/.zshrc",
 		}},
 	}
 
@@ -78,7 +78,7 @@ func TestConsoleStringPrintsConflictHint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ConsoleString() error = %v", err)
 	}
-	if !strings.Contains(got, "hint: tuck adopt --replace ~/.zshrc zsh") {
+	if !strings.Contains(got, "hint: tuck adopt --replace zsh ~/.zshrc") {
 		t.Fatalf("ConsoleString() = %q, want conflict hint", got)
 	}
 }

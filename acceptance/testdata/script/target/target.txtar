@@ -80,7 +80,7 @@ stdout 'public:root:sshd'
 stdout '/etc/ssh/sshd_config'
 ! stdout $WORK/root
 cp fixtures/target/adopt/root.conf $WORK/root/etc/tuck.conf
-exec tuck adopt --root /etc/tuck.conf sys --apply --no-color
+exec tuck adopt --root sys /etc/tuck.conf --apply --no-color
 stdout 'context: root, apply'
 stdout 'public:root:sys'
 stdout '/etc/tuck.conf'
@@ -109,7 +109,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
-exec tuck adopt $WORK/home/.config/nvim/init.lua nvim --no-color
+exec tuck adopt nvim $WORK/home/.config/nvim/init.lua --no-color
 stdout 'tuck adopt nvim'
 stdout 'context: home, dry-run'
 stdout 'packages: public:home:nvim'
@@ -129,7 +129,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
-exec tuck adopt $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+exec tuck adopt nvim $WORK/home/.config/nvim/init.lua --apply --no-color
 stdout 'context: home, apply'
 stdout '3 actions, 0 conflicts'
 readlink $WORK/home/.config/nvim/init.lua ../../../src/nvim/.config/nvim/init.lua
@@ -142,7 +142,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/zsh
 cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
-exec tuck adopt --replace $WORK/home/.config/zsh/.zshrc zsh --no-color
+exec tuck adopt --replace zsh $WORK/home/.config/zsh/.zshrc --no-color
 stdout 'context: home, dry-run'
 stdout '\+ copy'
 stdout '- file'
@@ -159,7 +159,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/zsh
 cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
-exec tuck adopt --replace $WORK/home/.config/zsh/.zshrc zsh --apply --no-color
+exec tuck adopt --replace zsh $WORK/home/.config/zsh/.zshrc --apply --no-color
 stdout 'context: home, apply'
 stdout '\+ copy'
 stdout '- file'
@@ -176,14 +176,14 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
-exec tuck adopt --copy $WORK/home/.config/nvim/init.lua nvim --no-color
+exec tuck adopt --copy nvim $WORK/home/.config/nvim/init.lua --no-color
 stdout '\+ move'
 stdout '\+ copy'
 stdout '\+ config'
 stdout '4 actions, 0 conflicts'
 exists $WORK/home/.config/nvim/init.lua
 ! exists $WORK/src/nvim/.tuck.toml
-exec tuck adopt --copy $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+exec tuck adopt --copy nvim $WORK/home/.config/nvim/init.lua --apply --no-color
 stdout '\+ copy'
 stdout '\+ config'
 stdout '4 actions, 0 conflicts'
@@ -194,7 +194,7 @@ grep 'deploy = "copy"' $WORK/src/nvim/.tuck.toml
 exec tuck status $WORK/home/.config/nvim/init.lua --no-color
 stdout 'deployed'
 stdout 'public:home:nvim'
-! exec tuck adopt --mode 0600 $WORK/home/.config/nvim/init.lua nvim --no-color
+! exec tuck adopt --mode 0600 nvim $WORK/home/.config/nvim/init.lua --no-color
 stderr 'adopt --mode requires --copy'
 
 # adopt --copy --mode accepts chmod-style expressions and writes normalized octal mode
@@ -203,7 +203,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
-exec tuck adopt --copy --mode u=rw,go= $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+exec tuck adopt --copy --mode u=rw,go= nvim $WORK/home/.config/nvim/init.lua --apply --no-color
 stdout 'mode=0600'
 grep 'mode = "0600"' $WORK/src/nvim/.tuck.toml
 exec stat -c %a $WORK/home/.config/nvim/init.lua
@@ -216,7 +216,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/zsh
 cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zprofile
-exec tuck adopt $WORK/home/.config/zsh/.zprofile zsh --apply --no-color
+exec tuck adopt zsh $WORK/home/.config/zsh/.zprofile --apply --no-color
 stdout 'public:home:zsh'
 stdout '3 actions, 0 conflicts'
 readlink $WORK/home/.config/zsh/.zprofile ../../../src/zsh/.config/zsh/.zprofile
@@ -229,7 +229,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
-exec tuck --json adopt $WORK/home/.config/nvim/init.lua nvim
+exec tuck --json adopt nvim $WORK/home/.config/nvim/init.lua
 stdout '"schemaVersion":1'
 stdout '"command":"adopt"'
 stdout '"context":"home"'
@@ -253,7 +253,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
-exec tuck --json adopt --copy $WORK/home/.config/nvim/init.lua nvim
+exec tuck --json adopt --copy nvim $WORK/home/.config/nvim/init.lua
 stdout '"command":"adopt"'
 stdout '"kind":"plan"'
 stdout '"type":"move"'
@@ -269,7 +269,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 cp fixtures/target/adopt/init.lua $WORK/home/.config/nvim/init.lua
-exec tuck --json adopt --copy --mode u=rw,go= $WORK/home/.config/nvim/init.lua nvim
+exec tuck --json adopt --copy --mode u=rw,go= nvim $WORK/home/.config/nvim/init.lua
 stdout '"type":"copy"'
 stdout '"mode":"0600"'
 stdout '"type":"package_config"'
@@ -282,13 +282,13 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/nvim
 mkdir $WORK/home/.config/nvim/init.lua
-! exec tuck adopt $WORK/home/.config/nvim/init.lua nvim --apply --no-color
+! exec tuck adopt nvim $WORK/home/.config/nvim/init.lua --apply --no-color
 stdout 'conflicts:'
 stdout 'real_directory'
 stdout '0 actions, 1 conflicts'
 mkdir $WORK/home/.config/zsh
 cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
-! exec tuck adopt $WORK/home/.config/zsh/.zshrc zsh --apply --no-color
+! exec tuck adopt zsh $WORK/home/.config/zsh/.zshrc --apply --no-color
 stdout 'package_path_exists'
 stdout '0 actions, 1 conflicts'
 exists $WORK/home/.config/zsh/.zshrc
@@ -303,7 +303,7 @@ mkdir $WORK/home/.config/zsh
 cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
 rm $WORK/src/zsh/.config/zsh/.zshrc
 mkdir $WORK/src/zsh/.config/zsh/.zshrc
-! exec tuck adopt --replace $WORK/home/.config/zsh/.zshrc zsh --no-color
+! exec tuck adopt --replace zsh $WORK/home/.config/zsh/.zshrc --no-color
 stdout 'package_path_exists'
 stdout 'destination package path is not a regular file'
 stdout '0 actions, 1 conflicts'
@@ -315,7 +315,7 @@ cmp $WORK/home/.config/zsh/.zshrc fixtures/target/adopt/zprofile
 phase adopt-inside-source fixtures/target/status/common
 exec cp -R $WORK/src $WORK/home/.dotfiles
 wantstate public public $WORK/home/.dotfiles true
-! exec tuck adopt $WORK/home/.dotfiles/zsh/.config/zsh/.zshrc zsh --no-color
+! exec tuck adopt zsh $WORK/home/.dotfiles/zsh/.config/zsh/.zshrc --no-color
 stdout 'inside_source_repo'
 stdout '0 actions, 1 conflicts'
 exists $WORK/home/.dotfiles/zsh/.config/zsh/.zshrc
@@ -323,7 +323,7 @@ exists $WORK/home/.dotfiles/zsh/.config/zsh/.zshrc
 
 # adopt reports source/ref errors and usage validation
 phase adopt-errors fixtures/target/status/common
-! exec tuck adopt $WORK/home/file nvim --no-color
+! exec tuck adopt nvim $WORK/home/file --no-color
 stderr 'no active source'
 wantstate public public $WORK/src true
 ! exec tuck adopt --no-color
@@ -331,10 +331,10 @@ stderr 'Incorrect Usage'
 ! exec tuck adopt one --no-color
 stderr 'Incorrect Usage'
 ! exec tuck adopt one two three --no-color
-stderr 'adopt accepts exactly <file> <package>'
-! exec tuck adopt $WORK/home/file bad/ref --no-color
+stderr 'adopt accepts exactly <package> <file>'
+! exec tuck adopt bad/ref $WORK/home/file --no-color
 stderr 'error: invalid package ref "bad/ref"'
-! exec tuck adopt --source missing $WORK/home/file nvim --no-color
+! exec tuck adopt --source missing nvim $WORK/home/file --no-color
 stderr 'source is not enabled'
 
 # eject dry-run prints an unlink/move plan and does not mutate
@@ -481,7 +481,7 @@ phase copy-adopt-eject fixtures/target/copy/common
 wantstate public public $WORK/src true
 exec tuck pkg use app --apply --no-color
 cp fixtures/target/copy/target-v2 $WORK/home/.config/app/config
-exec tuck adopt $WORK/home/.config/app/config app --apply --no-color
+exec tuck adopt app $WORK/home/.config/app/config --apply --no-color
 stdout '\+ copy'
 stdout '2 actions, 0 conflicts'
 cmp $WORK/src/app/.config/app/config fixtures/target/copy/target-v2
@@ -499,7 +499,7 @@ wantstate public public $WORK/src true
 mkdir $WORK/home/.config
 mkdir $WORK/home/.config/app
 cp fixtures/target/copy/target-v2 $WORK/home/.config/app/config
-exec tuck adopt --replace $WORK/home/.config/app/config app --apply --no-color
+exec tuck adopt --replace app $WORK/home/.config/app/config --apply --no-color
 stdout '\+ copy'
 stdout '2 actions, 0 conflicts'
 cmp $WORK/src/app/.config/app/config fixtures/target/copy/target-v2

@@ -36,13 +36,13 @@ in machine-local state.
 Adopt plans the move first:
 
 ```sh
-tuck adopt ~/.zshrc zsh
+tuck adopt zsh ~/.zshrc
 ```
 
 Apply after reviewing the plan:
 
 ```sh
-tuck adopt ~/.zshrc zsh --apply
+tuck adopt zsh ~/.zshrc --apply
 ```
 
 ## 4. Deploy a package

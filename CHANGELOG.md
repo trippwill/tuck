@@ -8,6 +8,7 @@ All notable changes to tuck are tracked here.
 - Label `deploy = "copy"` entries in `package show` output (#12).
 - Add an explicit source id override when registering sources with `source add` (#7).
 - Add the adopt-on-conflict shortcut for `package use` (#8).
+- Flip `adopt` arguments to package-first (`adopt <package> <file>`) (#9).
 - Harden beta behavior coverage for help/version JSON handling, source warnings,
   state repair hints, empty sources, and `--no-color` precedence (#1-#5).
 

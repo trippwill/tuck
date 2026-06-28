@@ -42,8 +42,8 @@ tuck source add ~/dotfiles --init --default
 Adopt an existing file into a package:
 
 ```sh
-tuck adopt ~/.zshrc zsh
-tuck adopt ~/.zshrc zsh --apply
+tuck adopt zsh ~/.zshrc
+tuck adopt zsh ~/.zshrc --apply
 ```
 
 Deploy a package:
@@ -71,7 +71,7 @@ tuck package status zsh
 | `tuck package use <package>` | Plan package deployment. Add `--apply` to execute. |
 | `tuck package drop <package>` | Plan removing managed deployments. Add `--apply` to execute. |
 | `tuck package refresh <package>` | Plan drop-then-use refresh. Add `--apply` to execute. |
-| `tuck adopt <file> <package>` | Plan moving a real target file into a package. Add `--apply` to execute. |
+| `tuck adopt <package> <file>` | Plan moving a real target file into a package. Add `--apply` to execute. |
 | `tuck eject <file>` | Plan moving a managed file back to the target tree. Add `--apply` to execute. |
 | `tuck status <file>` | Classify one target path. |
 
