@@ -11,6 +11,16 @@ exists $WORK/home/.config/zsh/.zshrc
 ! exists $WORK/home/secret
 ! stderr .
 
+# package use --all handles a source with zero eligible packages
+phase package-use-all-empty fixtures/package/common/public-only
+wantstate public public $WORK/src true
+exec tuck package use --all --no-color
+stdout 'tuck package use'
+stdout 'context: home, dry-run'
+stdout '0 actions, 0 conflicts'
+stdout 're-run with --apply to execute'
+! stderr .
+
 # shell completion uses urfave/cli scripts and active source candidates
 phase shell-completion fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home
 wantstate public public $WORK/src true
