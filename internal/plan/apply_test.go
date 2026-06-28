@@ -150,6 +150,30 @@ func TestApplyCopyOverwriteRejectsSymlinkDestination(t *testing.T) {
 	}
 }
 
+func TestApplyCopyOverwriteRejectsSpecialDestinationBeforeMutation(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "src")
+	dst := filepath.Join(root, "dst")
+	marker := filepath.Join(root, "marker")
+	if err := os.WriteFile(src, []byte("new"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Mkfifo(dst, 0o600); err != nil {
+		t.Skipf("fifo unavailable: %v", err)
+	}
+
+	err := Apply(Plan{Actions: []Action{
+		MkdirAction(marker, ""),
+		CopyAction(src, "", dst, "", "", true, state.Copy{}),
+	}})
+	if err == nil || !strings.Contains(err.Error(), "destination is not a regular file") {
+		t.Fatalf("Apply() error = %v, want non-regular destination error", err)
+	}
+	if _, err := os.Lstat(marker); !os.IsNotExist(err) {
+		t.Fatalf("marker exists after failed preflight, err = %v", err)
+	}
+}
+
 func TestApplyCopyOverwriteSameFileDoesNotTruncate(t *testing.T) {
 	root := t.TempDir()
 	src := filepath.Join(root, "src")

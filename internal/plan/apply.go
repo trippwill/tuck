@@ -266,6 +266,17 @@ func (p *applyPreflight) validateCopy(action Action) error {
 		return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy destination %q", action.Dst)
 	}
 	if exists {
+		if action.overwrite {
+			if plannedKind, planned := p.paths[filepath.Clean(action.fsDst())]; !planned || plannedKind != preflightNonDirectory {
+				info, err := os.Lstat(action.fsDst())
+				if err != nil && !os.IsNotExist(err) {
+					return apperr.AppErrWrapf(ErrApply, err, "could not inspect copy destination %q", action.Dst)
+				}
+				if err == nil && !info.Mode().IsRegular() {
+					return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination is not a regular file", action.Src, action.Dst)
+				}
+			}
+		}
 		if kind != preflightNonDirectory {
 			return apperr.AppErrMsgf(ErrApply, "could not copy %q to %q: destination is not a regular file", action.Src, action.Dst)
 		}
