@@ -49,6 +49,9 @@ func renderTree(console output.Console, data any) (string, error) {
 	fmt.Fprintf(&b, "%s %s\n", console.Style(output.StyleAccent, "root:"), console.Style(output.StylePath, p.Package.Root))
 	if len(p.Package.Entries) > 0 {
 		fmt.Fprintln(&b)
+		if hasCopyEntry(p.Package.Entries) {
+			fmt.Fprintf(&b, "%s [copy] deploy=copy\n\n", console.Style(output.StyleAccent, "key:"))
+		}
 		writeTree(&b, buildTree(p.Package.Entries), "")
 		fmt.Fprintln(&b)
 	}
@@ -58,6 +61,7 @@ func renderTree(console output.Console, data any) (string, error) {
 
 type treeNode struct {
 	name     string
+	deploy   packages.Deploy
 	children []*treeNode
 	index    map[string]*treeNode
 }
@@ -66,7 +70,8 @@ func buildTree(entries []packages.TreeEntry) []*treeNode {
 	root := &treeNode{}
 	for _, entry := range entries {
 		node := root
-		for _, part := range strings.Split(entry.Rel, "/") {
+		parts := strings.Split(entry.Rel, "/")
+		for i, part := range parts {
 			if part == "" {
 				continue
 			}
@@ -80,6 +85,9 @@ func buildTree(entries []packages.TreeEntry) []*treeNode {
 				node.children = append(node.children, child)
 			}
 			node = child
+			if i == len(parts)-1 {
+				node.deploy = entry.Deploy
+			}
 		}
 	}
 	return root.children
@@ -94,9 +102,22 @@ func writeTree(b *strings.Builder, nodes []*treeNode, prefix string) {
 			branch = "`-- "
 			nextPrefix = prefix + "    "
 		}
-		fmt.Fprintf(b, "%s%s%s\n", prefix, branch, node.name)
+		suffix := ""
+		if node.deploy == packages.DeployCopy {
+			suffix = " [copy]"
+		}
+		fmt.Fprintf(b, "%s%s%s%s\n", prefix, branch, node.name, suffix)
 		writeTree(b, node.children, nextPrefix)
 	}
+}
+
+func hasCopyEntry(entries []packages.TreeEntry) bool {
+	for _, entry := range entries {
+		if entry.Deploy == packages.DeployCopy {
+			return true
+		}
+	}
+	return false
 }
 
 func entryNoun(count int) string {

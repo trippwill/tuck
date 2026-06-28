@@ -432,6 +432,19 @@ stdout '"type":"leaf"'
 stdout '"exitCode":0'
 ! stderr .
 
+# package show labels copied leaves in human output
+phase package-show-copy-label fixtures/package/common/public-only fixtures/package/copy/app
+wantstate public public $WORK/src true
+exec tuck pkg show app --no-color
+stdout 'key: \[copy\] deploy=copy'
+stdout '`-- \.config'
+stdout '    `-- app'
+stdout '        `-- config \[copy\]'
+exec tuck --json pkg show app
+stdout '"rel":".config/app/config"'
+! stdout '"deploy"'
+! stderr .
+
 # package show aliases and root context use the selected package base
 phase package-show-alias-root fixtures/package/common/public-only fixtures/package/common/root-sshd
 wantstate public public $WORK/src true
