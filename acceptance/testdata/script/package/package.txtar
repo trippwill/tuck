@@ -409,11 +409,11 @@ stdout 'tuck package show'
 stdout 'context: home'
 stdout 'source: public'
 stdout 'public:home:zsh'
-stdout 'dir  .config'
-stdout 'dir  .config/zsh'
-stdout 'leaf .config/zsh/.zlogin'
-stdout 'leaf .config/zsh/.zprofile'
-stdout 'leaf .config/zsh/.zshrc'
+stdout '`-- \.config'
+stdout '    `-- zsh'
+stdout '        \|-- \.zlogin'
+stdout '        \|-- \.zprofile'
+stdout '        `-- \.zshrc'
 stdout '5 entries'
 ! stderr .
 
@@ -439,8 +439,9 @@ exec tuck pkg tree sshd --root --no-color
 stdout 'tuck package show'
 stdout 'context: root'
 stdout 'public:root:sshd'
-stdout 'dir  etc'
-stdout 'leaf etc/ssh/sshd_config'
+stdout '`-- etc'
+stdout '    `-- ssh'
+stdout '        `-- sshd_config'
 ! stdout $WORK/root
 exec tuck package tree sshd --root --no-color
 stdout 'public:root:sshd'
