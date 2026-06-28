@@ -9,6 +9,11 @@ stdout 'USAGE'
 stdout 'completion'
 ! stdout '"kind":"help"'
 
+exec tuck --json --help
+stdout 'USAGE'
+stdout 'completion'
+! stdout '"kind":"help"'
+
 # representative leaf command help includes scoped arguments and flags
 phase leaf-help
 exec tuck status --help
@@ -106,5 +111,9 @@ exec tuck -v
 stdout 'tuck version dev'
 
 exec tuck --version --json
+stdout 'tuck version dev'
+! stdout '"kind":"version"'
+
+exec tuck --json --version
 stdout 'tuck version dev'
 ! stdout '"kind":"version"'

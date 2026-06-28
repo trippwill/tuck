@@ -215,6 +215,12 @@ stdout '"warnings":\[\{"code":"ignored_flag","message":"source list ignores --so
 stdout '"exitCode":0'
 ! stderr .
 
+exec tuck --json --source public --root source list
+stdout '"command":"source list"'
+stdout '"warnings":\[\{"code":"ignored_flag","message":"source list ignores --source","hint":"source commands manage the registry and do not select an active source"\},\{"code":"ignored_flag","message":"source list ignores --root","hint":"source commands manage the registry and do not select a target context"\}\]'
+stdout '"exitCode":0'
+! stderr .
+
 # absent state is a successful empty source list
 phase list-empty
 exec tuck source list --no-color

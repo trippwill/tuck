@@ -18,10 +18,12 @@ exec sh -c 'printf "\n# manual edit\n" >> "$TUCK_TEST_STATE_DIR/tuck/sources.tom
 stderr 'state checksum'
 stderr 'code: state_checksum_mismatch'
 stderr 'hint:'
+stderr 'hint: inspect sources.toml; if the edit was intentional, recreate state with tuck source add or remove the corrupted state file'
 ! stdout .
 ! exec tuck --json source list
 stdout '"kind":"error"'
 stdout '"code":"state_checksum_mismatch"'
+stdout '"hint":"inspect sources.toml; if the edit was intentional, recreate state with tuck source add or remove the corrupted state file"'
 stdout '"exitCode":1'
 ! stderr .
 
