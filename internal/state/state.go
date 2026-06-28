@@ -226,7 +226,11 @@ func chownStateTemp(tempPath string, stateDir string) error {
 	return nil
 }
 
-func AddSource(path string, makeDefault bool) (Registry, Source, error) {
+func AddSource(path string, makeDefault bool, idOverride ...string) (Registry, Source, error) {
+	overrideID, hasOverride, err := explicitSourceID(idOverride)
+	if err != nil {
+		return Registry{}, Source{}, err
+	}
 	rootPath, err := canonicalRoot(path)
 	if err != nil {
 		return Registry{}, Source{}, apperr.AppErrWrapf(ErrSourceRoot, err, "invalid source root %q", path)
@@ -235,9 +239,13 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 	if err != nil {
 		return Registry{}, Source{}, err
 	}
+	sourceID := sourceManifest.Name
+	if hasOverride {
+		sourceID = overrideID
+	}
 
 	added := Source{
-		ID:       sourceManifest.Name,
+		ID:       sourceID,
 		Path:     rootPath,
 		Enabled:  true,
 		Manifest: sourceManifest,
@@ -246,7 +254,7 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 	normalized, _, err := mutateRegistry(func(registry Registry) (Registry, bool, error) {
 		found := false
 		for i, existing := range registry.Sources {
-			if existing.ID != sourceManifest.Name {
+			if existing.ID != sourceID {
 				continue
 			}
 			existingPath, err := canonicalRoot(existing.Path)
@@ -274,8 +282,8 @@ func AddSource(path string, makeDefault bool) (Registry, Source, error) {
 	return normalized, findSource(normalized, added.ID), nil
 }
 
-func AddSourceWithInit(path string, makeDefault bool, initOptions manifest.InitOptions) (Registry, Source, error) {
-	registry, source, err := AddSource(path, makeDefault)
+func AddSourceWithInit(path string, makeDefault bool, initOptions manifest.InitOptions, idOverride ...string) (Registry, Source, error) {
+	registry, source, err := AddSource(path, makeDefault, idOverride...)
 	if err == nil {
 		return registry, source, nil
 	}
@@ -286,7 +294,17 @@ func AddSourceWithInit(path string, makeDefault bool, initOptions manifest.InitO
 	if initErr != nil {
 		return Registry{}, Source{}, initErr
 	}
-	return AddSource(initialized.Root, makeDefault)
+	return AddSource(initialized.Root, makeDefault, idOverride...)
+}
+
+func explicitSourceID(idOverride []string) (string, bool, error) {
+	if len(idOverride) == 0 {
+		return "", false, nil
+	}
+	if err := validateID(idOverride[0]); err != nil {
+		return "", false, err
+	}
+	return idOverride[0], true, nil
 }
 
 func RemoveSource(id string) (Registry, Source, bool, error) {

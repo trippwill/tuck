@@ -113,6 +113,30 @@ func TestAddSourceAddsDefaultSource(t *testing.T) {
 	}
 }
 
+func TestAddSourceUsesExplicitIDWithoutChangingManifest(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "public dotfiles")
+
+	registry, source, err := AddSource(repo, true, "work")
+	if err != nil {
+		t.Fatalf("AddSource() error = %v, want nil", err)
+	}
+	if source.ID != "work" || source.Manifest.Name != "public" || registry.Default != "work" {
+		t.Fatalf("AddSource() source = %#v default %q, want state id work with manifest public", source, registry.Default)
+	}
+	loaded, err := manifest.Load(repo)
+	if err != nil {
+		t.Fatalf("manifest.Load() error = %v", err)
+	}
+	if loaded.Name != "public" {
+		t.Fatalf("manifest name = %q, want public", loaded.Name)
+	}
+	got := readSourcesFile(t, stateRoot)
+	if !strings.Contains(got, "default = \"work\"\n") || !strings.Contains(got, "id = \"work\"\n") {
+		t.Fatalf("sources.toml =\n%s\nwant explicit id work", got)
+	}
+}
+
 func TestAddSourceIsIdempotentForSameIDAndPath(t *testing.T) {
 	stateRoot := withStateHome(t)
 	repo := writeSourceRepo(t, "public", "")
@@ -131,6 +155,23 @@ func TestAddSourceIsIdempotentForSameIDAndPath(t *testing.T) {
 	after := readSourcesFile(t, stateRoot)
 	if after != before {
 		t.Fatalf("idempotent AddSource() changed state:\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+}
+
+func TestAddSourceRejectsSamePathUnderDifferentIDWithoutChangingState(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := writeSourceRepo(t, "public", "")
+	if _, _, err := AddSource(repo, true); err != nil {
+		t.Fatalf("first AddSource() error = %v, want nil", err)
+	}
+	before := readSourcesFile(t, stateRoot)
+
+	_, _, err := AddSource(repo, false, "alias")
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("AddSource() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
+	}
+	if after := readSourcesFile(t, stateRoot); after != before {
+		t.Fatalf("sources.toml changed after alias rejection:\nbefore:\n%s\nafter:\n%s", before, after)
 	}
 }
 
@@ -174,6 +215,24 @@ func TestAddSourceRejectsSameIDWithDifferentPathWithoutChangingState(t *testing.
 	}
 }
 
+func TestAddSourceRejectsExplicitIDWithDifferentPathWithoutChangingState(t *testing.T) {
+	stateRoot := withStateHome(t)
+	first := writeSourceRepo(t, "public", "")
+	second := writeSourceRepo(t, "private", "")
+	if _, _, err := AddSource(first, true, "work"); err != nil {
+		t.Fatalf("first AddSource() error = %v, want nil", err)
+	}
+	before := readSourcesFile(t, stateRoot)
+
+	_, _, err := AddSource(second, false, "work")
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("AddSource() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
+	}
+	if after := readSourcesFile(t, stateRoot); after != before {
+		t.Fatalf("sources.toml changed after explicit id collision:\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+}
+
 func TestAddSourceLeavesStateUnchangedWhenExistingEntryIsInvalid(t *testing.T) {
 	stateRoot := withStateHome(t)
 	repo := writeSourceRepo(t, "public", "")
@@ -189,6 +248,15 @@ func TestAddSourceLeavesStateUnchangedWhenExistingEntryIsInvalid(t *testing.T) {
 	}
 }
 
+func TestAddSourceRejectsInvalidExplicitIDBeforeInspectingPath(t *testing.T) {
+	withStateHome(t)
+
+	_, _, err := AddSource(filepath.Join(t.TempDir(), "missing"), false, manifest.ManifestFilename)
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("AddSource() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
+	}
+}
+
 func TestAddSourceClassifiesSourceRootAndManifestErrors(t *testing.T) {
 	withStateHome(t)
 
@@ -200,6 +268,33 @@ func TestAddSourceClassifiesSourceRootAndManifestErrors(t *testing.T) {
 	_, _, err = AddSource(t.TempDir(), false)
 	if err == nil {
 		t.Fatalf("AddSource() missing manifest error = nil, want error")
+	}
+}
+
+func TestAddSourceWithInitUsesExplicitIDWithoutChangingManifest(t *testing.T) {
+	stateRoot := withStateHome(t)
+	repo := filepath.Join(t.TempDir(), "dotfiles")
+
+	registry, source, err := AddSourceWithInit(repo, true, manifest.InitOptions{
+		Name:        "public",
+		Description: "public dotfiles",
+	}, "work")
+	if err != nil {
+		t.Fatalf("AddSourceWithInit() error = %v, want nil", err)
+	}
+	if source.ID != "work" || source.Manifest.Name != "public" || registry.Default != "work" {
+		t.Fatalf("AddSourceWithInit() source = %#v default %q, want state id work with manifest public", source, registry.Default)
+	}
+	loaded, err := manifest.Load(repo)
+	if err != nil {
+		t.Fatalf("manifest.Load() after AddSourceWithInit() error = %v", err)
+	}
+	if loaded != (manifest.Manifest{Name: "public", Description: "public dotfiles"}) {
+		t.Fatalf("manifest.Load() after AddSourceWithInit() = %#v", loaded)
+	}
+	got := readSourcesFile(t, stateRoot)
+	if !strings.Contains(got, "id = \"work\"") || !strings.Contains(got, "default = \"work\"") {
+		t.Fatalf("sources.toml after AddSourceWithInit() =\n%s\nwant registered default work", got)
 	}
 }
 

@@ -15,6 +15,7 @@ func TestParse(t *testing.T) {
 		{input: " git ", want: "git", ok: true},
 		{input: "foo.bar", want: "foo.bar", ok: true},
 		{input: "", ok: false},
+		{input: ".tuck.toml", ok: false},
 		{input: ".hidden", ok: false},
 		{input: ".config", ok: false},
 		{input: ".ssh", ok: false},

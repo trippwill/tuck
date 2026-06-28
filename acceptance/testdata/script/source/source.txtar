@@ -59,6 +59,28 @@ stdout '"description":"public dotfiles"'
 stdout '"exitCode":0'
 ! stderr .
 
+# source add --id records a machine-local id without changing the manifest
+phase add-id-override fixtures/source/public-described
+exec tuck source add $WORK/src --id work --default --no-color
+stdout 'added source work'
+stdout 'default: yes'
+! stderr .
+exec cat $WORK/state/add-id-override/tuck/sources.toml
+stdout 'default = "work"'
+stdout 'id = "work"'
+! stdout 'id = "public"'
+exec cat $WORK/src/.tuck.toml
+stdout 'name = "public"'
+! stderr .
+
+# source add rejects reserved source ids as invalid arguments
+phase add-id-invalid fixtures/source/public-described
+! exec tuck source add $WORK/src --id .tuck.toml --no-color
+stderr 'invalid source id ".tuck.toml"'
+stderr 'code: invalid_args'
+! stdout .
+! exists $WORK/state/add-id-invalid/tuck/sources.toml
+
 # source add reports a missing manifest in human and JSON forms
 phase add-missing-manifest
 mkdir empty
@@ -142,6 +164,20 @@ stdout 'description = "public dotfiles"'
 exec cat $WORK/state/add-init-registers/tuck/sources.toml
 stdout 'default = "public"'
 stdout 'id = "public"'
+! stderr .
+
+# source add --init --id keeps --name as manifest-only identity
+phase add-init-id-override
+exec tuck source add $WORK/bootstrap --init --name public --id work --description 'public dotfiles' --default --no-color
+stdout 'added source work'
+! stderr .
+exec cat $WORK/bootstrap/.tuck.toml
+stdout 'name = "public"'
+stdout 'description = "public dotfiles"'
+exec cat $WORK/state/add-init-id-override/tuck/sources.toml
+stdout 'default = "work"'
+stdout 'id = "work"'
+! stdout 'id = "public"'
 ! stderr .
 
 # source add --init registers existing valid manifests normally

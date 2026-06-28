@@ -24,8 +24,8 @@ func normalizeRegistry(registry Registry) (Registry, error) {
 			continue
 		}
 
-		if !validID(source.ID) {
-			return Registry{}, apperr.AppErrMsgf(ErrInvalid, "invalid enabled source id %q: must be non-empty and cannot contain '/' or ':'", source.ID)
+		if err := validateID(source.ID); err != nil {
+			return Registry{}, err
 		}
 		if _, ok := enabledIDs[source.ID]; ok {
 			return Registry{}, apperr.AppErrMsgf(ErrInvalid, "duplicate enabled source id %q", source.ID)
@@ -62,5 +62,12 @@ func normalizeRegistry(registry Registry) (Registry, error) {
 }
 
 func validID(id string) bool {
-	return id != "" && !strings.ContainsAny(id, "/:")
+	return id != "" && id != manifest.ManifestFilename && !strings.ContainsAny(id, "/:")
+}
+
+func validateID(id string) error {
+	if validID(id) {
+		return nil
+	}
+	return apperr.AppErrMsgf(ErrInvalid, "invalid source id %q: must be non-empty, cannot be %q, and cannot contain '/' or ':'", id, manifest.ManifestFilename)
 }

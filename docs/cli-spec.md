@@ -22,9 +22,9 @@ explicitly relative input path.
 ## 1. Concepts
 
 - **Source** -- a dotfiles repository. Each repository carries a committed
-  manifest (`<repo>/.tuck.toml`) declaring its short `name`, used as the source
-  id. A source is made usable on a machine with `tuck source add <path>`, which
-  records its path and enabled state in machine-local state.
+  manifest (`<repo>/.tuck.toml`) declaring its short `name`, used as the default
+  source id. A source is made usable on a machine with `tuck source add <path>`,
+  which records its effective id, path, and enabled state in machine-local state.
 - **Target context** -- selects where package entries appear:
   - `home`: package base `<source.path>`, target root `$HOME` (default).
   - `root`: package base `<source.path>/.root`, target root `/`.
@@ -73,8 +73,8 @@ tuck package show    <package-ref>
 tuck package status  [package-ref]
 
 # Source operations
-tuck source add     <path> [--default]
-tuck source add     <path> --init [--name <id>] [--description <text>] [--default]
+tuck source add     <path> [--id <id>] [--default]
+tuck source add     <path> --init [--id <id>] [--name <id>] [--description <text>] [--default]
 tuck source init    <path> [--name <id>] [--description <text>]
 tuck source rm      <id>
 tuck source list
@@ -195,6 +195,7 @@ warn before ignoring it; mutation flags remain command-local.
 | `--apply` | | mutating target-tree commands | Execute the plan. Without it, print the plan only. |
 | `--default` | | `source add` | Make the added source the machine-local default. |
 | `--init` | | `source add` | Create a missing `.tuck.toml` before registering the source. |
+| `--id <id>` | | `source add` | Machine-local source id override. Does not rewrite `.tuck.toml`. |
 | `--name <id>` | | `source init`, `source add --init` | Manifest source id to write. Defaults to the path basename. |
 | `--description <text>` | | `source init`, `source add --init` | Optional manifest description to write. |
 | `--all` | | `package use` | Use every package in the active source/context. |
@@ -256,8 +257,9 @@ description = "public dotfiles"
 
 Fields:
 
-- `name` (required) -- the repo's short id. Used as the source id and in display
-  identities. Must not be empty and must not contain a path separator or `:`.
+- `name` (required) -- the repo's short id. Used as the source id unless
+  `source add --id` overrides it in machine-local state. Must not be empty, must
+  not be `.tuck.toml`, and must not contain a path separator or `:`.
 - `description` (optional) -- a human-readable label shown in `source list`.
 
 Source manifests contain source identity, not package/file deployment policy.
@@ -356,7 +358,8 @@ Fields per `[[source]]` entry:
 
 - `path` (required) -- the canonical repository path on this machine.
 - `id` (required) -- the effective source id, authoritative for selection and
-  display identities. In MVP it is always the manifest `name`.
+  display identities. Defaults to the manifest `name`, or to `source add --id`
+  when provided.
 - `enabled` (optional, default `true`) -- whether the source participates.
 
 Top-level fields:
@@ -396,8 +399,8 @@ mechanism.
 
 Performed when state is loaded:
 
-- Effective `id` values are unique across enabled entries and must not be empty
-  or contain a path separator or `:`.
+- Effective `id` values are unique across enabled entries and must not be empty,
+  `.tuck.toml`, or contain a path separator or `:`.
 - If top-level `default` is set, it must name an enabled entry.
 - Each enabled `path` is expanded and canonicalized. A missing path is a state
   error.
@@ -623,20 +626,21 @@ octal `mode` values.
 ### 7.11 `source add`
 
 ```text
-tuck [--json] source add <path> [--default]
-tuck [--json] source add <path> --init [--name <id>] [--description <text>] [--default]
+tuck [--json] source add <path> [--id <id>] [--default]
+tuck [--json] source add <path> --init [--id <id>] [--name <id>] [--description <text>] [--default]
 ```
 
 - **Arguments:** one repository path.
 - **Behavior:** read `<path>/.tuck.toml`; record or update the source entry in
-  machine-local state with canonical path, manifest id, `enabled = true`, and
-  top-level default per `--default`. Validate the complete write; on validation
-  failure, write nothing.
+  machine-local state with canonical path, effective id (`--id` or manifest
+  name), `enabled = true`, and top-level default per `--default`. Validate the
+  complete write; on validation failure, write nothing.
 - **With `--init`:** if `<path>/.tuck.toml` is missing, create the manifest first
   using `--name` or the path basename and optional `--description`, then register
   the source as above. Existing valid manifests are registered normally. Existing
-  invalid manifests still fail. `--name` and `--description` are valid only with
-  `--init`.
+  invalid manifests still fail. `--id` affects only machine-local state; `--name`
+  remains the manifest name to write. `--name` and `--description` are valid only
+  with `--init`.
 
 ### 7.12 `source init`
 

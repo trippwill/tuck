@@ -24,6 +24,8 @@ type AddRequest struct {
 	Path        string
 	Default     bool
 	Init        bool
+	ID          string
+	SetID       bool
 	Name        string
 	Description string
 }
@@ -45,19 +47,26 @@ func Add(req AddRequest) output.Outcome {
 	if !req.Init && req.Description != "" {
 		return output.OK(output.InvalidArgs("--description requires --init", "add --init when writing a new source manifest"))
 	}
+	if req.SetID && !validSourceID(req.ID) {
+		return output.OK(output.InvalidArgs(fmt.Sprintf("invalid source id %q", req.ID), "pass a non-empty id that is not .tuck.toml and does not contain '/' or ':'"))
+	}
 
 	var (
 		registry state.Registry
 		source   state.Source
 		err      error
+		idArg    []string
 	)
+	if req.SetID {
+		idArg = []string{req.ID}
+	}
 	if req.Init {
 		registry, source, err = state.AddSourceWithInit(req.Path, req.Default, manifest.InitOptions{
 			Name:        req.Name,
 			Description: req.Description,
-		})
+		}, idArg...)
 	} else {
-		registry, source, err = state.AddSource(req.Path, req.Default)
+		registry, source, err = state.AddSource(req.Path, req.Default, idArg...)
 	}
 	if err != nil {
 		return command.ErrorOutcome(err)
@@ -256,6 +265,10 @@ func styledBoolField(console output.Console, value string, width int) string {
 
 func styledField(console output.Console, style output.Style, value string, width int) string {
 	return console.Style(style, fmt.Sprintf("%-*s", width, value))
+}
+
+func validSourceID(id string) bool {
+	return id != "" && id != manifest.ManifestFilename && !strings.ContainsAny(id, "/:")
 }
 
 type sourcesData struct {
