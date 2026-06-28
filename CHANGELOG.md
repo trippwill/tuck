@@ -4,6 +4,8 @@ All notable changes to tuck are tracked here.
 
 ## Unreleased
 
+## v0.1.1-beta.1
+
 - Render `package show` output as an ASCII tree for easier package review (#6).
 - Label `deploy = "copy"` entries in `package show` output (#12).
 - Add an explicit source id override when registering sources with `source add` (#7).
