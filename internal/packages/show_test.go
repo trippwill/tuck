@@ -57,6 +57,28 @@ func TestShowUsesRootContextPackageBase(t *testing.T) {
 	}
 }
 
+func TestShowIncludesDeployMetadataForHumanRendering(t *testing.T) {
+	source := setupShowSource(t)
+	writeShowFile(t, filepath.Join(source, "app/.config/app/config"))
+	writeShowFile(t, filepath.Join(source, "app/.tuck.toml"), `[[file]]
+path = ".config/app/config"
+deploy = "copy"
+`)
+
+	got, err := Show(ShowOptions{Ref: "app"})
+	if err != nil {
+		t.Fatalf("Show() error = %v, want nil", err)
+	}
+	want := []TreeEntry{
+		{Rel: ".config", Type: "dir"},
+		{Rel: ".config/app", Type: "dir"},
+		{Rel: ".config/app/config", Type: "leaf", Deploy: DeployCopy},
+	}
+	if !reflect.DeepEqual(got.Package.Entries, want) {
+		t.Fatalf("Show() entries = %#v, want %#v", got.Package.Entries, want)
+	}
+}
+
 func setupShowSource(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()

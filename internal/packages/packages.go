@@ -80,8 +80,9 @@ type TreePackage struct {
 }
 
 type TreeEntry struct {
-	Rel  string `json:"rel"`
-	Type string `json:"type"`
+	Rel    string `json:"rel"`
+	Type   string `json:"type"`
+	Deploy Deploy `json:"-"`
 }
 
 func List(options ListOptions) (Listing, error) {
@@ -121,7 +122,11 @@ func Show(options ShowOptions) (Tree, error) {
 		if entry.Dir {
 			entryType = "dir"
 		}
-		entries = append(entries, TreeEntry{Rel: entry.Rel, Type: entryType})
+		treeEntry := TreeEntry{Rel: entry.Rel, Type: entryType}
+		if entry.Deploy == DeployCopy {
+			treeEntry.Deploy = DeployCopy
+		}
+		entries = append(entries, treeEntry)
 	}
 	return Tree{
 		Command: "package show",
