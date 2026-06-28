@@ -33,6 +33,7 @@ func adoptCommand() *cli.Command {
 			mutatingFlags(),
 			&cli.BoolFlag{Name: "copy", Usage: "adopt as a copied deployment"},
 			&cli.StringFlag{Name: "mode", Usage: "mode for copied deployment"},
+			&cli.BoolFlag{Name: "replace", Usage: "replace an existing package file with the target file"},
 		),
 		Action: adoptAction,
 	}
@@ -92,6 +93,7 @@ func adoptAction(_ context.Context, cmd *cli.Command) error {
 		Copy:     cmd.Bool("copy"),
 		Mode:     cmd.String("mode"),
 		SetMode:  cmd.IsSet("mode"),
+		Replace:  cmd.Bool("replace"),
 	})
 	exitCode, err := rendererFor(cmd).Render(output.Invocation{
 		Command: filecmd.CommandAdopt,

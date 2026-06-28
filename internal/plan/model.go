@@ -54,6 +54,7 @@ type Conflict struct {
 	Path    string              `json:"path"`
 	Message string              `json:"message"`
 	Package string              `json:"package,omitempty"`
+	Hint    string              `json:"hint,omitempty"`
 }
 
 type Privilege struct {

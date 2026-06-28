@@ -136,6 +136,40 @@ readlink $WORK/home/.config/nvim/init.lua ../../../src/nvim/.config/nvim/init.lu
 exists $WORK/src/nvim/.config/nvim/init.lua
 ! stderr .
 
+# adopt --replace dry-runs target-wins without mutating
+phase adopt-replace-dry-run fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
+exec tuck adopt --replace $WORK/home/.config/zsh/.zshrc zsh --no-color
+stdout 'context: home, dry-run'
+stdout '\+ copy'
+stdout '- file'
+stdout '\+ link'
+stdout '3 actions, 0 conflicts'
+cmp $WORK/src/zsh/.config/zsh/.zshrc fixtures/target/status/common/zsh/.config/zsh/.zshrc
+cmp $WORK/home/.config/zsh/.zshrc fixtures/target/adopt/zprofile
+! exec test -L $WORK/home/.config/zsh/.zshrc
+! stderr .
+
+# adopt --replace applies target-wins and links the target back
+phase adopt-replace-apply fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
+exec tuck adopt --replace $WORK/home/.config/zsh/.zshrc zsh --apply --no-color
+stdout 'context: home, apply'
+stdout '\+ copy'
+stdout '- file'
+stdout '\+ link'
+stdout '3 actions, 0 conflicts'
+cmp $WORK/src/zsh/.config/zsh/.zshrc fixtures/target/adopt/zprofile
+readlink $WORK/home/.config/zsh/.zshrc ../../../src/zsh/.config/zsh/.zshrc
+cmp $WORK/home/.config/zsh/.zshrc fixtures/target/adopt/zprofile
+! stderr .
+
 # adopt --copy creates per-file copy config and a copied target
 phase adopt-copy fixtures/target/status/common
 wantstate public public $WORK/src true
@@ -259,6 +293,22 @@ stdout 'package_path_exists'
 stdout '0 actions, 1 conflicts'
 exists $WORK/home/.config/zsh/.zshrc
 exists $WORK/src/zsh/.config/zsh/.zshrc
+! stderr .
+
+# adopt --replace refuses unsafe package paths
+phase adopt-replace-unsafe-package-path fixtures/target/status/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/zsh
+cp fixtures/target/adopt/zprofile $WORK/home/.config/zsh/.zshrc
+rm $WORK/src/zsh/.config/zsh/.zshrc
+mkdir $WORK/src/zsh/.config/zsh/.zshrc
+! exec tuck adopt --replace $WORK/home/.config/zsh/.zshrc zsh --no-color
+stdout 'package_path_exists'
+stdout 'destination package path is not a regular file'
+stdout '0 actions, 1 conflicts'
+exists $WORK/src/zsh/.config/zsh/.zshrc
+cmp $WORK/home/.config/zsh/.zshrc fixtures/target/adopt/zprofile
 ! stderr .
 
 # adopt rejects files inside an enabled source repository
@@ -441,6 +491,23 @@ stdout '- file'
 exists $WORK/home/.config/app/config
 ! exists $WORK/src/app/.config/app/config
 cmp $WORK/home/.config/app/config fixtures/target/copy/target-v2
+! stderr .
+
+# adopt --replace honors copy-mode package config
+phase copy-adopt-replace fixtures/target/copy/common
+wantstate public public $WORK/src true
+mkdir $WORK/home/.config
+mkdir $WORK/home/.config/app
+cp fixtures/target/copy/target-v2 $WORK/home/.config/app/config
+exec tuck adopt --replace $WORK/home/.config/app/config app --apply --no-color
+stdout '\+ copy'
+stdout '2 actions, 0 conflicts'
+cmp $WORK/src/app/.config/app/config fixtures/target/copy/target-v2
+cmp $WORK/home/.config/app/config fixtures/target/copy/target-v2
+! exec test -L $WORK/home/.config/app/config
+exec tuck status $WORK/home/.config/app/config --no-color
+stdout 'deployed'
+stdout 'public:home:app'
 ! stderr .
 
 -- fixtures/target/status/common/.tuck.toml --

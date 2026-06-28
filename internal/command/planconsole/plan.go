@@ -79,6 +79,9 @@ func ConsoleString(console output.Console, data any) (string, error) {
 				fmt.Fprintf(&b, " (%s)", conflict.Message)
 			}
 			fmt.Fprintln(&b)
+			if conflict.Hint != "" {
+				fmt.Fprintf(&b, "    %s %s\n", console.Style(output.StyleMuted, "hint:"), conflict.Hint)
+			}
 		}
 	}
 	if privilegeDenied(planned) {

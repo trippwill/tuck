@@ -63,3 +63,22 @@ func TestConsoleStringStylesConflictsWhenColorEnabled(t *testing.T) {
 		t.Fatalf("ConsoleString() = %q, want styled conflict marker and code", got)
 	}
 }
+
+func TestConsoleStringPrintsConflictHint(t *testing.T) {
+	planned := plan.Plan{
+		DryRun: true,
+		Conflicts: []plan.Conflict{{
+			Code: "real_file",
+			Path: "~/.zshrc",
+			Hint: "tuck adopt --replace ~/.zshrc zsh",
+		}},
+	}
+
+	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "home"}, false), planned)
+	if err != nil {
+		t.Fatalf("ConsoleString() error = %v", err)
+	}
+	if !strings.Contains(got, "hint: tuck adopt --replace ~/.zshrc zsh") {
+		t.Fatalf("ConsoleString() = %q, want conflict hint", got)
+	}
+}
