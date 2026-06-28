@@ -251,7 +251,20 @@ func TestAddSourceLeavesStateUnchangedWhenExistingEntryIsInvalid(t *testing.T) {
 func TestAddSourceRejectsInvalidExplicitIDBeforeInspectingPath(t *testing.T) {
 	withStateHome(t)
 
-	_, _, err := AddSource(filepath.Join(t.TempDir(), "missing"), false, manifest.ManifestFilename)
+	for _, id := range []string{manifest.ManifestFilename, " work", "work ", " "} {
+		t.Run(strconv.Quote(id), func(t *testing.T) {
+			_, _, err := AddSource(filepath.Join(t.TempDir(), "missing"), false, id)
+			if !errors.Is(err, ErrInvalid) {
+				t.Fatalf("AddSource() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
+			}
+		})
+	}
+}
+
+func TestAddSourceRejectsMultipleExplicitIDsBeforeInspectingPath(t *testing.T) {
+	withStateHome(t)
+
+	_, _, err := AddSource(filepath.Join(t.TempDir(), "missing"), false, "work", "other")
 	if !errors.Is(err, ErrInvalid) {
 		t.Fatalf("AddSource() error = %v, want errors.Is(..., %v)", err, ErrInvalid)
 	}

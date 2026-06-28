@@ -62,12 +62,12 @@ func normalizeRegistry(registry Registry) (Registry, error) {
 }
 
 func validID(id string) bool {
-	return id != "" && id != manifest.ManifestFilename && !strings.ContainsAny(id, "/:")
+	return id != "" && strings.TrimSpace(id) == id && id != manifest.ManifestFilename && !strings.ContainsAny(id, "/:")
 }
 
 func validateID(id string) error {
 	if validID(id) {
 		return nil
 	}
-	return apperr.AppErrMsgf(ErrInvalid, "invalid source id %q: must be non-empty, cannot be %q, and cannot contain '/' or ':'", id, manifest.ManifestFilename)
+	return apperr.AppErrMsgf(ErrInvalid, "invalid source id %q: must be non-empty without surrounding whitespace, cannot be %q, and cannot contain '/' or ':'", id, manifest.ManifestFilename)
 }

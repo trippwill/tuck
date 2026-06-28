@@ -80,6 +80,13 @@ stderr 'invalid source id ".tuck.toml"'
 stderr 'code: invalid_args'
 ! stdout .
 ! exists $WORK/state/add-id-invalid/tuck/sources.toml
+! exec tuck source add $WORK/src --id 'work ' --no-color
+stderr 'invalid source id "work "'
+stderr 'surrounding whitespace'
+! stdout .
+! exec tuck source add $WORK/src --id ' ' --no-color
+stderr 'invalid source id " "'
+! stdout .
 
 # source add reports a missing manifest in human and JSON forms
 phase add-missing-manifest

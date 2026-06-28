@@ -301,6 +301,9 @@ func explicitSourceID(idOverride []string) (string, bool, error) {
 	if len(idOverride) == 0 {
 		return "", false, nil
 	}
+	if len(idOverride) > 1 {
+		return "", false, apperr.AppErrMsgf(ErrInvalid, "source id override accepts at most one id")
+	}
 	if err := validateID(idOverride[0]); err != nil {
 		return "", false, err
 	}
