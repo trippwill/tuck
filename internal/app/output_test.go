@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func TestASCIIOutputEnabled(t *testing.T) {
+func TestUseASCIIRendering(t *testing.T) {
 	for _, test := range []struct {
 		name      string
 		term      string
@@ -27,8 +27,8 @@ func TestASCIIOutputEnabled(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Setenv("TERM", test.term)
 			t.Setenv("TUCK_ASCII", test.tuckASCII)
-			if got := asciiOutputEnabled(test.json); got != test.want {
-				t.Fatalf("asciiOutputEnabled() = %t, want %t", got, test.want)
+			if got := useASCIIRendering(test.json); got != test.want {
+				t.Fatalf("useASCIIRendering() = %t, want %t", got, test.want)
 			}
 		})
 	}
