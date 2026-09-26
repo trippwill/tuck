@@ -37,7 +37,7 @@ func TestConsoleStringReportsUnsatisfiedPrivilege(t *testing.T) {
 		Actions: []plan.Action{plan.MkdirAction("/etc/ssh", "")},
 	}
 
-	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "root"}, false), planned)
+	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "root"}, false, false), planned)
 	if err != nil {
 		t.Fatalf("ConsoleString() error = %v", err)
 	}
@@ -55,7 +55,7 @@ func TestConsoleStringStylesConflictsWhenColorEnabled(t *testing.T) {
 		}},
 	}
 
-	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "home"}, true), planned)
+	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "home"}, true, false), planned)
 	if err != nil {
 		t.Fatalf("ConsoleString() error = %v", err)
 	}
@@ -74,7 +74,7 @@ func TestConsoleStringPrintsConflictHint(t *testing.T) {
 		}},
 	}
 
-	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "home"}, false), planned)
+	got, err := ConsoleString(output.NewConsole(output.Invocation{Command: "command", Context: "home"}, false, false), planned)
 	if err != nil {
 		t.Fatalf("ConsoleString() error = %v", err)
 	}

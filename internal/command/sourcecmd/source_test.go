@@ -39,7 +39,7 @@ func TestBuildSourcesData(t *testing.T) {
 }
 
 func TestRenderListStylesHeadersAndBooleans(t *testing.T) {
-	got := renderList(output.NewConsole(output.Invocation{Command: "source list"}, true), ListPayload{
+	got := renderList(output.NewConsole(output.Invocation{Command: "source list"}, true, false), ListPayload{
 		Registry: state.Registry{
 			Default: "public",
 			Sources: []state.Source{{

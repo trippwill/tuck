@@ -52,7 +52,11 @@ func renderTree(console output.Console, data any) (string, error) {
 		if hasCopyEntry(p.Package.Entries) {
 			fmt.Fprintf(&b, "%s [copy] deploy=copy\n\n", console.Style(output.StyleAccent, "key:"))
 		}
-		writeTree(&b, buildTree(p.Package.Entries), "")
+		glyphs := unicodeTreeGlyphs
+		if console.ASCII {
+			glyphs = asciiTreeGlyphs
+		}
+		writeTree(&b, buildTree(p.Package.Entries), "", glyphs)
 		fmt.Fprintln(&b)
 	}
 	fmt.Fprintf(&b, "%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d %s", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))))
@@ -65,6 +69,18 @@ type treeNode struct {
 	children []*treeNode
 	index    map[string]*treeNode
 }
+
+type treeGlyphs struct {
+	branch           string
+	lastBranch       string
+	continuation     string
+	lastContinuation string
+}
+
+var (
+	asciiTreeGlyphs   = treeGlyphs{branch: "|-- ", lastBranch: "`-- ", continuation: "|   ", lastContinuation: "    "}
+	unicodeTreeGlyphs = treeGlyphs{branch: "├── ", lastBranch: "└── ", continuation: "│   ", lastContinuation: "    "}
+)
 
 func buildTree(entries []packages.TreeEntry) []*treeNode {
 	root := &treeNode{}
@@ -93,21 +109,21 @@ func buildTree(entries []packages.TreeEntry) []*treeNode {
 	return root.children
 }
 
-func writeTree(b *strings.Builder, nodes []*treeNode, prefix string) {
+func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, glyphs treeGlyphs) {
 	for i, node := range nodes {
 		last := i == len(nodes)-1
-		branch := "|-- "
-		nextPrefix := prefix + "|   "
+		branch := glyphs.branch
+		nextPrefix := prefix + glyphs.continuation
 		if last {
-			branch = "`-- "
-			nextPrefix = prefix + "    "
+			branch = glyphs.lastBranch
+			nextPrefix = prefix + glyphs.lastContinuation
 		}
 		suffix := ""
 		if node.deploy == packages.DeployCopy {
 			suffix = " [copy]"
 		}
 		fmt.Fprintf(b, "%s%s%s%s\n", prefix, branch, node.name, suffix)
-		writeTree(b, node.children, nextPrefix)
+		writeTree(b, node.children, nextPrefix, glyphs)
 	}
 }
 

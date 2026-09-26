@@ -11,6 +11,30 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+func TestUseASCIIRendering(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		term      string
+		tuckASCII string
+		json      bool
+		want      bool
+	}{
+		{name: "unicode terminal", term: "xterm-256color"},
+		{name: "dumb terminal", term: "dumb", want: true},
+		{name: "tuck override", term: "xterm-256color", tuckASCII: "1", want: true},
+		{name: "tuck disabled", term: "xterm-256color", tuckASCII: "0"},
+		{name: "json ignores terminal", term: "dumb", tuckASCII: "1", json: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("TERM", test.term)
+			t.Setenv("TUCK_ASCII", test.tuckASCII)
+			if got := useASCIIRendering(test.json); got != test.want {
+				t.Fatalf("useASCIIRendering() = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
 func TestNoColorWinsOverTerminalDetection(t *testing.T) {
 	t.Setenv("NO_COLOR", "")
 

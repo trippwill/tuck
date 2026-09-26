@@ -15,12 +15,14 @@ const (
 type Console struct {
 	Invocation Invocation
 	Color      bool
+	ASCII      bool
 }
 
-func NewConsole(inv Invocation, color bool) Console {
+func NewConsole(inv Invocation, color bool, ascii bool) Console {
 	return Console{
 		Invocation: inv,
 		Color:      color,
+		ASCII:      ascii,
 	}
 }
 

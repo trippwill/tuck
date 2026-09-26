@@ -152,6 +152,7 @@ func WithWarnings(outcome Outcome, warnings []Warning) Outcome {
 type Options struct {
 	Format   Format
 	Color    bool
+	ASCII    bool
 	ErrColor bool
 	Out      io.Writer
 	Err      io.Writer
@@ -160,6 +161,7 @@ type Options struct {
 type Renderer struct {
 	format   Format
 	color    bool
+	ascii    bool
 	errColor bool
 	out      io.Writer
 	err      io.Writer
@@ -169,6 +171,7 @@ func NewRenderer(options Options) Renderer {
 	return Renderer{
 		format:   options.Format,
 		color:    options.Color,
+		ascii:    options.ASCII,
 		errColor: options.ErrColor,
 		out:      options.Out,
 		err:      options.Err,
@@ -191,7 +194,7 @@ func (r Renderer) renderResult(inv Invocation, result Result) (ExitCode, error) 
 	if result.ConsoleString == nil {
 		return ExitFail, fmt.Errorf("missing console renderer for %q result", result.Kind)
 	}
-	console := NewConsole(inv, r.color)
+	console := NewConsole(inv, r.color, r.ascii)
 	if result.Kind == KindError {
 		console.Color = r.errColor
 	}
@@ -239,7 +242,7 @@ func writeEnvelopeWithWarnings(out io.Writer, command Command, context string, k
 }
 
 func (r Renderer) writeWarnings(inv Invocation, warnings []Warning) error {
-	console := NewConsole(inv, r.errColor)
+	console := NewConsole(inv, r.errColor, r.ascii)
 	for _, warning := range warnings {
 		if _, err := io.WriteString(r.err, FormatConsoleWarning(console, warning)); err != nil {
 			return err

@@ -580,7 +580,8 @@ tuck [--json] package show [--source <id>] [--root] <package-ref>
 
 - **Behavior:** resolve the package in the active source/context and show its
   file tree. Package-local `.tuck.toml` is control metadata and is not shown as a
-  deployable entry.
+  deployable entry. Human output uses Unicode tree glyphs unless `TERM=dumb` or
+  `TUCK_ASCII=1` requests ASCII; JSON output is unaffected.
 - **Aliases:** `package tree`, `pkg show`, `pkg tree`.
 
 ### 7.9 `package status`
