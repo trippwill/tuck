@@ -9,9 +9,7 @@ import (
 )
 
 func TestRenderTreeUsesUnicodeConnectorsByDefault(t *testing.T) {
-	t.Setenv("TERM", "xterm-256color")
-	t.Setenv("TUCK_ASCII", "")
-	got, err := renderTree(output.NewConsole(output.Invocation{Command: "package show", Context: "home"}, false), packages.Tree{
+	got, err := renderTree(output.NewConsole(output.Invocation{Command: "package show", Context: "home"}, false, false), packages.Tree{
 		Source: "public",
 		Package: packages.TreePackage{
 			Identity: "public:home:zsh",
@@ -41,9 +39,7 @@ func TestRenderTreeUsesUnicodeConnectorsByDefault(t *testing.T) {
 }
 
 func TestRenderTreeLabelsCopyEntries(t *testing.T) {
-	t.Setenv("TERM", "xterm-256color")
-	t.Setenv("TUCK_ASCII", "1")
-	got, err := renderTree(output.NewConsole(output.Invocation{Command: "package show", Context: "home"}, false), packages.Tree{
+	got, err := renderTree(output.NewConsole(output.Invocation{Command: "package show", Context: "home"}, false, true), packages.Tree{
 		Source: "public",
 		Package: packages.TreePackage{
 			Identity: "public:home:app",
@@ -71,10 +67,8 @@ func TestRenderTreeLabelsCopyEntries(t *testing.T) {
 	}
 }
 
-func TestRenderTreeUsesASCIIForDumbTerminal(t *testing.T) {
-	t.Setenv("TERM", "dumb")
-	t.Setenv("TUCK_ASCII", "")
-	got, err := renderTree(output.NewConsole(output.Invocation{Command: "package show", Context: "home"}, false), packages.Tree{
+func TestRenderTreeUsesASCIIWhenConsoleRequestsIt(t *testing.T) {
+	got, err := renderTree(output.NewConsole(output.Invocation{Command: "package show", Context: "home"}, false, true), packages.Tree{
 		Source:  "public",
 		Package: packages.TreePackage{Entries: []packages.TreeEntry{{Rel: "file", Type: "leaf"}}},
 	})

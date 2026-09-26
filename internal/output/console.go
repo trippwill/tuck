@@ -1,7 +1,5 @@
 package output
 
-import "os"
-
 type Style string
 
 const (
@@ -20,11 +18,11 @@ type Console struct {
 	ASCII      bool
 }
 
-func NewConsole(inv Invocation, color bool) Console {
+func NewConsole(inv Invocation, color bool, ascii bool) Console {
 	return Console{
 		Invocation: inv,
 		Color:      color,
-		ASCII:      os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") != "",
+		ASCII:      ascii,
 	}
 }
 

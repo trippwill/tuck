@@ -10,7 +10,7 @@ import (
 )
 
 func TestRenderStatusStylesStatesAndCodes(t *testing.T) {
-	got, err := renderStatus(output.NewConsole(output.Invocation{Command: "status", Context: "home"}, true), statuspkg.Result{
+	got, err := renderStatus(output.NewConsole(output.Invocation{Command: "status", Context: "home"}, true, false), statuspkg.Result{
 		Source: "public",
 		Entries: []statuspkg.Entry{
 			{TargetPath: "~/.zshrc", State: "deployed", Package: "source:home:zsh"},

@@ -11,6 +11,27 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+func TestASCIITreeEnabled(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		term      string
+		tuckASCII string
+		want      bool
+	}{
+		{name: "unicode terminal", term: "xterm-256color"},
+		{name: "dumb terminal", term: "dumb", want: true},
+		{name: "tuck override", term: "xterm-256color", tuckASCII: "1", want: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("TERM", test.term)
+			t.Setenv("TUCK_ASCII", test.tuckASCII)
+			if got := asciiTreeEnabled(); got != test.want {
+				t.Fatalf("asciiTreeEnabled() = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
 func TestNoColorWinsOverTerminalDetection(t *testing.T) {
 	t.Setenv("NO_COLOR", "")
 
