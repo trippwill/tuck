@@ -17,3 +17,8 @@ jobs:
       - uses: jdx/mise-action@v2
       - run: mise run check
       - run: mise run coverage
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: trippwill/tuck
