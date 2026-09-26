@@ -19,7 +19,7 @@ func rendererFor(cmd *cli.Command) output.Renderer {
 	return output.NewRenderer(output.Options{
 		Format:   format,
 		Color:    colorEnabled(cmd, jsonOutput, root.Writer),
-		ASCII:    asciiOutputEnabled(),
+		ASCII:    asciiOutputEnabled(jsonOutput),
 		ErrColor: colorEnabled(cmd, jsonOutput, root.ErrWriter),
 		Out:      root.Writer,
 		Err:      root.ErrWriter,
@@ -36,8 +36,8 @@ func finish(exitCode output.ExitCode, err error) error {
 	return nil
 }
 
-func asciiOutputEnabled() bool {
-	return os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") != ""
+func asciiOutputEnabled(jsonOutput bool) bool {
+	return !jsonOutput && (os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") != "")
 }
 
 func colorEnabled(cmd *cli.Command, jsonOutput bool, writer io.Writer) bool {

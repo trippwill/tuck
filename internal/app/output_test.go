@@ -16,16 +16,18 @@ func TestASCIIOutputEnabled(t *testing.T) {
 		name      string
 		term      string
 		tuckASCII string
+		json      bool
 		want      bool
 	}{
 		{name: "unicode terminal", term: "xterm-256color"},
 		{name: "dumb terminal", term: "dumb", want: true},
 		{name: "tuck override", term: "xterm-256color", tuckASCII: "1", want: true},
+		{name: "json ignores terminal", term: "dumb", tuckASCII: "1", json: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Setenv("TERM", test.term)
 			t.Setenv("TUCK_ASCII", test.tuckASCII)
-			if got := asciiOutputEnabled(); got != test.want {
+			if got := asciiOutputEnabled(test.json); got != test.want {
 				t.Fatalf("asciiOutputEnabled() = %t, want %t", got, test.want)
 			}
 		})
