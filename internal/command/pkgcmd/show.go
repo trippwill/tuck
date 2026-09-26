@@ -2,7 +2,6 @@ package pkgcmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/trippwill/tuck/internal/command"
@@ -53,7 +52,7 @@ func renderTree(console output.Console, data any) (string, error) {
 		if hasCopyEntry(p.Package.Entries) {
 			fmt.Fprintf(&b, "%s [copy] deploy=copy\n\n", console.Style(output.StyleAccent, "key:"))
 		}
-		writeTree(&b, buildTree(p.Package.Entries), "", !useASCIITree())
+		writeTree(&b, buildTree(p.Package.Entries), "", !console.ASCII)
 		fmt.Fprintln(&b)
 	}
 	fmt.Fprintf(&b, "%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d %s", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))))
@@ -117,10 +116,6 @@ func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, unicode boo
 		fmt.Fprintf(b, "%s%s%s%s\n", prefix, branch, node.name, suffix)
 		writeTree(b, node.children, nextPrefix, unicode)
 	}
-}
-
-func useASCIITree() bool {
-	return os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") != ""
 }
 
 func hasCopyEntry(entries []packages.TreeEntry) bool {
