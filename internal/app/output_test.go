@@ -22,6 +22,7 @@ func TestUseASCIIRendering(t *testing.T) {
 		{name: "unicode terminal", term: "xterm-256color"},
 		{name: "dumb terminal", term: "dumb", want: true},
 		{name: "tuck override", term: "xterm-256color", tuckASCII: "1", want: true},
+		{name: "tuck disabled", term: "xterm-256color", tuckASCII: "0"},
 		{name: "json ignores terminal", term: "dumb", tuckASCII: "1", json: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {

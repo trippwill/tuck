@@ -52,7 +52,11 @@ func renderTree(console output.Console, data any) (string, error) {
 		if hasCopyEntry(p.Package.Entries) {
 			fmt.Fprintf(&b, "%s [copy] deploy=copy\n\n", console.Style(output.StyleAccent, "key:"))
 		}
-		writeTree(&b, buildTree(p.Package.Entries), "", console.ASCII)
+		glyphs := unicodeTreeGlyphs
+		if console.ASCII {
+			glyphs = asciiTreeGlyphs
+		}
+		writeTree(&b, buildTree(p.Package.Entries), "", glyphs)
 		fmt.Fprintln(&b)
 	}
 	fmt.Fprintf(&b, "%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d %s", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))))
@@ -105,11 +109,7 @@ func buildTree(entries []packages.TreeEntry) []*treeNode {
 	return root.children
 }
 
-func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, ascii bool) {
-	glyphs := asciiTreeGlyphs
-	if !ascii {
-		glyphs = unicodeTreeGlyphs
-	}
+func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, glyphs treeGlyphs) {
 	for i, node := range nodes {
 		last := i == len(nodes)-1
 		branch := glyphs.branch
@@ -123,7 +123,7 @@ func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, ascii bool)
 			suffix = " [copy]"
 		}
 		fmt.Fprintf(b, "%s%s%s%s\n", prefix, branch, node.name, suffix)
-		writeTree(b, node.children, nextPrefix, ascii)
+		writeTree(b, node.children, nextPrefix, glyphs)
 	}
 }
 

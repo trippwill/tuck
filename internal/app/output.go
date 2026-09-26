@@ -37,7 +37,7 @@ func finish(exitCode output.ExitCode, err error) error {
 }
 
 func useASCIIRendering(jsonOutput bool) bool {
-	return !jsonOutput && (os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") != "")
+	return !jsonOutput && (os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") == "1")
 }
 
 func colorEnabled(cmd *cli.Command, jsonOutput bool, writer io.Writer) bool {
