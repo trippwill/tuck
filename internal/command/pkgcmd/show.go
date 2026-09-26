@@ -2,6 +2,7 @@ package pkgcmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/trippwill/tuck/internal/command"
@@ -52,7 +53,7 @@ func renderTree(console output.Console, data any) (string, error) {
 		if hasCopyEntry(p.Package.Entries) {
 			fmt.Fprintf(&b, "%s [copy] deploy=copy\n\n", console.Style(output.StyleAccent, "key:"))
 		}
-		writeTree(&b, buildTree(p.Package.Entries), "")
+		writeTree(&b, buildTree(p.Package.Entries), "", !useASCIITree())
 		fmt.Fprintln(&b)
 	}
 	fmt.Fprintf(&b, "%s\n", console.Style(output.StyleMuted, fmt.Sprintf("%d %s", len(p.Package.Entries), entryNoun(len(p.Package.Entries)))))
@@ -93,22 +94,33 @@ func buildTree(entries []packages.TreeEntry) []*treeNode {
 	return root.children
 }
 
-func writeTree(b *strings.Builder, nodes []*treeNode, prefix string) {
+func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, unicode bool) {
 	for i, node := range nodes {
 		last := i == len(nodes)-1
 		branch := "|-- "
 		nextPrefix := prefix + "|   "
+		if unicode {
+			branch = "├── "
+			nextPrefix = prefix + "│   "
+		}
 		if last {
 			branch = "`-- "
 			nextPrefix = prefix + "    "
+			if unicode {
+				branch = "└── "
+			}
 		}
 		suffix := ""
 		if node.deploy == packages.DeployCopy {
 			suffix = " [copy]"
 		}
 		fmt.Fprintf(b, "%s%s%s%s\n", prefix, branch, node.name, suffix)
-		writeTree(b, node.children, nextPrefix)
+		writeTree(b, node.children, nextPrefix, unicode)
 	}
+}
+
+func useASCIITree() bool {
+	return os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") != ""
 }
 
 func hasCopyEntry(entries []packages.TreeEntry) bool {
