@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func TestASCIITreeEnabled(t *testing.T) {
+func TestASCIIOutputEnabled(t *testing.T) {
 	for _, test := range []struct {
 		name      string
 		term      string
@@ -25,8 +25,8 @@ func TestASCIITreeEnabled(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Setenv("TERM", test.term)
 			t.Setenv("TUCK_ASCII", test.tuckASCII)
-			if got := asciiTreeEnabled(); got != test.want {
-				t.Fatalf("asciiTreeEnabled() = %t, want %t", got, test.want)
+			if got := asciiOutputEnabled(); got != test.want {
+				t.Fatalf("asciiOutputEnabled() = %t, want %t", got, test.want)
 			}
 		})
 	}

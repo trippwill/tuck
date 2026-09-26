@@ -19,7 +19,7 @@ func rendererFor(cmd *cli.Command) output.Renderer {
 	return output.NewRenderer(output.Options{
 		Format:   format,
 		Color:    colorEnabled(cmd, jsonOutput, root.Writer),
-		ASCII:    asciiTreeEnabled(),
+		ASCII:    asciiOutputEnabled(),
 		ErrColor: colorEnabled(cmd, jsonOutput, root.ErrWriter),
 		Out:      root.Writer,
 		Err:      root.ErrWriter,
@@ -36,7 +36,7 @@ func finish(exitCode output.ExitCode, err error) error {
 	return nil
 }
 
-func asciiTreeEnabled() bool {
+func asciiOutputEnabled() bool {
 	return os.Getenv("TERM") == "dumb" || os.Getenv("TUCK_ASCII") != ""
 }
 

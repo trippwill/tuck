@@ -94,20 +94,17 @@ func buildTree(entries []packages.TreeEntry) []*treeNode {
 }
 
 func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, unicode bool) {
+	branchGlyph, lastBranchGlyph, continuationGlyph := "|-- ", "`-- ", "|   "
+	if unicode {
+		branchGlyph, lastBranchGlyph, continuationGlyph = "├── ", "└── ", "│   "
+	}
 	for i, node := range nodes {
 		last := i == len(nodes)-1
-		branch := "|-- "
-		nextPrefix := prefix + "|   "
-		if unicode {
-			branch = "├── "
-			nextPrefix = prefix + "│   "
-		}
+		branch := branchGlyph
+		nextPrefix := prefix + continuationGlyph
 		if last {
-			branch = "`-- "
+			branch = lastBranchGlyph
 			nextPrefix = prefix + "    "
-			if unicode {
-				branch = "└── "
-			}
 		}
 		suffix := ""
 		if node.deploy == packages.DeployCopy {
