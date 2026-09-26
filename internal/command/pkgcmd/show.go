@@ -67,14 +67,15 @@ type treeNode struct {
 }
 
 type treeGlyphs struct {
-	branch       string
-	lastBranch   string
-	continuation string
+	branch           string
+	lastBranch       string
+	continuation     string
+	lastContinuation string
 }
 
 var (
-	asciiTreeGlyphs   = treeGlyphs{branch: "|-- ", lastBranch: "`-- ", continuation: "|   "}
-	unicodeTreeGlyphs = treeGlyphs{branch: "├── ", lastBranch: "└── ", continuation: "│   "}
+	asciiTreeGlyphs   = treeGlyphs{branch: "|-- ", lastBranch: "`-- ", continuation: "|   ", lastContinuation: "    "}
+	unicodeTreeGlyphs = treeGlyphs{branch: "├── ", lastBranch: "└── ", continuation: "│   ", lastContinuation: "    "}
 )
 
 func buildTree(entries []packages.TreeEntry) []*treeNode {
@@ -115,7 +116,7 @@ func writeTree(b *strings.Builder, nodes []*treeNode, prefix string, ascii bool)
 		nextPrefix := prefix + glyphs.continuation
 		if last {
 			branch = glyphs.lastBranch
-			nextPrefix = prefix + "    "
+			nextPrefix = prefix + glyphs.lastContinuation
 		}
 		suffix := ""
 		if node.deploy == packages.DeployCopy {
