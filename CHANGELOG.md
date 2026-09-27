@@ -4,6 +4,8 @@ All notable changes to tuck are tracked here.
 
 ## Unreleased
 
+- Include `deploy` and `mode` metadata for copy-deploy entries in `package show --json` (#15).
+
 ## v0.1.1-beta.1
 
 - Render `package show` output as an ASCII tree for easier package review (#6).
