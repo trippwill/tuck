@@ -911,13 +911,18 @@ Emitted by `package show`:
       "root": "/home/me/.dotfiles/zsh",
       "entries": [
         { "rel": ".config/zsh", "type": "dir" },
-        { "rel": ".config/zsh/.zshrc", "type": "leaf" }
+        { "rel": ".config/zsh/.zshrc", "type": "leaf" },
+        { "rel": ".config/zsh/secrets", "type": "leaf", "deploy": "copy", "mode": "0600" }
       ]
     }
   },
   "exitCode": 0
 }
 ```
+
+Leaf entries include `deploy` only for non-default deploy strategies (currently
+`"copy"`), and `mode` only when an explicit copied-file mode is configured.
+Default symlink entries and directory entries omit both fields.
 
 #### 9.2.4 `kind: "status"`
 

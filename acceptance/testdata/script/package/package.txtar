@@ -441,8 +441,8 @@ stdout '`-- \.config'
 stdout '    `-- app'
 stdout '        `-- config \[copy\]'
 exec tuck --json pkg show app
-stdout '"rel":".config/app/config"'
-! stdout '"deploy"'
+stdout '"rel":".config/app/config","type":"leaf","deploy":"copy","mode":"0600"'
+stdout '"rel":".config/app","type":"dir"}'
 ! stderr .
 
 # package show aliases and root context use the selected package base
