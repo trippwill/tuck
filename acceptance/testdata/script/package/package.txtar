@@ -571,6 +571,7 @@ stdout '"exitCode":0'
 phase package-status-summary fixtures/package/common/public-only fixtures/package/common/zsh-config fixtures/package/common/git-home fixtures/package/common/hidden-root
 wantstate public public $WORK/src true
 exec tuck pkg status --no-color
+cp stdout summary.want
 stdout 'tuck package status'
 stdout 'public:home:git'
 stdout 'public:home:zsh'
@@ -580,12 +581,25 @@ stdout '.gitconfig'
 stdout '.config/zsh/.zshrc'
 stdout '2 entries'
 ! stderr .
+exec tuck pkg stat --all --no-color
+cp stdout summary.got
+cmp summary.got summary.want
+! stderr .
+exec tuck --json pkg status
+cp stdout summary.json.want
+exec tuck --json pkg stat --all
+cp stdout summary.json.got
+cmp summary.json.got summary.json.want
+! stderr .
 
-# package status rejects too many refs
+# package status rejects too many refs and --all with a ref
 phase package-status-usage fixtures/package/common/public-only
 wantstate public public $WORK/src true
 ! exec tuck pkg status one two --no-color
 stderr 'accepts at most one'
+! exec tuck pkg status zsh --all --no-color
+stderr 'accepts a package ref or --all, not both'
+! stdout .
 
 # package drop dry-run prints an unlink plan and does not mutate
 phase package-drop-dry-run fixtures/package/common/public-only fixtures/package/common/zsh-config

@@ -71,6 +71,7 @@ tuck package refresh <package-ref>...
 tuck package list
 tuck package show    <package-ref>
 tuck package status  [package-ref]
+tuck package status  --all
 
 # Source operations
 tuck source add     <path> [--id <id>] [--default]
@@ -587,7 +588,7 @@ tuck [--json] package show [--source <id>] [--root] <package-ref>
 ### 7.9 `package status`
 
 ```text
-tuck [--json] package status [--source <id>] [--root] [package-ref]
+tuck [--json] package status [--source <id>] [--root] [package-ref|--all]
 ```
 
 - **With `<package-ref>`:** resolve the package and report each leaf entry as
@@ -595,6 +596,8 @@ tuck [--json] package status [--source <id>] [--root] [package-ref]
   `copy_missing`, `copy_source_modified`, `copy_target_modified`, or
   `copy_drift`.
 - **Without a ref:** summarize every package in the active source/context.
+- **`--all`:** explicit alias for the no-ref summary; it cannot be combined with
+  a package ref.
 - **Execution:** read-only. Reported conflicts in the body do not make the
   command fail; it exits `0` when the query succeeds.
 - **Aliases:** `package stat`, `pkg status`, `pkg stat`.

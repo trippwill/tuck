@@ -42,6 +42,7 @@ type RefreshRequest struct {
 
 type StatusRequest struct {
 	Ref      string
+	All      bool
 	SourceID string
 	Context  string
 }
@@ -84,6 +85,13 @@ func Refresh(req RefreshRequest) output.Outcome {
 }
 
 func Status(req StatusRequest) output.Outcome {
+	if req.All && req.Ref != "" {
+		return output.OK(output.InvalidArgs(
+			"package status accepts a package ref or --all, not both",
+			"choose a package ref or --all",
+		))
+	}
+
 	result, err := statuspkg.Package(req.Ref, statuspkg.Options{
 		SourceID: req.SourceID,
 		Context:  req.Context,
