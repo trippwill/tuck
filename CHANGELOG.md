@@ -4,6 +4,10 @@ All notable changes to tuck are tracked here.
 
 ## Unreleased
 
+## v0.1.1-beta.2
+
+- Render package trees with Unicode by default, with ASCII output for dumb terminals.
+- Let `package status --all` explicitly show all eligible packages.
 - Include `deploy` and `mode` metadata for copy-deploy entries in `package show --json` (#15).
 
 ## v0.1.1-beta.1
