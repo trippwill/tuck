@@ -84,6 +84,7 @@ func packageCommand() *cli.Command {
 					optionalStringArgs("package", "[package]"),
 				},
 				OnUsageError:  commandUsageError,
+				Flags:         []cli.Flag{&cli.BoolFlag{Name: "all", Usage: "report all packages in the active source"}},
 				ShellComplete: completeFirstPackage,
 				Action:        packageStatusAction,
 			},
@@ -229,6 +230,7 @@ func packageStatusAction(_ context.Context, cmd *cli.Command) error {
 	contextName := contextFromFlag(cmd)
 	outcome := pkgcmd.Status(pkgcmd.StatusRequest{
 		Ref:      ref,
+		All:      cmd.Bool("all"),
 		SourceID: cmd.String("source"),
 		Context:  contextName,
 	})
