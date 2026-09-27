@@ -199,7 +199,7 @@ warn before ignoring it; mutation flags remain command-local.
 | `--id <id>` | | `source add` | Machine-local source id override. Does not rewrite `.tuck.toml`. |
 | `--name <id>` | | `source init`, `source add --init` | Manifest source id to write. Defaults to the path basename. |
 | `--description <text>` | | `source init`, `source add --init` | Optional manifest description to write. |
-| `--all` | | `package use` | Use every package in the active source/context. |
+| `--all` | | `package use`, `package status` | Use every package in the active source/context, or explicitly summarize every package for read-only status. |
 
 Domain commands are `adopt`, `eject`, `status`, and all `package` subcommands.
 Mutating target-tree commands are `adopt`, `eject`, `package use`,
